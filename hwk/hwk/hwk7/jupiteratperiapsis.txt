@@ -1,0 +1,57 @@
+******  Changes made to the mission will not be reflected ******
+******  in the data displayed until the mission is rerun  ******
+
+        Report Command: Report1
+        Spacecraft       : Cassini
+        Coordinate System: JupiterInertial
+
+        Time System   Gregorian                     Modified Julian  
+        ----------------------------------------------------------------------    
+        UTC Epoch:    01 Jan 2001 11:41:15.328      21910.9869829623
+        TAI Epoch:    01 Jan 2001 11:41:47.328      21910.9873533327
+        TT  Epoch:    01 Jan 2001 11:42:19.512      21910.9877258327
+        TDB Epoch:    01 Jan 2001 11:42:19.512      21910.9877258321
+
+        Cartesian State                       Keplerian State
+        ---------------------------           -------------------------------- 
+        X  =   6518151.3841415 km             SMA  =  -1200815.4031911 km
+        Y  =  -7452789.6768036 km             ECC  =   9.2452984565579
+        Z  =   32268.698406822 km             INC  =   3.7380464513307 deg
+        VX =   8.6025631957524 km/sec         RAAN =   134.03202358750 deg
+        VY =   7.5205060546692 km/sec         AOP  =   177.13457811943 deg
+        VZ =  -0.7455929179437 km/sec         TA   =   360.00000000000 deg
+                                              MA   =  -0.0000000000001 deg
+                                              HA   =  -0.0000000000000 deg
+
+        Spherical State                       Other Orbit Data
+        ---------------------------           --------------------------------
+        RMAG =   9901081.3905428 km           Mean Motion        =   8.554523302e-06 deg/sec
+        RA   =  -48.827312368429 deg          Orbit Energy       =   52.761135275690 km^2/s^2
+        DEC  =   0.1867334919503 deg          C3                 =   105.52227055138 km^2/s^2
+        VMAG =   11.450677432122 km/s         Semilatus Rectum   =   158037499104.93 km   
+        AZI  =   93.733386028649 deg          Angular Momentum   =   113374089.23230 km^2/s
+        VFPA =   90.000000000012 deg          Beta Angle         =  -24.574978454429 deg  
+        RAV  =   41.160502872062 deg          Periapsis Altitude =   9829589.3905428 km   
+        DECV =  -3.7333661728692 deg          VelPeriapsis       =   11.450677432122 km/s
+
+        Planetodetic Properties               Hyperbolic Parameters
+        ---------------------------           --------------------------------
+        LST       =   311.17276905232 deg     BdotT          =   11036177.840253 km   
+        MHA       =   290.67585903546 deg     BdotR          =  -113725.39068848 km   
+        Latitude  =   0.1868546743524 deg     B Vector Angle =  -0.5903995366913 deg  
+        Longitude =   20.496910016860 deg     B Vector Mag   =   11036763.782295 km   
+        Altitude  =   9829589.4382273 km      DLA            =  -3.7316726630102 deg  
+                                              RLA            =   47.383151135765 deg  
+
+
+        Spacecraft Properties 
+        ------------------------------
+        Cd                    =   2.200000
+        Drag area             =   15.00000 m^2
+        Cr                    =   1.800000
+        Reflective (SRP) area =   1.000000 m^2
+        Dry mass              =   850.00000000000 kg
+        Total mass            =   850.00000000000 kg
+        SPADDragScaleFactor   =   1.000000
+        SPADSRPScaleFactor    =   1.000000
+

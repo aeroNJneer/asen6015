@@ -1,0 +1,72 @@
+******  Changes made to the mission will not be reflected ******
+******  in the data displayed until the mission is rerun  ******
+
+        Maneuver Command: Maneuver2
+        Spacecraft       : DefaultSC
+        Coordinate System: SunInertial
+
+        Time System   Gregorian                     Modified Julian  
+        ----------------------------------------------------------------------    
+        UTC Epoch:    20 Jul 2023 23:58:50.815      30146.4991992420
+        TAI Epoch:    20 Jul 2023 23:59:27.815      30146.4996274828
+        TT  Epoch:    20 Jul 2023 23:59:59.999      30146.4999999828
+        TDB Epoch:    20 Jul 2023 23:59:59.998      30146.4999999778
+
+        Cartesian State                       Keplerian State
+        ---------------------------           -------------------------------- 
+        X  =   24545589.608646 km             SMA  =   108209503.02383 km
+        Y  =  -96118999.660779 km             ECC  =   0.0067573742001
+        Z  =  -44802773.253960 km             INC  =   24.436447491021 deg
+        VX =   33.882658112021 km/sec         RAAN =   8.0038386027936 deg
+        VY =   7.8729301517276 km/sec         AOP  =   124.18286413901 deg
+        VZ =   1.3988021526964 km/sec         TA   =   151.57629527210 deg
+                                              MA   =   151.20607089935 deg
+                                              EA   =   151.39145624479 deg
+
+        Spherical State                       Other Orbit Data
+        ---------------------------           --------------------------------
+        RMAG =   108851442.60078 km           Mean Motion        =   3.236366621e-07 deg/sec
+        RA   =  -75.674723508077 deg          Orbit Energy       =  -613.21989432281 km^2/s^2
+        DEC  =  -24.305106470675 deg          C3                 =  -1226.4397886456 km^2/s^2
+        VMAG =   34.813419788530 km/s         Semilatus Rectum   =   2036592585.2145 km   
+        AZI  =   87.389323366865 deg          Angular Momentum   =   3789471128.9922 km^2/s
+        VFPA =   89.814611068846 deg          Beta Angle         =   0.0000000000000 deg  
+        RAV  =   13.081051462121 deg          Periapsis Altitude =   106782300.91988 km   
+        DECV =   2.3027625773068 deg          VelPeriapsis       =   35.258014400479 km/s
+                                              VelApoapsis        =   34.784709505052 km/s 
+                                              Orbit Period       =   19414318.717426 s    
+
+        Planetodetic Properties 
+        ---------------------------
+        LST       =   268.35445152498 deg
+        MHA       =   51.216599682957 deg
+        Latitude  =   1.8134796530238 deg
+        Longitude =  -142.86214815797 deg
+        Altitude  =   108155452.60078 km
+
+
+        Spacecraft Properties 
+        ------------------------------
+        Cd                    =   2.200000
+        Drag area             =   15.00000 m^2
+        Cr                    =   1.800000
+        Reflective (SRP) area =   1.000000 m^2
+        Dry mass              =   850.00000000000 kg
+        Total mass            =   850.00000000000 kg
+        SPADDragScaleFactor   =   1.000000
+        SPADSRPScaleFactor    =   1.000000
+
+
+
+        Maneuver Summary
+        -----------------
+        Impulsive Burn:     DV2
+        Spacecraft:         DefaultSC
+        Coordinate System:  SunInertial
+        Delta V Vector:
+           Element 1:    3.6255668000000 km/s
+           Element 2:   -10.347740300000 km/s
+           Element 3:   -7.3314396000000 km/s
+
+        No mass depletion
+

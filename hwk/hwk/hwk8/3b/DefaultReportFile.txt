@@ -1,0 +1,2 @@
+DefaultSC.UTCModJulian    DefaultSC.Earth.SMA       DefaultSC.Earth.ECC       DefaultSC.EarthMJ2000Eq.INC   DefaultSC.EarthMJ2000Eq.AOP   DefaultSC.EarthMJ2000Eq.RAAN   
+28857.48148148148         7500.4341578799           0.02939198559266601       14.93433737645786             90.70663777659904             348.9700216485675              
