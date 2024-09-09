@@ -1,13 +1,13 @@
 clear
 syms t
-k=398600
-dt=10
-r=6678
-w=sqrt(k/(r^3))
+k=398600;
+dt=10;
+r=6678;
+w=sqrt(k/(r^3));
 
 x0=[r+10;-.5;0;w+2.5e-5]; % perturbation initial conditions
 
-tspan = 0:10:6000 % sample every 10 seconds
+tspan = 0:10:6000; % sample every 10 seconds
 opts = odeset('RelTol',1e-32,'AbsTol',1e-32);
 [t,y] = ode45(@(t,y) myfunc(t,y,k), tspan, x0, opts);
 

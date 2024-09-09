@@ -32,7 +32,6 @@ Rjupiter = 71492;
 Rvenus = 6052.0;
 Rearth = 6371;
 
-
 AofEarthHelio = 1.0000010178;
 AofSaturnHelio = 9.554909595;
 AofJupiterHelio = 5.202603191;
@@ -179,7 +178,7 @@ ecchfromArp = @(a,rp) 1-(rp/a);
 delta = @(e) 2*asind(1/e);
 
 % perturbations
-muFromPa = @(period,a)  (4*pi^2*a^3)/(period^2);
+muFromPa = @(period,a) (4*pi^2*a^3)/(period^2);
 J2 = @(mu,a,e,i,R,delRaan) (-2*delRaan*(1-e^2)^2*a^(7/2))/(3*sqrt(mu)*R^2*cosd(i));
 iFromJ2 = @(mu,a,e,R,delRaan,J2) acosd((delRaan*(-2/3)*(1-e^2)^2*a^(7/2))/(sqrt(mu)*J2*R^2));
 
@@ -204,3 +203,62 @@ rendezvous_vr = @(n,t) [3*n*sin(n*t) 0 0;
 rendezvous_vv = @(n,t) [cos(n*t) 2*sin(n*t) 0;
     -2*sin(n*t) 4*cos(n*t)-3 0;
     0 0 cos(n*t)];
+
+
+function [a,e,i,Raan,argument_of_periapsis,true_anomaly] = ECI2classical(position,velocity,mu)
+%this function converts position and velocity in ECI coordinate to for a
+%given eliptical orbit. Position and velocity must be given as row vector. 
+%classical orbital elements [a,e,i,omega,argument_of_perigee,true_anomaly]
+
+r = norm(position);   % scalar norm of positon 
+v = norm(velocity);  % scalar norm of velocity 
+
+H = cross(position,velocity);    % vector H
+h = norm(H);           %scalar norm of H
+
+a = 1/(-v^2/mu + 2/r);
+p = h^2/mu;
+
+e_vec  = 1/mu*(cross(velocity,H)-mu*position/r);  % eccentricity vector 
+e= norm(e_vec);  %eccentricity 
+
+u_H  = H/h;  %unit vector in H direction 
+u_e = e_vec/e; %unit vector in e direction 
+u_m = cross(u_H,u_e);
+
+i = acos(u_H(3));
+% argument_of_perigee= atan(u_H(1)/u_m(3));
+
+% line of nodes
+n = cross([0 0 1],H);
+n = n/norm(n);
+
+if dot(position,velocity) > 0
+    true_anomaly = acos(dot(u_e,position/norm(position)));
+else 
+   true_anomaly = 2*pi-acos(dot(u_e,position/norm(position)));
+end
+
+argument_of_periapsis = acos(dot(n,u_e));
+if e_vec(3)>0
+    argument_of_periapsis = acos(dot(n,u_e));
+else 
+    if acos(dot(n,u_e))>0   
+         argument_of_periapsis = 2*pi()-acos(dot(n,u_e));
+    end
+end
+
+if  n(1)<0 & n(2)<0
+    Raan = atan(n(2)/n(1))+pi;
+elseif n(1)<0 & n(2)>0;
+    Raan = atan(n(2)/n(1))+pi;
+elseif n(2)<0 & n(1)>0;
+    Raan = atan(n(2)/n(1))+2*pi;
+else 
+    Raan = atan(n(2)/n(1));
+end
+
+% classical= [a,e,i*180/pi,Raan*180/pi,argument_of_periapsis*180/pi,true_anomaly*180/pi]
+
+end
+
