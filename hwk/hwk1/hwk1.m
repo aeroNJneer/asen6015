@@ -1,6 +1,8 @@
 clear
 close all
 init;
+
+u = [0;0];
 error = 1; % degree in r_hat direction
 % problem 3 - Hohmann transfer
 r1 = 200 + Rearth;
@@ -119,15 +121,19 @@ k=Gearth;
 w=sqrt(k/(r1^3));
 x0=[r1;0;0;w+(dv1/r1)]; % initial conditions
 
+
+
 % transfer orbit (burn 1)
 tspan = linspace(0,Tof,1000);
 opts = odeset('RelTol',1e-32,'AbsTol',1e-32);
-[t,y] = ode45(@(t,y) myfunc(t,y,k), tspan, x0, opts);
+[t,y] = ode45(@(t,y) myfunc(t,y), tspan, x0, opts);
 
 % final orbit (burn 2)
 tspan = linspace(0,Tf,1000);
 xf = [y(1000,1), y(1000,2),y(1000,3),y(1000,4)+(dv2/y(1000,1))];
-[tf,yf] = ode45(@(t,y) myfunc(t,y,k), tspan, xf, opts);
+[tf,yf] = ode45(@(t,y) myfunc(t,y), tspan, xf, opts);
+
+
 
 figure(3);
 s=stackedplot(t, y);
@@ -141,17 +147,23 @@ figure(4);
 plot(y(:,1).*sin(y(:,3)),y(:,1).*cos(y(:,3)),yf(:,1).*sin(yf(:,3)),yf(:,1).*cos(yf(:,3)))
 title('Transfer and Final Orbit')
 
+X0 = [x0; xf]
+tspan = linspace(0,Tf,1000);
+xf = [y(1000,1), y(1000,2),y(1000,3),y(1000,4)+(dv2/y(1000,1))];
+[tf,y9999] = ode45(@(t,y) myfunc(y,u), tspan, xf, opts);
+
+
 % Simulate ERROR CONDITIONS
 
 % transfer orbit (burn 1)
 tspan = linspace(0,Tof,1000);
 x1e=[r1;dv1*sind(error);0;w+(dv1*cosd(error)/r1)]; % initial conditions
-[t,y1e] = ode45(@(t,y) myfunc(t,y,k), tspan, x1e, opts);
+[t,y1e] = ode45(@(t,y) myfunc(y,u), tspan, x1e, opts);
 
 % final orbit (burn2)
 tspan = linspace(0,Tf,1000);
 x2e=[y1e(1000,1);y1e(1000,2) + (dv2*sind(error));y1e(1000,3);y(1000,4)+(dv2*cosd(error)/y1e(1000,1))]; % initial conditions
-[t,y2e] = ode45(@(t,y) myfunc(t,y,k), tspan, x2e, opts);
+[t,y2e] = ode45(@(t,y) myfunc(y,u), tspan, x2e, opts);
 
 figure(6);
 
@@ -175,6 +187,18 @@ s.DisplayLabels={'Radial Position (km)', 'Radial Velocity (km/sec)', 'Angular Po
 ax = findobj(s.NodeChildren, 'Type','Axes');
 set([ax.YLabel],'Rotation',90,'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Bottom')
 title('Delta from Nominal States - Final Orbit');
+% 
+% 
+% u = [0;0]
+% 
+% % Define nonlinear model as anonymous function
+% % 
+% % Define wrapper function for use in ODE45
+% myfunc = @(t, x) xdot(x,u);
+% % Compute total state using ODE45
+% options = odeset('RelTol', 1e-12); % Set ODE45 options
+% [tout, xnl] = ode45(myfunc, t, X0, options);
+% xnl = xnl'; % Take transpose so that dimensions match with xnom
 
 
 %% Sensitivity study
@@ -192,12 +216,12 @@ error = deg2rad(0.1);  % -0.3
 % transfer orbit (burn 1)
 tspan = linspace(0,Tof,1000);
 x1ee=[r1;dv1*sind(error);0;w+(dv1*cosd(error)/r1)]; % initial conditions
-[t,y1ee] = ode45(@(t,y) myfunc(t,y,k), tspan, x1ee, opts);
+[t,y1ee] = ode45(@(t,y) myfunc(y,u), tspan, x1ee, opts);
 
 % final orbit (burn2)
 tspan = linspace(0,Tf,1000);
 x2ee=[y1e(1000,1);y1e(1000,2) + (dv2*sind(error));y1e(1000,3);y(1000,4)+(dv2*cosd(error)/y1e(1000,1))]; % initial conditions
-[t,y2ee] = ode45(@(t,y) myfunc(t,y,k), tspan, x2ee, opts);
+[t,y2ee] = ode45(@(t,y) myfunc(y,u), tspan, x2ee, opts);
 
 YY = mean(y2ee-yf)
 
@@ -206,12 +230,14 @@ Ve3 = sqrt(var(y2ee))
 
 
 %% functions
-function dy=myfunc(t,y,a)
+function dy=myfunc(t,y,u)
+init;
+a = Gearth;
     dy=zeros(4,1);
     dy(1)=y(2);
-    dy(2)=y(1).*(y(4)^2)-(a./(y(1)^2));
+    dy(2)=y(1).*(y(4)^2)-(a./(y(1)^2))+u(:,1);
     dy(3)=y(4);
-    dy(4)=(-2.*y(2).*(y(4))./y(1));
+    dy(4)=(-2.*y(2).*(y(4))./y(1))+u(:,2);
 end
 
 function [x,y] = circularOrbit(mu,r)
@@ -222,3 +248,41 @@ init
     x = r * sin(n.*t);
     y = r * cos(n.*t);
 end
+
+% 
+% 
+% % Define nonlinear model as anonymous function
+% pert = [0, 0.075, 0, -0.021]'; % perturbation 
+% xdot = @(x, u) [x(2);
+%     -mu*x(1)/sqrt((x(1)^2+x(3)^2)^3) + u(1);
+%     x(4);
+%     -mu*x(3)/sqrt((x(1)^2+x(3)^2)^3) + u(2)];
+% % Define initial total state
+% X0 = [x0, x0dot, y0, y0dot]' +  pert; 
+% % 
+% % Define wrapper function for use in ODE45
+% myfunc = @(t, x) xdot(x, [0; 0]);
+% % Compute total state using ODE45
+% options = odeset('RelTol', 1e-12); % Set ODE45 options
+% [tout, xnl] = ode45(myfunc, t, X0, options);
+% xnl = xnl'; % Take transpose so that dimensions match with xnom
+% 
+% % % linearized nominal simulation
+% % Define nominal state and control input over time
+% dx = zeros(4, length(t)); % Perturbation state vector
+% theta = omega * t;
+% xnom = r0*cos(omega * t);
+% ynom = r0*sin(omega * t);
+% xdotnom = -r0 * omega * sin(omega * t);
+% ydotnom = r0 * omega * cos(omega * t);
+% 
+% u = zeros(2, length(t));
+% % Initialize perturbation state
+% dx(:, 1) = [0, 0.075, 0, -0.021]';
+% % Compute perturbation states over time
+% for i = 2:length(t)
+%     dx(:, i) = F*dx(:, i - 1) + G*u(:, i); % need to pass in r and t to Atilde...
+% end
+% 
+% % Compute total states over time
+% x = xnom + dx;

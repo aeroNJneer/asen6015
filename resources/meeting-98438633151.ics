@@ -1,0 +1,62 @@
+BEGIN:VCALENDAR
+PRODID:-//zoom.us//iCalendar Event//EN
+VERSION:2.0
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+CLASS:PUBLIC
+BEGIN:VTIMEZONE
+TZID:America/Denver
+LAST-MODIFIED:20240422T053451Z
+TZURL:https://www.tzurl.org/zoneinfo-outlook/America/Denver
+X-LIC-LOCATION:America/Denver
+BEGIN:DAYLIGHT
+TZNAME:MDT
+TZOFFSETFROM:-0700
+TZOFFSETTO:-0600
+DTSTART:19700308T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZNAME:MST
+TZOFFSETFROM:-0600
+TZOFFSETTO:-0700
+DTSTART:19701101T020000
+RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTAMP:20240909T172644Z
+DTSTART;TZID=America/Denver:20240909T130000
+DTEND;TZID=America/Denver:20240909T140000
+SUMMARY:6015 Office Hours
+RRULE:FREQ=WEEKLY;WKST=SU;UNTIL=20241209T210000Z;INTERVAL=1;BYDAY=MO
+UID:ZOOM98438633151@zoom.us
+TZID:America/Denver
+DESCRIPTION:Jay McMahon is inviting you to a scheduled Zoom meeting.\n\nJ
+ oin Zoom Meeting\nhttps://cuboulder.zoom.us/j/98438633151\n\nMeeting ID:
+  984 3863 3151\n\n---\n\nOne tap mobile\n+16699006833\,\,98438633151# US
+  (San Jose)\n+16694449171\,\,98438633151# US\n\n---\n\nDial by your loca
+ tion\n• +1 669 900 6833 US (San Jose)\n• +1 669 444 9171 US\n• +1 253 21
+ 5 8782 US (Tacoma)\n• +1 346 248 7799 US (Houston)\n• +1 719 359 4580 US
+ \n• +1 253 205 0468 US\n• +1 689 278 1000 US\n• +1 301 715 8592 US (Wash
+ ington DC)\n• +1 305 224 1968 US\n• +1 309 205 3325 US\n• +1 312 626 679
+ 9 US (Chicago)\n• +1 360 209 5623 US\n• +1 386 347 5053 US\n• +1 507 473
+  4847 US\n• +1 564 217 2000 US\n• +1 646 558 8656 US (New York)\n• +1 64
+ 6 931 3860 US\n\nMeeting ID: 984 3863 3151\n\nFind your local number: ht
+ tps://cuboulder.zoom.us/u/abdepnHPJh\n\n---\n\nJoin by SIP\n• 9843863315
+ 1@zoomcrc.com\n\n---\n\nJoin by H.323\n• 162.255.37.11 (US West)\n• 162.
+ 255.36.11 (US East)\n• 115.114.131.7 (India Mumbai)\n• 115.114.115.7 (In
+ dia Hyderabad)\n• 213.19.144.110 (Amsterdam Netherlands)\n• 213.244.140.
+ 110 (Germany)\n• 103.122.166.55 (Australia Sydney)\n• 103.122.167.55 (Au
+ stralia Melbourne)\n• 149.137.40.110 (Singapore)\n• 64.211.144.160 (Braz
+ il)\n• 159.124.132.243 (Mexico)\n• 159.124.168.213 (Canada Toronto)\n• 6
+ 5.39.152.160 (Canada Vancouver)\n• 207.226.132.110 (Japan Tokyo)\n• 149.
+ 137.24.110 (Japan Osaka)\n\nMeeting ID: 984 3863 3151\n\n
+LOCATION:https://cuboulder.zoom.us/j/98438633151
+BEGIN:VALARM
+TRIGGER:-PT10M
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+END:VALARM
+END:VEVENT
+END:VCALENDAR
