@@ -14,13 +14,13 @@ y0dot = r0 * sqrt(mu/r0^3);
 omega = sqrt(mu/r0^3); % angular velocity of satellite
 % Atilde is time varying so need to create paramaterized variable.... 
 % -- pass in r and t (r0 for nominal)
-% Atilde = [0 1 0 0; 
-%     mu*(2*(cos(omega*t))^2-(sin(omega*t))^2)/r^3 0 3*mu*sin(omega*t)*cos(omega*t)/r^3 0;
-%     0 0 0 1;
-%     3*mu*sin(omega*t)*cos(omega*t)/r^3 0 mu*(2*(sin(omega*t)^2 -(cos(omega*t))^2))/r^3 0];
+Atilde = @(r,t) [0 1 0 0; 
+    mu*(2*(cos(omega*t))^2-(sin(omega*t))^2)/r^3 0 3*mu*sin(omega*t)*cos(omega*t)/r^3 0;
+    0 0 0 1;
+    3*mu*sin(omega*t)*cos(omega*t)/r^3 0 mu*(2*(sin(omega*t)^2 -(cos(omega*t))^2))/r^3 0];
 A0 = [0 1 0 0 ; 2*mu/r0^3 0 0 0 ; 0 0 0 1; 0 0 -mu/r0^3 0];
 B = [0 0; 1 0; 0 0; 0 1];
-F = eye(4) + Atilde*dt; % pass in r and t to Atilde... 
+F = eye(4) + Atilde(r0,0)*dt; % pass in r and t to Atilde... 
 G = dt * B; 
 
 % Define nonlinear model as anonymous function
