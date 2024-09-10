@@ -129,6 +129,14 @@ tspan = linspace(0,Tf,1000);
 xf = [y(1000,1), y(1000,2),y(1000,3),y(1000,4)+(dv2/y(1000,1))];
 [tf,yf] = ode45(@(t,y) myfunc(t,y,k), tspan, xf, opts);
 
+
+% %%% TRY TO START W/ MULTIPLE XO'S
+% tspan = linspace(0,Tf,1000);
+% X0 = [x0 ; xf];
+% [tf,y999] = ode45(@(t,y) myfunc(t,y,k), tspan, xf, opts);
+% 
+
+
 figure(3);
 s=stackedplot(t, y);
 xlabel('Time t (s)');

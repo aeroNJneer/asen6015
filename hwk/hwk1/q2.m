@@ -11,6 +11,9 @@ h = HfromP(mu,p);
 r = RfromP(p,e,TA);
 k = 0.1;
 M = 0;
+u_rv = [0 0; 1 0; 0 0 ; 0 1];
+u_coe = 
+
 X = [a; e; i; raan; w; n];
 Xd = [a+100; e+0.01; i+deg2rad(5); raan + deg2rad(10); w+deg2rad(15); M+deg2rad(20)]
 A = zeros(6,6);
