@@ -74,7 +74,7 @@ xf = [y(1000,1), y(1000,2),y(1000,3),y(1000,4)+(dv2/y(1000,1))];
 [tf,yf] = ode45(@(t,y) myfunc(t,y), tspan, xf, opts);
 
 
-figure(3);
+figure(2);
 s=stackedplot(t, y);
 xlabel('Time t (s)');
 s.DisplayLabels={'Radial Position (km)', 'Radial Velocity (km/sec)', 'Angular Position (rad)', 'Angular Velocity (rad/sec)'};
@@ -87,7 +87,6 @@ title('Ideal Nonlinear State Change After Burn 1 vs. Time (ode45)');
 % transfer orbit (burn 1)
 tspan = linspace(0,Tof,1000);
 trOrbitError=[r1;dv1*sin(dverror);0;(w+dv1*cos(dverror)/r1)]; % initial conditions
-x1e=[r1;dv1*sind(error);0;w+(dv1*cosd(error)/r1)];
 [t,trError] = ode45(@(t,y) myfunc(t,y), tspan, trOrbitError, opts);
 
 % final orbit (burn2)
@@ -96,13 +95,13 @@ tspan = linspace(0,Tf,1000);
 fOrbitError=[trError(1000,1);trError(1000,2)+ dv2*sin(dverror); trError(1000,3); trError(1000,4)+(dv2*cos(dverror)/trError(1000,1))]; % initial conditions
 [t,fError] = ode45(@(t,y) myfunc(t,y), tspan, fOrbitError, opts);
 
-figure(6);
+figure(3);
 
 plot(Rx1',Ry1',y(:,1).*sin(y(:,3)),y(:,1).*cos(y(:,3)),yf(:,1).*sin(yf(:,3)),yf(:,1).*cos(yf(:,3)),trError(:,1).*sin(trError(:,3)),trError(:,1).*cos(trError(:,3)),trError(:,1).*sin(fError(:,3)),fError(:,1).*cos(fError(:,3)))
 title('Hohmann Transfer with and without thrust error')
 legend("initial orbit", "transfer orbit", "final orbit", "transfer orbit w/error", "final orbit w/error")
 
-figure(7);
+figure(4);
 s=stackedplot(t, y-trError);
 xlabel('Time t (s)');
 s.DisplayLabels={'Radial Position (km)', 'Radial Velocity (km/sec)', 'Angular Position (rad)', 'Angular Velocity (rad/sec)'};
@@ -111,7 +110,7 @@ set([ax.YLabel],'Rotation',90,'HorizontalAlignment', 'Center', 'VerticalAlignmen
 title('Delta from Nominal States Transfer Orbit');
 
 
-figure(8);
+figure(5);
 s=stackedplot(t, yf-fError);
 xlabel('Time t (s)');
 s.DisplayLabels={'Radial Position (km)', 'Radial Velocity (km/sec)', 'Angular Position (rad)', 'Angular Velocity (rad/sec)'};

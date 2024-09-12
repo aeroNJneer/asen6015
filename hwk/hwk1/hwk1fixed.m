@@ -66,7 +66,7 @@ x0=[r1;0;0;w+(dv1/r1)]; % initial conditions
 
 % transfer orbit (burn 1)
 tspan = linspace(0,Tof,1000);
-opts = odeset('RelTol',1e-32,'AbsTol',1e-32);
+opts = odeset('RelTol',1e-15,'AbsTol',1e-15);
 [t,y] = ode45(@(t,y) myfunc(t,y,k), tspan, x0, opts);
 
 % final orbit (burn 2) using output from previous ode
@@ -140,12 +140,26 @@ tspan = linspace(0,Tf,1000);
 x2ee=[y1e(1000,1);y1e(1000,2) + (dv2*sind(ddv));y1e(1000,3);y(1000,4)+(dv2*cosd(ddv)/y1e(1000,1))]; % initial conditions
 [t,y2ee] = ode45(@(t,y) myfunc(t,y,k), tspan, x2ee, opts);
 
-YY = mean(y2ee-yf)
+YY = mean(y2ee-yf);
 
-Vi = sqrt(var(y2e))
-Ve3 = sqrt(var(y2ee))
+Vi = sqrt(var(y2e));
+Ve3 = sqrt(var(y2ee));
 
+%%%%%
 
+totalt = int32(Tf);
+dt = 1;
+t = 0:dt:totalt;
+u = zeros(totalt,2);
+u(1,2) = dv1;
+u(int32(Tof),2) = dv2;
+
+tspan = linspace(0,1,11);
+xx=[r1;0;0;w+(dv1/r1)]; % initial conditions
+for i = 1:length(t)
+    [t,y1ee] = ode45(@(t,y) dywithdv(tspan,y,u(i,:)), tspan, xx, opts);
+    xx = y1ee(end,:);
+end
 
 
 %% functions
@@ -155,6 +169,17 @@ function dy=myfunc(t,y,a)
     dy(2)=y(1).*(y(4)^2)-(a./(y(1)^2));
     dy(3)=y(4);
     dy(4)=(-2.*y(2).*(y(4))./y(1));
+end
+
+function dy=dywithdv(t,y,u)
+a = evalin("base",'k');
+    urdot = u(1);
+    uvdot = u(2);
+    dy=zeros(4,1);
+    dy(1)=y(2);
+    dy(2)=y(1).*(y(4)^2)-(a./(y(1)^2)) + urdot;
+    dy(3)=y(4);
+    dy(4)=(-2.*y(2).*(y(4))./y(1)) + uvdot/y(1);
 end
 
 function [x,y] = circularOrbit(mu,r)
