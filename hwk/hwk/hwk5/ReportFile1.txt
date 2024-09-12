@@ -1,6 +1,0 @@
-DefaultSC.UTCModJulian    DefaultSC.Mars.HMAG       DefaultSC.Mars.Energy     DefaultSC.Mars.EA         
-27113.5                   14928.3141560523          -3.244569261994566        180                       
-DefaultSC.UTCModJulian    DefaultSC.Mars.EA         DefaultSC.Mars.TA         DefaultSC.Mars.Altitude   
-27113.58638948632         333.1636123385065         317.1620341540716         500.0000000783061         
-DefaultSC.UTCModJulian    DefaultSC.Mars.EA         DefaultSC.Mars.TA         DefaultSC.Mars.Altitude   
-27113.60193770004         26.55004142107142         42.40631649506751         500.0000003453883         

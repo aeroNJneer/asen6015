@@ -145,21 +145,22 @@ YY = mean(y2ee-yf);
 Vi = sqrt(var(y2e));
 Ve3 = sqrt(var(y2ee));
 
-%%%%%
+%% input control added to ode
 
 totalt = int32(Tf);
-dt = 1;
-t = 0:dt:totalt;
-u = zeros(totalt,2);
-u(1,2) = dv1;
-u(int32(Tof),2) = dv2;
+dt = 10;
+timespan1 =linspace(0,Tof,1000);
+timespan2 = linspace(Tof,Tf,1000);
+timespan = [timespan1 timespan2]; 
+ut = zeros(length(timespan),2);
+ut(1,2) = dv1;
+ut(1000,2) = dv2;
 
-tspan = linspace(0,1,11);
-xx=[r1;0;0;w+(dv1/r1)]; % initial conditions
-for i = 1:length(t)
-    [t,y1ee] = ode45(@(t,y) dywithdv(tspan,y,u(i,:)), tspan, xx, opts);
-    xx = y1ee(end,:);
-end
+xx=[r1;0;0;w]; % initial conditions
+%for i = 1:length(t)
+    [t,y1ee] = ode45(@(t,y) dywithdv(t,y,timespan,ut,dv1,dv2), t, xx, opts);
+ %   xx = y1ee(end,:);
+%end
 
 
 %% functions
@@ -171,15 +172,24 @@ function dy=myfunc(t,y,a)
     dy(4)=(-2.*y(2).*(y(4))./y(1));
 end
 
-function dy=dywithdv(t,y,u)
+function dy=dywithdv(t,y,ft,ut,dv1,dv2)
 a = evalin("base",'k');
-    urdot = u(1);
-    uvdot = u(2);
+urdot = 0;
+uvdot = 0;
+
+   % urdot = interp1(ft,ut(:,1),t);
+    %uvdot = interp1(ft,ut(:,2),t);
+    if t==0
+        urdot = 0;
+        uvdot = dv1;
+        y(4) = y(4) + uvdot/y(1);
+    end
+
     dy=zeros(4,1);
     dy(1)=y(2);
     dy(2)=y(1).*(y(4)^2)-(a./(y(1)^2)) + urdot;
     dy(3)=y(4);
-    dy(4)=(-2.*y(2).*(y(4))./y(1)) + uvdot/y(1);
+    dy(4)=(-2.*y(2).*(y(4))./y(1)) + uvdot;
 end
 
 function [x,y] = circularOrbit(mu,r)

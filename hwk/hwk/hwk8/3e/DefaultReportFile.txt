@@ -1,2 +1,0 @@
-Spacecraft1.UTCModJulian   Spacecraft1.Earth.SMA     Spacecraft1.Earth.ECC     Spacecraft1.EarthMJ2000Eq.INC   Spacecraft1.EarthMJ2000Eq.AOP   Spacecraft1.EarthMJ2000Eq.RAAN   
-28949.99999999999          315630.0013053102         0.1989586791149806        22.69174731459674               52.25102332778499               69.89379742176898                
