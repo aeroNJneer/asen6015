@@ -36,3 +36,39 @@ K = k*eye(3);
 X_dot = (A-B'*K)*X + B*K*Xd
 
 
+
+function B = compute_B_matrix(x_d, u)
+    % compute_B_matrix - Computes the B matrix by linearizing around the desired state x_d
+    %
+    % Inputs:
+    %   x_d - Desired state vector [a, e, i, RAAN, Argument of periapsis, MeanAnomaly]
+    %   u - Control input vector [a_r, a_theta, a_h]
+    %
+    % Output:
+    %   B - Jacobian matrix of the system with respect to the control inputs
+
+    % Define symbolic variables for the state and control inputs
+    syms a e i RAAN omega M a_r a_theta a_h real
+
+    % State vector
+    x = [a; e; i; RAAN; omega; M];
+
+    % Control input vector
+    u = [a_r; a_theta; a_h];
+
+    % Define the equations of motion (Gauss' Variational equations)
+    % Note: These equations need to be defined based on the specific system dynamics
+    % For demonstration, we use placeholder equations
+    f = [a + a_r; e + a_theta; i + a_h; RAAN; omega; M];
+
+    % Compute the Jacobian matrix of the system with respect to the control inputs
+    B = jacobian(f, u);
+
+    % Substitute the desired state into the Jacobian matrix
+    B = subs(B, x, x_d);
+
+    % Convert symbolic matrix to numeric matrix
+    B = double(B);
+end
+
+
