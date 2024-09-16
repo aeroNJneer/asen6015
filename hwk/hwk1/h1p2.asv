@@ -1,0 +1,227 @@
+
+
+close all
+clc
+clear
+init;
+% constants
+ymax = 10;     % y-limit for NEES/NIS plots
+alpha = 0.05;  % 95% confidence
+mu = Gearth; % gravitational constant
+omegaE = 2*pi/86400;  % angular velocity of earth
+rE = 6378; % radius of earth
+alt = 300;
+dt = 10;
+t = 0:dt:20000;
+
+% initial conditions
+dv1 = 2.335745082497819;
+x0 = rE + alt;
+y0 = 0;
+r0 = sqrt(x0^2+y0^2);
+x0dot = 0;
+y0dot = VfromRA(mu,r0,r0); 
+X0 = [x0, x0dot, y0, y0dot]';
+omega = sqrt(mu/r0^3);          % angular velocity of satellite
+
+% linearize 
+% r0 = ; r_dot = 0; theta = 0; theta_dot = mu/r0
+
+
+A = [ 0 1 0 0;
+    3*omega^2 0 0 2*r0*omega;
+    0 0 0 1;
+    0 -2*omega/r0 0 0 ];
+
+B = [0 0; 1 0; 0 0; 0 1/r0]; 
+
+C = [1 0 0 0;
+    0 1 0 0 ;
+    0 0 0 1;
+    0 0 0 1];
+
+sys = ss(A,B,C,[]);
+ x0 = [r0 0 0 omega]'; % Initial conditions (rad/s)
+ 
+ t = 0:.1:10; % Times (s)
+
+  x = zeros(length(t), 2);
+
+[yref,tout,xref] = lsim(sys,x,t,x0)
+
+
+
+pole(sys)
+% step(sys)
+
+% % closed loop system
+% k = eye(2);
+p = [0,-1,-1,0];
+K = place(A,B,p)
+%K = [0 1 0 0 ; 0 0 0 300];
+Acl = A-B*K;
+syscl = ss(Acl,B,C,[]);
+pcl = pole(syscl)
+% step(syscl)
+%figure(2)
+[yf, tout, xf] = lsim(syscl,x,t,x0)
+% end initial conditions
+
+dy = yf-B*K*yref;
+
+figure(2)
+s  = stackedplot(tout,yref);
+xlabel('Time t (s)');
+s.DisplayLabels={'Radial Position (km)', 'Radial Velocity (km/sec)', 'Angular Position (rad)', 'Angular Velocity (rad/sec)'};
+ax = findobj(s.NodeChildren, 'Type','Axes');
+set([ax.YLabel],'Rotation',90,'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Bottom')
+title('Reference Linearized State Change');
+
+figure(3)
+s  = stackedplot(tout,yf);
+xlabel('Time t (s)');
+s.DisplayLabels={'Radial Position (km)', 'Radial Velocity (km/sec)', 'Angular Position (rad)', 'Angular Velocity (rad/sec)'};
+ax = findobj(s.NodeChildren, 'Type','Axes');
+set([ax.YLabel],'Rotation',90,'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Bottom')
+title('Final Linearized State Change');
+
+figure(4)
+s  = stackedplot(tout,dy);
+xlabel('Time t (s)');
+s.DisplayLabels={'Radial Position (km)', 'Radial Velocity (km/sec)', 'Angular Position (rad)', 'Angular Velocity (rad/sec)'};
+ax = findobj(s.NodeChildren, 'Type','Axes');
+set([ax.YLabel],'Rotation',90,'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Bottom')
+title('Delta Linearized State Change');
+
+
+
+% tracking system
+
+%Aref = 
+
+%% Nonlinear model simulation
+% pert = [0, 0, 0, dx1/r0]';  % perturbation 
+% X0 = X0 +  pert;                % Define initial total state
+% [tout, xnl] = nlmodel(t, X0, mu, u, [0 0]);
+% xnl = xnl;                     % Take transpose
+% 
+% figure(1)
+% plot(xnl(:,1), xnl(:,3))
+% 
+% figure(2)
+% stackedplot(tout,xnl)
+
+
+
+% function [tout, xnl] = nlmodel(t, X0, mu, u, w) 
+% % Define nonlinear model as anonymous function and set options
+%     xdot = @(x, u, w) [x(2);
+%         -mu*x(1)/sqrt((x(1)^2+x(3)^2)^3) + u(1) + w(1);
+%         x(4);
+%         -mu*x(3)/sqrt((x(1)^2+x(3)^2)^3) + u(2) + w(2)];
+%     options = odeset('RelTol', 1e-12);
+% 
+%     % Define wrapper function for use in ODE45
+%     xdotwrap = @(t, x) xdot(x, u, w);
+%     % Compute total state using ODE45
+%     [tout, xnl] = ode45(xdotwrap,t, X0, options);
+% end
+% 
+
+% pert = [0, 0, 0, dv1/X0(1)]';  % perturbation 
+% X0 = X0 +  pert;                % Define initial total state
+% [tout, xnl] = nlmodel(t, X0, mu, [0 0], [0 0]);
+% xnl = xnl';                     % Take transpose
+
+
+%% Approximate linearized simulation
+% Define empty perturbation state and measurement vectors as well as zero control input
+% x = zeros(4, length(t));
+% dx = zeros(4, length(t));
+% u = zeros(2, length(t));
+% u(4,1) = dv1/r0;
+% % Compute nominal trajectory as a function of true anomaly
+% trueAnom = omega * t;
+% nomX0 = [r0*cos(trueAnom); -r0*omega*sin(trueAnom); r0*sin(trueAnom); r0*omega*cos(trueAnom)];
+% 
+% % Initialize perturbation and total state
+% dx(:, 1) = [0, 0, 0, 0]';
+% x(:, 1) = nomX0(:,1) + dx(:,1);
+% % initial eccentric anomaly 
+% EA = 0; 
+% a0 = r0;
+% 
+% % % Run simulation
+% % for i = 2:length(t)
+% %     
+% %     % Compute perturbation states
+% %     nomX0 = [r0*cos(trueAnom); -r0*omega*sin(trueAnom); r0*sin(trueAnom); r0*omega*cos(trueAnom)];
+% % 
+% %     F = eye(4) + getAtilde(nomX0(:, i-1))*dt;
+% %     dx(:, i) = F*dx(:, i-1) + G*u(:, i-1);
+% % 
+% %     % Compute total states
+% %     x(:, i) = nomX0(:, i) + dx(:,i);
+% %     Xc = [x(1,i) x(3,i) 0]';
+% %     Vc = [x(2,i) x(4,i) 0]';
+% % 
+% %     H = cross(Xc,Vc);
+% %     % find new a, e, TA
+% %     sma = AfromVR(mu,norm(Vc), norm(Xc));
+% %     ecc = EccfromArp(sma,r0);
+% %     EA = FindEccAnomaly(t(i),sma,ecc,mu);
+% % end
+% % 
+% % figure(5)
+% % % plotLinearizedData(t,x,dx,xnl,trackingData);
+% % generatePlots("states", t, "Total States vs. Time, Linearized DT SS Model", x );
+% % figure(6)
+% % plot(x(1,:), x(3,:))
+% 
+% 
+% %% Nonlinear model simulation
+% t = linspace(0,40000,1000);
+% pert = [0, 0, 0, dv1 ]';  % perturbation 
+% X0 = X0 +  pert;                % Define initial total state
+% [tout, xnl] = nlmodel(t, X0, mu, [0 0], [0 0]);
+% xnl = xnl';                     % Take transpose
+% 
+% figure(6)
+% plot(xnl(1,:), xnl(3,:))
+% figure(7)
+% generatePlots("states", tout, "Total States vs. Time, Nonlinear Dynanmics - ODE45", xnl);
+% 
+% % 
+% % % symbolic system or numerical?
+% % % if s
+% % 	syms a b c d e f g h i j k
+% % % else
+% % % 	a = 1; b = 2; c = 3; c = 4; d = 5; e = 6; f = 7; g = 8; h = 9;
+% % % 	i = 10; j = 11; k = 12;
+% % % end
+% % syms x1 x2 dx1 dx2 u1 u2 ddx1 ddx2
+% % X = {'x1' 'x2' 'dx1' 'dx2' };
+% % dX = {'dx1' 'dx2' 'ddx1' 'ddx2'};
+% % U = {'u1' 'u2'};
+% % 
+% % % note example here has two variables with two deravitives so 
+% % % two identity equations are needed to develop the state space (last two) 
+% % % eq.e1 = [char(a*ddx1) '=' char(x1*dx2^2 - j/(x1^2) + e*u1)];
+% % % eq.e2 = [char(f*ddx2) ' = ' char(b*dx1*dx2/x1 + h*u2)];
+% % % eq.e3 = 'dx1 = dx1';
+% % % eq.e4 = 'dx2 = dx2';
+% % 
+% % 
+% % % note example here has two variables with two deravitives so 
+% % % two identity equations are needed to develop the state space (last two) 
+% % eq.e1 = [char(a*ddx1) ' = ' char(c*x1 + d*x2 + i*dx1 - j*dx2 + e*u1)];
+% % eq.e2 = [char(f*ddx2) ' = ' char(g*x2 + b*dx1 - h*u2)];
+% % eq.e3 = 'dx1 = dx1';
+% % eq.e4 = 'dx2 = dx2';
+% % 
+% % % dy = [y(2);
+% % %     dy(2)=y(1).*(y(4)^2)-(a./(y(1)^2));
+% % %     dy(3)=y(4);
+% % %     dy(4)=(-2.*y(2).*(y(4))./y(1));
+% % eom2ss(eq,X,dX,u)
+% % 

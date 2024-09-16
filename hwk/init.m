@@ -2,7 +2,7 @@
 M1 = @(a) [1 0 0; 0 cosd(a) sind(a); 0 -sind(a) cosd(a)];
 M2 = @(a) [];
 M3 = @(a) [cosd(a) sind(a) 0; -sind(a) cosd(a) 0; 0 0 1];
-% DCM  rth to xyz
+% DCM  rth to xyz *** theta = trueAnom + arg of periapsis 
 DMC = @(Raan, i, theta) M3(-Raan) * M1(-i) * M3(-theta);
 
 %% constants
@@ -66,6 +66,7 @@ Vradial = @(mu,e,h,ta) (mu/h) * e*sind(ta);
 Vtrans = @(mu,e,h,ta) (mu/h)*(1+e*cosd(ta)); 
 VfromRA = @(mu,r,a) sqrt((2*mu/r)-(mu/a));
 Vescape = @(mu,r) sqrt(2*mu/r);
+Vperiapsis = @(mu,a,Rp) (mu*( (2/Rp)-(1/a) ) )^.5;  %Velocity at perigee
 
 %% orbital elements
 

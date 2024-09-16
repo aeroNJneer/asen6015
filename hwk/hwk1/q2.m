@@ -11,15 +11,14 @@ h = HfromP(mu,p);
 r = RfromP(p,e,TA);
 k = 0.1;
 M = 0;
-<<<<<<< Updated upstream
 u_rv = [0 0; 1 0; 0 0 ; 0 1];
-u_coe = 
-
-X = [a; e; i; raan; w; n];
-=======
 X = [a; e; i; raan; w; M];
->>>>>>> Stashed changes
-Xd = [a+100; e+0.01; i+deg2rad(5); raan + deg2rad(10); w+deg2rad(15); M+deg2rad(20)]
+n = MMfromMua(mu,a);
+t = 1:10:14000;
+% reference trajectory
+% only mean anomaly changes
+Xd = n*t;
+
 A = zeros(6,6);
 A(6,1) = -(3/2)*sqrt(mu/(a^5));
 
@@ -33,7 +32,11 @@ B = [2*a^2*e*sin(TA)/h 2*a^2*p/h/r 0;
 K = k*eye(3);
 
 % closed loop
-X_dot = (A-B'*K)*X + B*K*Xd
+for i = 1:length(t)
+    X_dot = (A-B'*K)*X + B*K*(X + [0 0 0 0 0 Xd(i)]');
+    X = X + X_dot;
+
+end
 
 
 
