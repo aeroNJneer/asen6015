@@ -132,6 +132,8 @@ ta_sign = @(r,v) sign(dot(r,v));
 EAfromRae = @(r,a,e) acos((r/a-1)/(-e));
 EAfromEta = @(e,ta) acos((e+cosd(ta))/(1+e*cosd(ta)));
 EAfromTatan = @(e,ta) atan((sqrt((1-e)/(1+e))*tand(ta/2)))*2;
+EfromEr = @(e_vec,r) acos(dot(e_vec, r) / (e * norm(r)));
+E_sign = @(r,v) sign(dot(r,v));
 
 % Mean motion, n
 MMfromMua = @(mu,a) sqrt(mu/(a^3));
@@ -144,6 +146,8 @@ T_pastPeri = @(n,e,E) (1/n)*(E-e*sin(E));
 
 %% Impulse
 Mfinal = @(Minit,deltaV,Is) Minit * exp(-(deltaV*1000)/(Is*9.81));
+RocketdeltaV = @(g,Isp,mi,mf) g*Isp*ln(mi/mf);
+massRatio = @(g,deltaV,Isp) exp(deltaV/(g*Isp));
 
 
 %% transfer orbits
@@ -153,6 +157,9 @@ v1_init = @(mu,r1t) sqrt(mu/r1t);
 v2_final = @(mu,r2f) sqrt(mu/r2f);
 synodFromMm = @(mm1,mm2) abs(2*pi/(mm1-mm2));
 synodFromMua = @(mu,a1,a2) 2*pi / (sqrt(mu/a1^3) - sqrt(mu/a2^3));
+
+% inclination change
+InclinationDeltaV = @(v,deltai) 2*v*sin(deltai/2);
 
 % interplanetary
 TAfromPRE = @(p,r,e) acosd((1/e*((p/r)-1)));

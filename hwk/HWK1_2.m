@@ -1,3 +1,7 @@
+clc
+close all
+clear
+
 init
 mu = Gearth;
 a = 20000;
@@ -20,6 +24,9 @@ A = @(t,M0) [0 0 0 0 0 0
     0 0 0 0 0 0 
     0 0 0 0 0 0
     -dM(a,n,t) 0 0 0 0 0];
+
+stm0 = expm(A(1000)*10)
+xd = A(1000)*expm(A(1000)*10)
 % create reference path
 Mref = M(0,n,t);    % mean anomaly over time
 % TAref = TAfrom;     % true anomaly over time
@@ -37,16 +44,18 @@ dB = [(2*a^2/h)*(e*sin(TA)) (2*a^2/h)*p/r 0
     0 0 (r*cos(TA+w))/h
     0 0 r*sin(TA+w)/(h*sin(inc))
     -p*cos(TA)/(h*e) (p+r)*sin(TA)/(h*e) -r*sin(TA+w)*cos(inc)/(h*sin(inc))
-    sqrt(1-e^2)/(a*h*e)*(p*cos(TA)-(2*r*e)) sqrt(1-e^2)/(a*h*e)*(p+r)*sin(TA) 0];
+    n+a*sqrt(1-e^2)/(a*h*e)*(p*cos(TA)-(2*r*e)) a*sqrt(1-e^2)/(a*h*e)*(p+r)*sin(TA) 0];
 
-dMt = dM(a,n,t);
-U0 = U(0,2.27,0,0);
-dA0 = A(1,Mref(1));
 
-C = [1 0 0 0 0 0; 0 0 0 0 0 1; 0 0 0 0 0 0 ];
-sys = ss(dA0,dB,C,[]);
-tsim = 0:0.1:100;
-Ut = zeros(length(tsim)-1,3);
-Uf = [U0' ; Ut];
 
-lsim(ss,U0,tsim)
+% dMt = dM(a,n,t);
+% U0 = U(0,0.1,0,0);
+% dA0 = A(1,Mref(1));
+% 
+% C = [1 0 0 0 0 0; 0 0 0 0 0 1; 0 0 0 0 0 0 ];
+% sys = ss(dA0,dB,C,[]);
+% tsim = 0:0.1:100;
+% Ut = zeros(length(tsim)-1,3);
+% Uf = [U0' ; Ut];
+% 
+% lsim(ss,U0,tsim)
