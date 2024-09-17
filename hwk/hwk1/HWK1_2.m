@@ -1,0 +1,82 @@
+clc
+close all
+clear
+
+init
+mu = Gearth;
+a = 20000;
+e = 0.01;
+inc = deg2rad(0.1);
+raan = 0;
+w = 0;
+n = MMfromMua(mu,a);
+M = @(M0,n,t) M0 + n*t;
+dM = @(a,n,t) -3*n*t/(2*a);
+h = HfromAe(mu,a,e);
+p = PfromAe(a,e);
+t = 0:10:86400;
+r0 = a;
+r = r0;
+TA = 0;
+K = [1,1,1]';
+
+A_t = @(t,M0) [0 0 0 0 0 0
+    0 0 0 0 0 0 
+    0 0 0 0 0 0 
+    0 0 0 0 0 0 
+    0 0 0 0 0 0
+    -dM(a,n,t) 0 0 0 0 0];
+
+
+X0 = [a e inc raan w 0]';
+
+x_d = [11000, 0.1, deg2rad(2), deg2rad(2),deg2rad(1), 0]';
+
+% Define the time span
+dt = 1;
+tspan = 0:dt:10; % 10 seconds
+
+% Initial conditions
+X0 = [10000; 0.09; deg2rad(1.9); deg2rad(1.5) ; deg2rad(0.9) ; 0]; % Initial state
+
+% Gain matrix
+K = [1 0 0 0 0 0 ;
+    1 0 0 0 0 0 ;
+    1 0 0 0 0 0 ];
+
+for i = 1:length(tspan)
+    % calculate state matrices at time i
+    A = A_t(i);
+    
+    B = dt*[(2*a^2/h)*(e*sin(TA)), (2*a^2/h)*p/r, 0;
+        p*sin(TA)/h, (p+r)*cos(TA)+(r*e),   0;
+        0, 0, (r*cos(TA+w))/h;
+        0, 0, r*sin(TA+w)/(h*sin(inc));
+        -p*cos(TA)/(h*e), (p+r)*sin(TA)/(h*e), -r*sin(TA+w)*cos(inc)/(h*sin(inc));
+        a*sqrt(1-e^2)/(a*h*e)*(p*cos(TA)-(2*r*e)), a*sqrt(1-e^2)/(a*h*e)*(p+r)*sin(TA), 0];
+
+    % Solve the system using ode45%
+    % integrate a second at a time ...
+    ttemp = [0:0.1:1];
+    [t, x] = ode45(@(t, x) nonlinear_system(t, x, A,B, K,x_d), ttemp, X0(:,i));
+    X0 = [ X0 x(end,:)'];
+end 
+
+% Plot the results
+figure;
+plot( X0(1,length(t)),tspan)
+hold on;
+plot( X0(2,length(t)), tspan)
+xlabel('Time (s)');
+ylabel('States');
+title('Time-Varying Nonlinear Dynamic System with Linear Feedback Controller');
+legend;
+grid on;
+
+% 
+% % Define the nonlinear dynamic system
+function dxdt = nonlinear_system(t, x, A,B, K, x_d)
+    % State equation
+    dxdt = (A-(B*K))*x + (B*K)*x_d;
+end
+

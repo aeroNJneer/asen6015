@@ -91,10 +91,29 @@ function B = calculate_B_matrix_gauss(a, e, i, RAAN, omega, M, mu)
          sin_omega*sin_i, cos_omega*sin_i, cos_i];
 
     % Calculate the partial derivatives of the orbital elements with respect to the perturbing accelerations
+    % p = a * (1 - e^2);
+    % f_r = [2*a^2*e*sin(nu)/h; p*sin(nu)/h; 0];
+    % f_theta = [2*a^2*(1 + e*cos(nu))/h; (p + r)*cos(nu)/h; 0];
+    % f_h = [0; 0; r*cos(nu)/h];
+
     p = a * (1 - e^2);
-    f_r = [2*a^2*e*sin(nu)/h; p*sin(nu)/h; 0];
+    f_r = [(2*a^2/h)*(e*sin(TA)); p*sin(TA)/h; 0; 0; ];
     f_theta = [2*a^2*(1 + e*cos(nu))/h; (p + r)*cos(nu)/h; 0];
     f_h = [0; 0; r*cos(nu)/h];
+
+
+dB = [(2*a^2/h)*(e*sin(TA)) (2*a^2/h)*p/r 0
+    p*sin(TA)/h (p+r)*cos(TA)+(r*e)   0
+    0 0 (r*cos(TA+w))/h
+    0 0 r*sin(TA+w)/(h*sin(inc))
+    -p*cos(TA)/(h*e) (p+r)*sin(TA)/(h*e) -r*sin(TA+w)*cos(inc)/(h*sin(inc))
+    n+a*sqrt(1-e^2)/(a*h*e)*(p*cos(TA)-(2*r*e)) a*sqrt(1-e^2)/(a*h*e)*(p+r)*sin(TA) 0];
+
+F_vec = dB'
+
+
+dMt = dM(a,n,t);
+
 
     % Transform the partial derivatives to the ECI frame
     f_r_ECI = R * f_r;
