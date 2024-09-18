@@ -34,15 +34,13 @@ x_d = [11000, 0.1, deg2rad(2), deg2rad(2),deg2rad(1), 0]';
 
 % Define the time span
 dt = 1;
-tspan = 0:dt:10; % 10 seconds
+tspan = 0:dt:1000; % 1000 seconds
 
 % Initial conditions
 X0 = [10000; 0.09; deg2rad(1.9); deg2rad(1.5) ; deg2rad(0.9) ; 0]; % Initial state
 
 % Gain matrix
-K = [1 0 0 0 0 0 ;
-    1 0 0 0 0 0 ;
-    1 0 0 0 0 0 ];
+K = ones(3,6); 
 
 for i = 1:length(tspan)
     % calculate state matrices at time i
@@ -61,22 +59,42 @@ for i = 1:length(tspan)
     [t, x] = ode45(@(t, x) nonlinear_system(t, x, A,B, K,x_d), ttemp, X0(:,i));
     X0 = [ X0 x(end,:)'];
 end 
-
+t = tspan;
+x = X0(:,1:length(t));
 % Plot the results
-figure;
-plot( X0(1,length(t)),tspan)
-hold on;
-plot( X0(2,length(t)), tspan)
-xlabel('Time (s)');
-ylabel('States');
-title('Time-Varying Nonlinear Dynamic System with Linear Feedback Controller');
-legend;
-grid on;
+    figure;
+    sgtitle("State Response");
+    subplot(6, 1, 1);
+        plot(t, x(1, :));
+        ylabel('Semimajor axis (km)');
+        grid on;
 
+    subplot(6, 1, 2);
+        plot(t, x(2, :));
+        ylabel('Eccentricity');
+        grid on;
+    subplot(6, 1, 3);
+        plot(t, rad2deg(x(3, :)));
+        ylabel('Inclination (deg)');
+        grid on;
+    subplot(6, 1, 4);
+        plot(t, rad2deg(x(4, :)));
+        ylabel('RAAN (deg)');
+        xlabel('Time t (s)');
+    grid on;
+        subplot(6, 1, 5);
+        plot(t, rad2deg(x(5, :)));
+        ylabel('Argument of periapsis (deg)');
+        xlabel('Time t (s)');
+    grid on;
+        subplot(6, 1, 6);
+        plot(t, x(6, :));
+        ylabel('Mean Anomaly (deg)');
+        xlabel('Time t (s)');
+    grid on;
 % 
 % % Define the nonlinear dynamic system
 function dxdt = nonlinear_system(t, x, A,B, K, x_d)
     % State equation
     dxdt = (A-(B*K))*x + (B*K)*x_d;
 end
-
