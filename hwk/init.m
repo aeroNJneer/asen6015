@@ -30,7 +30,7 @@ Rmoon = 1738;
 Rsaturn = 60268;
 Rjupiter = 71492;
 Rvenus = 6052.0;
-Rearth = 6371;
+Rearth = 6378.14;
 
 AofEarthHelio = 1.0000010178;
 AofSaturnHelio = 9.554909595;

@@ -6,7 +6,7 @@ init
 mu = Gearth;
 a = 20000;
 e = 0.01;
-inc = deg2rad(0.1);
+inc = deg2rad(1);
 raan = 0;
 w = 0;
 n = MMfromMua(mu,a);
@@ -14,49 +14,63 @@ M = @(M0,n,t) M0 + n*t;
 dM = @(a,n,t) -3*n*t/(2*a);
 h = HfromAe(mu,a,e);
 p = PfromAe(a,e);
-t = 0:10:86400;
+
 r0 = a;
 r = r0;
 TA = 0;
-K = [1,1,1]';
+A_x = [0,0,0,0,0,mu/sqrt(a^3)]';
 
-A_t = @(t,M0) [0 0 0 0 0 0
-    0 0 0 0 0 0 
-    0 0 0 0 0 0 
-    0 0 0 0 0 0 
-    0 0 0 0 0 0
-    -dM(a,n,t) 0 0 0 0 0];
+A_t = @(t,n) [1 0 0 0 0 0
+    0 1 0 0 0 0 
+    0 0 1 0 0 0 
+    0 0 0 1 0 0 
+    0 0 0 0 1 0
+    n*t/a 0 0 0 0 1];
 
-
-X0 = [a e inc raan w 0]';
-
-x_d = [11000, 0.1, deg2rad(2), deg2rad(2),deg2rad(1), 0]';
+A_l = @(t,a,n) [0 0 0 0 0 0;
+    0 0 0 0 0 0 ;
+    0 0 0 0 0 0 ;
+    0 0 0 0 0 0 ;
+    0 0 0 0 0 0 ;
+    (3*n(mu,a)/(2*a)) 0 0 0 0 0];
 
 % Define the time span
 dt = 1;
-tspan = 0:dt:1000; % 1000 seconds
+tmax = 100;
+tspan = 0:dt:tmax; % 100 seconds
 
 % Initial conditions
-X0 = [10000; 0.09; deg2rad(1.9); deg2rad(1.5) ; deg2rad(0.9) ; 0]; % Initial state
+X0 = [a; e; i; raan; w; 0]; % Initial state
+
+% desired state
+x_d = [25000, 0.1, deg2rad(2), deg2rad(2),deg2rad(1), n*tmax]';
 
 % Gain matrix
-K = ones(3,6); 
+K = [1 0 0 0 0 0;
+     1 0 0 0 0 0;
+     1 0 0 0 0 0];
+
+K = ones(3,6);
 
 for i = 1:length(tspan)
     % calculate state matrices at time i
-    A = A_t(i);
-    
-    B = dt*[(2*a^2/h)*(e*sin(TA)), (2*a^2/h)*p/r, 0;
-        p*sin(TA)/h, (p+r)*cos(TA)+(r*e),   0;
-        0, 0, (r*cos(TA+w))/h;
-        0, 0, r*sin(TA+w)/(h*sin(inc));
-        -p*cos(TA)/(h*e), (p+r)*sin(TA)/(h*e), -r*sin(TA+w)*cos(inc)/(h*sin(inc));
-        a*sqrt(1-e^2)/(a*h*e)*(p*cos(TA)-(2*r*e)), a*sqrt(1-e^2)/(a*h*e)*(p+r)*sin(TA), 0];
+    a = X0(1,i);
+    n = MMfromMua(mu,a);
+    A = A_l(tspan(i+1),a,n);
+    phi = expm(A_l(tspan(i),a,n)*dt);
+    B = B_matrix(phi,X0(:,1))*dt;
+%     B = dt*[(2*a^2/h)*(e*sin(TA)), (2*a^2/h)*p/r, 0;
+%         p*sin(TA)/h, ((p+r)*cos(TA)+(r*e))/h,   0;
+%         0, 0, (r*cos(TA+w))/h;
+%         0, 0, r*sin(TA+w)/(h*sin(inc));
+%         -p*cos(TA)/(h*e), (p+r)*sin(TA)/(h*e), -r*sin(TA+w)*cos(inc)/(h*sin(inc));
+%         a*sqrt(1-e^2)/(a*h*e)*(p*cos(TA)-(2*r*e)), a*sqrt(1-e^2)/(a*h*e)*(p+r)*sin(TA), 0];
 
     % Solve the system using ode45%
     % integrate a second at a time ...
-    ttemp = [0:0.1:1];
-    [t, x] = ode45(@(t, x) nonlinear_system(t, x, A,B, K,x_d), ttemp, X0(:,i));
+    ttemp = 0:0.01:1;
+    [t, x] = ode45(@(t, x) nonlinear_system(t, x, A,B, K,x_d), [0,10], X0(:,i));
+    
     X0 = [ X0 x(end,:)'];
 end 
 t = tspan;
@@ -64,31 +78,31 @@ x = X0(:,1:length(t));
 % Plot the results
     figure;
     sgtitle("State Response");
-    subplot(6, 1, 1);
-        plot(t, x(1, :));
+    subplot(3, 2, 1);
+        plot(tspan, x(1, :));
         ylabel('Semimajor axis (km)');
         grid on;
 
-    subplot(6, 1, 2);
-        plot(t, x(2, :));
+    subplot(3, 2, 2);
+        plot(tspan, x(2, :));
         ylabel('Eccentricity');
         grid on;
-    subplot(6, 1, 3);
-        plot(t, rad2deg(x(3, :)));
+    subplot(3, 2, 3);
+        plot(tspan, x(3, :));
         ylabel('Inclination (deg)');
         grid on;
-    subplot(6, 1, 4);
-        plot(t, rad2deg(x(4, :)));
+    subplot(3, 2, 4);
+        plot(tspan, x(4, :));
         ylabel('RAAN (deg)');
         xlabel('Time t (s)');
     grid on;
-        subplot(6, 1, 5);
-        plot(t, rad2deg(x(5, :)));
+        subplot(3, 2, 5);
+        plot(tspan, x(5, :));
         ylabel('Argument of periapsis (deg)');
         xlabel('Time t (s)');
     grid on;
-        subplot(6, 1, 6);
-        plot(t, x(6, :));
+        subplot(3,2, 6);
+        plot(tspan, x(6, :));
         ylabel('Mean Anomaly (deg)');
         xlabel('Time t (s)');
     grid on;
@@ -97,4 +111,28 @@ x = X0(:,1:length(t));
 function dxdt = nonlinear_system(t, x, A,B, K, x_d)
     % State equation
     dxdt = (A-(B*K))*x + (B*K)*x_d;
+end
+
+function B = B_matrix(phi,X0)
+    init;    
+    
+    B_t = @(a,e,i,omega,r,h,TA,p) [(2*a^2/h) * (e*sin(TA)), p/r, 0;
+        p*sin(TA)/h, ((p+r)*cos(TA) + (r*e))/h, 0;
+        0, 0, r * cos(TA+omega)/h;
+        0, 0, r* sin(TA+ omega)/(h* sin(i));
+        -p*cos(TA)/(h*e), (p+r)*sin(TA)/(h*e),  -r*sin(TA+omega)*cos(i)/(h*sin(i));
+        (sqrt(1-e^2) * (p*cos(TA) - 2*r*e))/(h*e), -(p+r)*sin(TA)/(h*e), 0];
+
+    mu = Gearth;
+    X = phi*X0;
+    X = X0;
+    a = X(1); e = X(2); i = X(3); omega = X(5); M = X(6);
+    E = FindEccAnomFromMeanAnom(M,e);
+    TA = TAfromEA(e,E);
+    p = PfromAe(a,e);
+    h = HfromP(mu,p);
+    r = RfromEA(a,e,E);
+
+    B = B_t(a,e,i,omega,r,h,TA,p);
+
 end
