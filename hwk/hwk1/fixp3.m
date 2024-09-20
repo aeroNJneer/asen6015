@@ -1,4 +1,3 @@
-@@ -1,6 +1,8 @@
 clear
 close all
 init;
@@ -9,7 +8,7 @@ error = 1; % degree in r_hat direction
 r1 = 200 + Rearth;
 
 
-@@ -119,15 +121,19 @@ k=Gearth;
+k=Gearth;
 w=sqrt(k/(r1^3));
 x0=[r1;0;0;w+(dv1/r1)]; % initial conditions
 
@@ -30,13 +29,9 @@ xf = [y(1000,1), y(1000,2),y(1000,3),y(1000,4)+(dv2/y(1000,1))];
 figure(3);
 s=stackedplot(t, y);
 
-@@ -141,17 +147,23 @@ figure(4);
+figure(4);
 plot(y(:,1).*sin(y(:,3)),y(:,1).*cos(y(:,3)),yf(:,1).*sin(yf(:,3)),yf(:,1).*cos(yf(:,3)))
 title('Transfer and Final Orbit')
-
-
-
-
 
 
 

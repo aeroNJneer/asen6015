@@ -9,7 +9,8 @@ e = 0.01;
 inc = deg2rad(1);
 raan = 0;
 w = 0;
-n = MMfromMua(mu,a);
+n = @(mu,a) MMfromMua(mu,a);
+M0 = pi/4;
 M = @(M0,n,t) M0 + n*t;
 dM = @(a,n,t) -3*n*t/(2*a);
 h = HfromAe(mu,a,e);
@@ -18,20 +19,23 @@ p = PfromAe(a,e);
 r0 = a;
 r = r0;
 TA = 0;
-A_x = [0,0,0,0,0,mu/sqrt(a^3)]';
-A_t = @(t,n) [1 0 0 0 0 0
-    0 1 0 0 0 0 
-    0 0 1 0 0 0 
-    0 0 0 1 0 0 
-    0 0 0 0 1 0
-    n*t/a 0 0 0 0 1];
+A_x = @(mu,a) [0,0,0,0,0,mu/sqrt(a^3)]';
 
-A_l = @(t,a,n) [0 0 0 0 0 0
+A_t = @(n) [0 0 0 0 0 0
     0 0 0 0 0 0 
     0 0 0 0 0 0 
     0 0 0 0 0 0 
     0 0 0 0 0 0
-    -3*n(mu,a)/(2*a) 0 0 0 0 0];
+    n(mu,a) 0 0 0 0];
+
+A_l = @(a,n) [0 0 0 0 0 0;
+    0 0 0 0 0 0 ;
+    0 0 0 0 0 0 ;
+    0 0 0 0 0 0 ;
+    0 0 0 0 0 0 ;
+    (-3*n(mu,a)/(2*a)) 0 0 0 0 0];
+
+A_x = @(mu,a) [0;0;0;0;0;n(mu,a)];  % unforced dynamics 
 
 % Define the time span
 dt = 1;
@@ -39,10 +43,10 @@ tmax = 100;
 tspan = 0:dt:tmax; % 100 seconds
 
 % Initial conditions
-X0 = [a; e; i; raan; w; 0]; % Initial state
+X0 = [a; e; inc; raan; w; pi/4]; % Initial state
 
 % desired state
-x_d = [25000, 0.1, deg2rad(2), deg2rad(2),deg2rad(1), n*tmax]';
+x_d = [25000, 0.1, deg2rad(2), deg2rad(2),deg2rad(1), n(mu,25000)*tmax]';
 
 % Gain matrix
 K = [1 0 0 0 0 0;
@@ -50,24 +54,18 @@ K = [1 0 0 0 0 0;
      1 0 0 0 0 0];
 
 K = ones(3,6);
-
+%K = eye(6);
 for i = 1:length(tspan)
     % calculate state matrices at time i
     a = X0(1,i);
-    n = MMfromMua(mu,a);
-    A = A_l(tspan(i),a,n);
-    phi = expm(A_l(tspan(i),a,n)*dt);
-    B = B_matrix(phi,X0(:,1))*dt;
-%     B = dt*[(2*a^2/h)*(e*sin(TA)), (2*a^2/h)*p/r, 0;
-%         p*sin(TA)/h, ((p+r)*cos(TA)+(r*e))/h,   0;
-%         0, 0, (r*cos(TA+w))/h;
-%         0, 0, r*sin(TA+w)/(h*sin(inc));
-%         -p*cos(TA)/(h*e), (p+r)*sin(TA)/(h*e), -r*sin(TA+w)*cos(inc)/(h*sin(inc));
-%         a*sqrt(1-e^2)/(a*h*e)*(p*cos(TA)-(2*r*e)), a*sqrt(1-e^2)/(a*h*e)*(p+r)*sin(TA), 0];
+    n_t = n(mu,a);
+    
+    A = A_x(mu,a);    % current unperturbed state ...
+    B = B_matrix(X0);
 
     % Solve the system using ode45%
     % integrate a second at a time ...
-    ttemp = 0:0.01:1;
+    ttemp = 0:1:30;
     [t, x] = ode45(@(t, x) nonlinear_system(t, x, A,B, K,x_d), [0,10], X0(:,i));
     
     X0 = [ X0 x(end,:)'];
@@ -109,10 +107,11 @@ x = X0(:,1:length(t));
 % % Define the nonlinear dynamic system
 function dxdt = nonlinear_system(t, x, A,B, K, x_d)
     % State equation
-    dxdt = (A-(B*K))*x + (B*K)*x_d;
+     dxdt = A + B*B'*(x-x_d); %(B*K)
+%    dxdt = (A-(B*K))*x + (B*K)*x_d;
 end
 
-function B = B_matrix(phi,X0)
+function B = B_matrix(X)
     init;    
     
     B_t = @(a,e,i,omega,r,h,TA,p) [(2*a^2/h) * (e*sin(TA)), p/r, 0;
@@ -123,10 +122,10 @@ function B = B_matrix(phi,X0)
         (sqrt(1-e^2) * (p*cos(TA) - 2*r*e))/(h*e), -(p+r)*sin(TA)/(h*e), 0];
 
     mu = Gearth;
-    X = phi*X0;
+
     a = X(1); e = X(2); i = X(3); omega = X(5); M = X(6);
     E = FindEccAnomFromMeanAnom(M,e);
-    TA = TAfromEA(e,E);
+    TA = deg2rad(TAfromEA(e,E));
     p = PfromAe(a,e);
     h = HfromP(mu,p);
     r = RfromEA(a,e,E);
