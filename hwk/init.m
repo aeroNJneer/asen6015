@@ -3,7 +3,7 @@ M1 = @(a) [1 0 0; 0 cosd(a) sind(a); 0 -sind(a) cosd(a)];
 M2 = @(a) [];
 M3 = @(a) [cosd(a) sind(a) 0; -sind(a) cosd(a) 0; 0 0 1];
 % DCM  rth to xyz *** theta = trueAnom + arg of periapsis 
-DMC = @(Raan, i, theta) M3(-Raan) * M1(-i) * M3(-theta);
+DCM = @(Raan, i, theta) M3(-Raan) * M1(-i) * M3(-theta);
 
 %% constants
 x_hat = [1;0;0];
@@ -270,3 +270,14 @@ end
 
 end
 
+function [x,xdot] = COE2ECI(mu,h,e,inc,raan,w,TA)
+    % convert to perifocal frame
+    r_w = h^2 / mu / (1 + e * cos(TA)) .* [cos(TA) sin(TA) 0];
+    v_w = mu / h .* [-sin(TA) e + cos(TA) 0];
+
+    R1 = [cos(-w) -sin(-w) 0; sin(-w) cos(-w) 0; 0 0 1];
+    R2 = [1 0 0; 0 cos(-inc) -sin(-inc); 0 sin(-inc) cos(-inc)];
+    R3 = [cos(-raan) -sin(-raan) 0; sin(-raan) cos(-raan) 0; 0 0 1];
+    x = r_w * R1 * R2 * R3;
+    xdot = v_w * R1 * R2 * R3;
+end

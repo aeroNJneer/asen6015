@@ -7,7 +7,7 @@ function compare_burns(deltaV,duration,acceleration)
     % acceleration  Constant acceleration (km/s^2)
 
     % Normalize the burn vector
-    burn_vector = burn_vector / norm(burn_vector);
+    burn_vector = deltaV / norm(deltaV);
 
     % Time settings
     t_impulsive = 0; % Impulsive burn time

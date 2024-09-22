@@ -32,7 +32,7 @@ M_init = 0.005;
 % initial state vector (a, e, i, Omega, omega, nu)
 initial_state = [a_init; e_init; i_init; raan_init; w_init; M_init]; % Initial state
 
-% % Define the perturbing accelerations (example values)
+% % Define the perturbing accelerations
 a_r = 0; % Radial component
 a_theta = 0.02; % Transverse component
 a_h = 0; % Normal component
@@ -74,9 +74,6 @@ for i = 1:length(tspan)
     dt = 0:.01:10;
     [t, state] = ode45(@(t, state) gauss_variational_equations_with_control(t, state, ref_state, K), dt, initial_state);
     initial_state = state(end,:);
-
-
-
 end
 
 %% functions
@@ -105,7 +102,6 @@ end
 function dxdt = gauss_variational_equations_with_control(t, state, ref_state, K)
     init;
     mu = Gearth;
-    Re = Rearth;
     EA = EAfromTatan(state(2),state(6));
     Re = RfromEA(state(1),state(2),EA);
     % Compute the control input
@@ -120,7 +116,6 @@ function dxdt = gauss_variational_equations_with_control(t, state, ref_state, K)
     
     % Specific angular momentum
     h = sqrt(mu * state(1) * (1 - state(2)^2));
-    
 
     % Gauss' variational equations
     da_dt = (2 * state(1)^2 / h) * (state(2) * sin(state(6)) * a_r + (1 + state(2) * cos(state(6))) * a_theta);

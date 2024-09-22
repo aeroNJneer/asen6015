@@ -1,0 +1,212 @@
+clear;
+close all;
+clc;
+init;
+% Define constants
+global mu
+mu = Gearth;    % Gravitational parameter (m^3/s^2)
+Re = Rearth;    % Earth's radius (m)
+alt_init = 200;             % initial altitude (km)
+alt_ref = 300;            % reference altitude (km)
+A_x = @(n) [0; 0; 0; 0; 0; n];  % non perturbed /unforced state 
+
+%% Define reference Orbit
+a_ref = alt_ref + Rearth;   % reference semi-major axis (km)
+e_ref = 0.01;                  % eccentricity of the reference orbit (circular)
+i_ref = 0.01;
+raan_ref = 0.01;
+w_ref = 0.01;
+M_ref = 0.01;
+
+% Reference state vector (a, e, i, Omega, omega, nu)
+ref_state = [a_ref; e_ref; i_ref; raan_ref; w_ref; M_ref]; % Assuming circular orbit for simplicity
+
+%% Define initial  
+a_init = alt_init + Rearth; % initial semi-major axis
+e_init = 0.01;                 % eccentricity of initial orbit (circular)
+i_init = 0.01;
+raan_init = 0.01;
+w_init = 0.01;
+M_init = 0.005;
+
+% initial state vector (a, e, i, Omega, omega, nu)
+initial_state = [a_init; e_init; i_init; raan_init; w_init; M_init]; % Initial state
+
+% % Define the perturbing accelerations
+a_r = 0; % Radial component
+a_theta = 0.02; % Transverse component
+a_h = 0; % Normal component
+
+% Calculate delta-v for Hohmann transfer
+% v_init = sqrt(mu / a_init);
+% v_transfer_periapsis = sqrt(mu * (2 / a_init - 1 / ((a_init + a_ref) / 2)));
+% v_transfer_apoapsis = sqrt(mu * (2 / a_ref - 1 / ((a_init + a_ref) / 2)));
+% v_final = sqrt(mu / a_ref);
+% 
+% delta_v1 = v_transfer_periapsis - v_init;
+% delta_v2 = v_final - v_transfer_apoapsis;
+
+%% Define the gain matrix (example values)
+K = diag([1, 1, 1, 1, 1, 1]); % Gain matrix
+
+% Numerical integration
+% tspan = [0 1000]; % Time span (1 day)
+% state = initial_state; % Initial orbital elements
+% 
+% % Integrate the variational equations with control
+% [t, state] = ode45(@(t, state) gauss_variational_equations_with_control(t, state, ref_state, K, mu), tspan, initial_state);
+% 
+
+
+% Numerical integration
+tspan = 0: 100: 2*86400; % Time span (2 days)
+
+tspan = 0:10:100;
+
+% Times for delta-v application
+% t1 = 0; % Time of first burn (periapsis)
+% t2 = pi * sqrt(((a_init + a_ref) / 2)^3 / mu); % Time of second burn (apoapsis)
+
+% Need to break up the orbit into small pieces since it's a linear
+% approximation
+% Integrate the variational equations with control 
+for i = 1:length(tspan)
+    dt = 0:.01:10;
+    [t, state] = ode45(@(t, state) gauss_variational_equations_with_control(t, state, ref_state, K), dt, initial_state);
+    initial_state = state(end,:);
+end
+
+%% functions
+
+% Control law
+function u = control_law(state, ref_state, K)
+    error = ref_state - state;
+    u = -K * error;
+end
+% 
+
+% Control law with Hohmann transfer
+% function u = control_law(state, ref_state, K, t, delta_v1, delta_v2, t1, t2)
+%     error = ref_state - state;
+%     u = -K * error;
+% 
+%     % Apply delta-v at the appropriate times
+%     % if abs(t - t1) < 1
+%     %     u(2) = u(2) + delta_v1;
+%     % elseif abs(t - t2) < 1
+%     %     u(2) = u(2) + delta_v2;
+%     % end
+% end
+
+% Gauss' variational equations with control and Hohmann transfer
+function dxdt = gauss_variational_equations_with_control(t, state, ref_state, K)
+    init;
+    mu = Gearth;
+    EA = EAfromTatan(state(2),state(6));
+    Re = RfromEA(state(1),state(2),EA);
+    % Compute the control input
+    u = control_law(state, ref_state, K);
+    
+    B = calculate_B_matrix(state,Re);
+    a_vec = B'*u;
+    % Perturbing accelerations (example values)
+    a_r = a_vec(1); % Radial component
+    a_theta = a_vec(2); % Transverse component
+    a_h = a_vec(3); % Normal component
+    
+    % Specific angular momentum
+    h = sqrt(mu * state(1) * (1 - state(2)^2));
+
+    % Gauss' variational equations
+    da_dt = (2 * state(1)^2 / h) * (state(2) * sin(state(6)) * a_r + (1 + state(2) * cos(state(6))) * a_theta);
+    de_dt = (1 / h) * (state(1) * sin(state(6)) * a_r + ((state(1) + Re) * cos(state(6)) + Re * state(2)) * a_theta);
+    di_dt = (Re * cos(state(6) + state(5)) / h) * a_h;
+    dOmega_dt = (Re * sin(state(6) + state(5)) / (h * sin(state(3)))) * a_h;
+    domega_dt = (1 / (h * state(2))) * (-state(1) * sin(state(6)) * a_r + ((state(1) + Re) * cos(state(6)) + Re * state(2)) * a_theta) - (Re * sin(state(6) + state(5)) * cos(state(3)) / (h * sin(state(3)))) * a_h;
+    dnu_dt = h / Re^2 + (1 / (h * state(2))) * (state(1) * sin(state(6)) * a_r - ((state(1) + Re) * cos(state(6)) + Re * state(2)) * a_theta);
+    
+    dxdt = [da_dt; de_dt; di_dt; dOmega_dt; domega_dt; dnu_dt];
+end
+
+
+
+
+% Gauss' variational equations
+% function dxdt = gauss_variational_equations(t, state)
+%     mu = Gearth;
+%     a = state(1);
+%     e = state(2);
+%     i = state(3);
+%     Omega = state(4);
+%     omega = state(5);
+%     nu = state(6);
+% 
+%     % Perturbing accelerations
+%     a_r = 0; % Example value
+%     a_theta = 2.5/a; % Example value
+%     a_h = 0; % Example value
+% 
+%     % Specific angular momentum
+%     h = sqrt(mu * a * (1 - e^2));
+% 
+%     % Gauss' variational equations
+%     da_dt = (2 * a^2 / h) * (e * sin(nu) * a_r + (1 + e * cos(nu)) * a_theta);
+%     de_dt = (1 / h) * (a * sin(nu) * a_r + ((a + Re) * cos(nu) + Re * e) * a_theta);
+%     di_dt = (Re * cos(nu + omega) / h) * a_h;
+%     dOmega_dt = (Re * sin(nu + omega) / (h * sin(i))) * a_h;
+%     domega_dt = (1 / (h * e)) * (-a * sin(nu) * a_r + ((a + Re) * cos(nu) + Re * e) * a_theta) - (Re * sin(nu + omega) * cos(i) / (h * sin(i))) * a_h;
+%     dnu_dt = h / Re^2 + (1 / (h * e)) * (a * sin(nu) * a_r - ((a + Re) * cos(nu) + Re * e) * a_theta);
+% 
+%     dxdt = [da_dt; de_dt; di_dt; dOmega_dt; domega_dt; dnu_dt];
+% end
+
+% Calculate the B matrix
+function B = calculate_B_matrix(state,Re)
+    % Specific angular momentum
+    init;
+    mu = Gearth;
+    h = sqrt(mu * state(1) * (1 - state(2)^2));
+    
+    % Calculate partial derivatives
+    B = zeros(6, 3);
+    B(1, 1) = (2 * state(1)^2 / h) * state(2) * sin(state(6)); % ∂(da/dt)/∂a_r
+    B(1, 2) = (2 * state(1)^2 / h) * (1 + state(2) * cos(state(6))); % ∂(da/dt)/∂a_θ
+    B(2, 1) = (1 / h) * state(1) * sin(state(6)); % ∂(de/dt)/∂a_r
+    B(2, 2) = (1 / h) * ((state(1) + Re) * cos(state(6)) + Re * state(2)); % ∂(de/dt)/∂a_θ
+    B(3, 3) = (Re * cos(state(6) + state(5)) / h); % ∂(di/dt)/∂a_h
+    B(4, 3) = (Re * sin(state(6) + state(5)) / (h * sin(state(3)))); % ∂(dΩ/dt)/∂a_h
+    B(5, 1) = (1 / (h * state(2))) * -state(1) * sin(state(6)); % ∂(dω/dt)/∂a_r
+    B(5, 2) = (1 / (h * state(2))) * ((state(1) + Re) * cos(state(6)) + Re * state(2)); % ∂(dω/dt)/∂a_θ
+    B(5, 3) = -(Re * sin(state(6) + state(5)) * cos(state(3)) / (h * sin(state(3)))); % ∂(dω/dt)/∂a_h
+    B(6, 1) = (1 / (h * state(2))) * state(1) * sin(state(6)); % ∂(dν/dt)/∂a_r
+    B(6, 2) = (1 / (h * state(2))) * -((state(1) + Re) * cos(state(6)) + Re * state(2)); % ∂(dν/dt)/∂a_θ
+end
+
+% 
+% % Gauss' variational equations with control
+% function dxdt = gauss_variational_equations_with_control(t, state, ref_state, K, mu)
+%     % Compute the control input
+%     Re = 6378.14;
+% 
+%     u = control_law(state, ref_state, K);
+%     
+%     % Perturbing accelerations (example values)
+%     a_r = u(1); % Radial component
+%     a_theta = 2.5/state(1); % Transverse component
+%     a_h = u(3); % Normal component
+%     
+%     % Specific angular momentum
+%     h = sqrt(mu * state(1) * (1 - state(2)^2));
+%     
+%     % Gauss' variational equations
+%     da_dt = (2 * state(1)^2 / h) * (state(2) * sin(state(6)) * a_r + (1 + state(2) * cos(state(6))) * a_theta);
+%     de_dt = (1 / h) * (state(1) * sin(state(6)) * a_r + ((state(1) + Re) * cos(state(6)) + Re * state(2)) * a_theta);
+%     di_dt = (Re * cos(state(6) + state(5)) / h) * a_h;
+%     dOmega_dt = (Re * sin(state(6) + state(5)) / (h * sin(state(3)))) * a_h;
+%     domega_dt = (1 / (h * state(2))) * (-state(1) * sin(state(6)) * a_r + ((state(1) + Re) * cos(state(6)) + Re * state(2)) * a_theta) - (Re * sin(state(6) + state(5)) * cos(state(3)) / (h * sin(state(3)))) * a_h;
+%     dnu_dt = h / Re^2 + (1 / (h * state(2))) * (state(1) * sin(state(6)) * a_r - ((state(1) + Re) * cos(state(6)) + Re * state(2)) * a_theta);
+%     
+%     dxdt = [da_dt; de_dt; di_dt; dOmega_dt; domega_dt; dnu_dt];
+% end
+
+
