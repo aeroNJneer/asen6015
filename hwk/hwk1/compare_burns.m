@@ -11,7 +11,7 @@ function compare_burns(deltaV,duration,acceleration)
 
     % Time settings
     t_impulsive = 0; % Impulsive burn time
-    t_finite = linspace(0, burn_duration, 1000); % Finite burn time array
+    t_finite = linspace(0, duration, 1000); % Finite burn time array
 
     % Impulsive burn
     v_impulsive = v0 + deltaV * burn_vector(2); % Only tangential component affects velocity
