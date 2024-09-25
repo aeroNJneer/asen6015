@@ -67,6 +67,7 @@ Vtrans = @(mu,e,h,ta) (mu/h)*(1+e*cosd(ta));
 VfromRA = @(mu,r,a) sqrt((2*mu/r)-(mu/a));
 Vescape = @(mu,r) sqrt(2*mu/r);
 Vperiapsis = @(mu,a,Rp) (mu*( (2/Rp)-(1/a) ) )^.5;  %Velocity at perigee
+VvecfromOE = @(p,h,e,r,TA) (h/p)*  [e*sin(TA) p/r];
 
 %% orbital elements
 
@@ -138,6 +139,9 @@ E_sign = @(r,v) sign(dot(r,v));
 % Mean motion, n
 MMfromMua = @(mu,a) sqrt(mu/(a^3));
 MMfromP = @(p) 2*pi/p;
+
+% Flight path angle, beta (TA in degrees)
+fpaFromTA = @(e,TA) atand((e*sin(TA))/(1+(e*cos(TA))));
 
 %% time in orbit
 T_afromb = @(n,e,Ea,Eb) ((Eb-e*sin(Eb)) - (Ea-e*sin(Ea)))/n;

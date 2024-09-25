@@ -1,4 +1,3 @@
-
 clear
 close all
 clc
@@ -81,6 +80,7 @@ plot(Rx1',Ry1',y(1:1000,1).*sin(y(1:1000,3)),y(1:1000,1).*cos(y(1:1000,3)),y(100
 title('Hohmann Transfer with and without thrust error')
 legend("initial orbit", "transfer orbit", "final orbit", "transfer orbit w/error", "final orbit w/error")
 
+dy = y-ye;
 figure(4);
 s=stackedplot(t, y-ye);
 xlabel('Time t (s)');
@@ -89,56 +89,84 @@ ax = findobj(s.NodeChildren, 'Type','Axes');
 set([ax.YLabel],'Rotation',90,'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Bottom')
 title('Delta from Nominal States');
 
+X = y(1,end) * [cos(y(3,end)) sin(y(3,end)) 0];
+X_dot = y(2,end)* [cos(y(3,end)) sin(y(3,end)) 0];
 
 %% Sensitivity study
 % finite difference dy/dk (ypert-ynom)/(kpert-knom) 
-
 % k = pointing error
 % y = position on arrival of final orbit
+
 dk = 1;
 dy = [y(1001:end,1) y(1001:end,3)] - [ye(1001:end,1) ye(1001:end,3)];    % difference in position final states
 dy = y(1001:end,1) - ye(1001:end,1);
-sens = dy/dk;
-E = mean(sens)
-ddv = deg2rad(0.1);  % -0.3
+sens_rf = mean(dy/dk)
 
-dk1 = 0.1;
 % transfer orbit (0.1 degree error in radial direction)
+dk1 = 0.1;
 [t1,y1] = hohmannTransfer(r1,k,w,Tof,Tf,dv1,dv2,dk1);
 dy1 = y(1001:end,1) - y1(1001:end,1);
-sens1 = dy/dk1;
-E1 = mean(sens1)
+exp_sens1 = sens_rf*dk1
+sens_rf1 = mean(dy1/dk1)*dk1
 
+% transfer orbit (-0.3 degree error in radial direction)
 dk3 = -0.3;
-% transfer orbit (0.1 degree error in radial direction)
 [t3,y3] = hohmannTransfer(r1,k,w,Tof,Tf,dv1,dv2,dk3);
-
 dy3 = y(1001:end,1) - y3(1001:end,1);
-sens3 = dy3/dk3;
-E3 = mean(sens3)
+exp_sens2 = sens_rf*(-0.3)
+sens_rf2 = mean(dy3/dk3)*dk3
 
 
 %% finite burn
 
 % [r,r_dot, theta, theta_dot, h, h_dot]
+<<<<<<< Updated upstream
 accel = 0.03;             % constant acceleration 30 m/s
 dv = [0, 0, 0, dv1, 0, 0]';         % burn vector
 btime = norm(dv)/norm(accel);
 r0 = [r1, 0,0,0,0, 0]';
 v0 = [0, v1, 0]';
+=======
+accel = 0.03;             % constant acceleration 30 m/s^
+dv = [0, dv1, 0]';        % burn vector
+btime = norm(dv)/norm(accel);
+r0 = [r1, 0, 0]';
+v0 = [0, v1, 0]';  % at periapsis
+>>>>>>> Stashed changes
 
-tspan = linspace(0, btime,1000);
-sol = ode45(@(tb,yb) finiteburn(tb,yb,dv,accel), tspan, [r0;v0]);
-solext = odextend(sol, @(t,y) finiteburn(t,y,0,0), Tf);
+% solve ODEs
+tspan = linspace(0,btime,1000);
+x1 = [r0;v0/r1];
+[tfin,yfin] = ode45(@(tfin,yfin) finiteburn(tfin,yfin,dv,accel), tspan, [r0 ;v0]);
 
+<<<<<<< Updated upstream
 r = solext.y()
+=======
+% coasting after finite burn using previous ode
+tspan = linspace(0,Tof,1000);
+r2 =[yfin(1000,1); yfin(1000,2); yfin(1000,3)]; % initial conditions
+v2 = [yfin(1000,4); yfin(1000,5); yfin(1000,6)]; 
+[t2fin,y2fin] = ode45(@(t2fin,y2fin) finiteburn(t2fin,y2fin,0,0), tspan, [r2 ;v2]);
+>>>>>>> Stashed changes
 
+yfinite = [yfin;y2fin];
+X = [];
+Q = [];
+% Extract position components
+for i = 1:length(yfinite)
+    [raan inc theta] = RSW2Euler(yfinite(i,1:3),yfinite(i,4:6));
+    C = Euler3132C([raan inc theta]);
+    X = [X C*yfinite(i,1:3)'];
+end
+
+% Plot the 3D orbit
 figure(5);
-plot(Rx1',Ry1',yb(:,1).*cos(yb(:,4)),yb(:,1).*sin(yb(:,4)))
-title('Hohmann Transfer with and without thrust error')
-legend("initial orbit", "transfer orbit", "final orbit", "transfer orbit w/error", "final orbit w/error")
-
-
+plot3(X(1,:),X(2,:),X(3,:));
+grid on;
+xlabel('X (km)');
+ylabel('Y (km)');
+zlabel('Z (km)');
+title('3D Orbit');
 
 %% functions
 function dy=myfunc(t,y,a)
@@ -208,8 +236,8 @@ function dydt = finiteburn(t,y,deltaV,accel)
     r = y(1:3);
     v = y(4:6);
     DV = deltaV/norm(deltaV);   % direction of deltav
-    Accel = accel*DV;           % acceleration along deltaV vector
-    r_hat = r/norm(r);              % radial direction
+    Accel = accel*v/norm(v);           % acceleration along deltaV vector
+    r_hat = r/norm(r);          % radial direction
     % EOM
     r_dot = v;
     v_dot = (-mu/(norm(r)^3)).*r_hat  + Accel;

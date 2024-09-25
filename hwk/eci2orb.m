@@ -52,16 +52,16 @@ function oev = eci2orb1(mu, r, v)
     % orbital inclination
     inc = 2.0 * atan(sqrt(p * p + q * q));
     % true longitude
-    xlambdat = atan3(y1, x1);
+    xlambdat = atan2(y1, x1);
     % check for equatorial orbit
     if (inc > 0.00000001)
-        raan = atan3(p, q);
+        raan = atan2(p, q);
     else
         raan = 0.0;
     end
     % check for circular orbit
     if (eccm > 0.0000000001)
-        argper = mod(atan3(h, xk) - raan, pi2);
+        argper = mod(atan2(h, xk) - raan, pi2);
     else
         argper = 0.0;
     end
