@@ -128,38 +128,6 @@ function dxdt = gauss_variational_equations_with_control(t, state, ref_state, K)
     dxdt = [da_dt; de_dt; di_dt; dOmega_dt; domega_dt; dnu_dt];
 end
 
-
-
-
-% Gauss' variational equations
-% function dxdt = gauss_variational_equations(t, state)
-%     mu = Gearth;
-%     a = state(1);
-%     e = state(2);
-%     i = state(3);
-%     Omega = state(4);
-%     omega = state(5);
-%     nu = state(6);
-% 
-%     % Perturbing accelerations
-%     a_r = 0; % Example value
-%     a_theta = 2.5/a; % Example value
-%     a_h = 0; % Example value
-% 
-%     % Specific angular momentum
-%     h = sqrt(mu * a * (1 - e^2));
-% 
-%     % Gauss' variational equations
-%     da_dt = (2 * a^2 / h) * (e * sin(nu) * a_r + (1 + e * cos(nu)) * a_theta);
-%     de_dt = (1 / h) * (a * sin(nu) * a_r + ((a + Re) * cos(nu) + Re * e) * a_theta);
-%     di_dt = (Re * cos(nu + omega) / h) * a_h;
-%     dOmega_dt = (Re * sin(nu + omega) / (h * sin(i))) * a_h;
-%     domega_dt = (1 / (h * e)) * (-a * sin(nu) * a_r + ((a + Re) * cos(nu) + Re * e) * a_theta) - (Re * sin(nu + omega) * cos(i) / (h * sin(i))) * a_h;
-%     dnu_dt = h / Re^2 + (1 / (h * e)) * (a * sin(nu) * a_r - ((a + Re) * cos(nu) + Re * e) * a_theta);
-% 
-%     dxdt = [da_dt; de_dt; di_dt; dOmega_dt; domega_dt; dnu_dt];
-% end
-
 % Calculate the B matrix
 function B = calculate_B_matrix(state,Re)
     % Specific angular momentum
@@ -181,32 +149,5 @@ function B = calculate_B_matrix(state,Re)
     B(6, 1) = (1 / (h * state(2))) * state(1) * sin(state(6)); % ∂(dν/dt)/∂a_r
     B(6, 2) = (1 / (h * state(2))) * -((state(1) + Re) * cos(state(6)) + Re * state(2)); % ∂(dν/dt)/∂a_θ
 end
-
-% 
-% % Gauss' variational equations with control
-% function dxdt = gauss_variational_equations_with_control(t, state, ref_state, K, mu)
-%     % Compute the control input
-%     Re = 6378.14;
-% 
-%     u = control_law(state, ref_state, K);
-%     
-%     % Perturbing accelerations (example values)
-%     a_r = u(1); % Radial component
-%     a_theta = 2.5/state(1); % Transverse component
-%     a_h = u(3); % Normal component
-%     
-%     % Specific angular momentum
-%     h = sqrt(mu * state(1) * (1 - state(2)^2));
-%     
-%     % Gauss' variational equations
-%     da_dt = (2 * state(1)^2 / h) * (state(2) * sin(state(6)) * a_r + (1 + state(2) * cos(state(6))) * a_theta);
-%     de_dt = (1 / h) * (state(1) * sin(state(6)) * a_r + ((state(1) + Re) * cos(state(6)) + Re * state(2)) * a_theta);
-%     di_dt = (Re * cos(state(6) + state(5)) / h) * a_h;
-%     dOmega_dt = (Re * sin(state(6) + state(5)) / (h * sin(state(3)))) * a_h;
-%     domega_dt = (1 / (h * state(2))) * (-state(1) * sin(state(6)) * a_r + ((state(1) + Re) * cos(state(6)) + Re * state(2)) * a_theta) - (Re * sin(state(6) + state(5)) * cos(state(3)) / (h * sin(state(3)))) * a_h;
-%     dnu_dt = h / Re^2 + (1 / (h * state(2))) * (state(1) * sin(state(6)) * a_r - ((state(1) + Re) * cos(state(6)) + Re * state(2)) * a_theta);
-%     
-%     dxdt = [da_dt; de_dt; di_dt; dOmega_dt; domega_dt; dnu_dt];
-% end
 
 

@@ -117,20 +117,21 @@ dy3 = y(1001:end,1) - y3(1001:end,1);
 sens3 = dy3/dk3;
 E3 = mean(sens3)
 
+
 %% finite burn
 
 % [r,r_dot, theta, theta_dot, h, h_dot]
 accel = 0.03;             % constant acceleration 30 m/s
-dv = [0, dv1, 0]';         % burn vector
+dv = [0, 0, 0, dv1, 0, 0]';         % burn vector
 btime = norm(dv)/norm(accel);
-r0 = [r1, 0, 0]';
+r0 = [r1, 0,0,0,0, 0]';
 v0 = [0, v1, 0]';
 
 tspan = linspace(0, btime,1000);
 sol = ode45(@(tb,yb) finiteburn(tb,yb,dv,accel), tspan, [r0;v0]);
 solext = odextend(sol, @(t,y) finiteburn(t,y,0,0), Tf);
 
-r = sol.ext.y()
+r = solext.y()
 
 figure(5);
 plot(Rx1',Ry1',yb(:,1).*cos(yb(:,4)),yb(:,1).*sin(yb(:,4)))
