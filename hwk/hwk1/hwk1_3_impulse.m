@@ -6,7 +6,7 @@ init;
 mu = Gearth;
 R = Rearth; % Radius of Earth (km)
 dt = 1; % Time step (s)
-err = 1;            % error in thrust vector (deg)
+err = 0;            % error in thrust vector (deg)
 % Initial conditions
 r = [6571 ; 0; 0]; % Initial position at 200 km altitude (m)
 v = [0; sqrt(mu / norm(r)); 0]; % Initial velocity for circular orbit (m/s)
@@ -17,11 +17,11 @@ r2 = 42157 ; % Final orbit radius (km)
 
 error_vector = [sind(err) cosd(err) 0]';
 
-simulations = [0, 1, 0.1, -0.3];        % errors for simulations to be done
-positions = cell(1,4);
-velocities = cell(1,4);
+simulations = [0] %, 1, 0.1, -0.3];        % errors for simulations to be done
+% positions = cell(1,4);
+% velocities = cell(1,4);
 for i = length( simulations)
-    positions(i), velocities(1) = simulateHohmannTransfer(r1,r2,simulations(i),dt);
+    [positions, velocities] = simulateHohmannTransfer(r1,r2,error_vector,dt);
 end
 
 % Plotting the orbit

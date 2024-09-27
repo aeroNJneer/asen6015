@@ -1,0 +1,292 @@
+% ASEN-6015
+% HWK 1 prob 2
+
+clear
+%close all
+clc
+init;
+% Constants
+mu = Gearth; 
+
+% Initial and desired orbit elements
+a0 = 7000; % Semi-major axis (m)
+e0 = 0.01; % Eccentricity
+i0 = deg2rad(30); % Inclination (rad)
+raan0 = deg2rad(40); % Right ascension of ascending node (rad)
+w0 = deg2rad(60); % Argument of perigee (rad)
+M0 = deg2rad(0); % Mean anomaly (rad)
+
+af = 10000; % Target semi-major axis (m)
+ef = 0.005; % Target eccentricity
+incf = deg2rad(25); % Target inclination (rad)
+raanf = deg2rad(35); % Target right ascension of ascending node (rad)
+wf = deg2rad(55); % Target argument of perigee (rad)
+Mf = deg2rad(0); % Target mean anomaly (rad)
+
+% Gain matrix
+K = diag([1e-7, 1e-6, 1e-5, 1e-7, 1e-7, 1e-7]);
+
+% Time settings
+dt = 10; % Time step (s)
+total_time = 60*60; % Total simulation time (s)
+num_steps = total_time / dt;
+
+% Preallocate arrays for orbit elements
+a = zeros(1, num_steps);
+e = zeros(1, num_steps);
+i = zeros(1, num_steps);
+raan = zeros(1, num_steps);
+w = zeros(1, num_steps);
+M = zeros(1, num_steps);
+
+% Initial orbit elements
+a(1) = a0;
+e(1) = e0;
+i(1) = i0;
+raan(1) = raan0;
+w(1) = w0;
+M(1) = M0;
+
+% Desired orbit elements
+xd = [af; ef; incf; raanf; wf; Mf];
+
+% Simulation loop
+for t = 2:num_steps
+    % Current orbit elements
+    x = [a(t-1); e(t-1); i(t-1); raan(t-1); w(t-1); M(t-1)];
+    EA = FindEccAnomFromMeanAnom(x(6),x(2));
+    TA = TAfromEA(x(2),EA);
+    % Control law
+    u = -K * (x - xd);
+    p = PfromAe(a(t-1),e(t-1));
+    h = HfromP(mu,p);
+    n = MMfromP(p);
+    r = RfromEA(a(t-1),e(t-1),EA);
+
+    [~, v] = perifocal_sv_from_coe(x,mu);
+    % Gauss' Variational equations
+    da_dt = (2*a(t-1)^2/h) * (e(t-1)*sin(TA)*u(1) + p*u(2)/r);
+    de_dt = ((p*sin(TA)*u(1) + ((p+r)*cos(TA) + r*e(t-1))*u(2)))/h;
+    di_dt = r * cos(TA+w(t-1)) * u(3)/h;
+    dRaan_dt = r* sin(TA+ w(t-1)) *u(3)/(h* sin(i(t-1)));
+    dw_dt = (-p*cos(TA)*u(1) + (p+r)*sin(TA)*u(2))/(h*e(t-1)) - r*sin(TA+2)*cos(i(t-1))*u(3)/(h*sin(i(t-1)));
+    dM_dt = n + sqrt(1-e(t-1)^2) * ((p*cos(TA) - 2*r*e(t-1))*u(1) - (p+r)*sin(TA)*u(2))/(h*e(t-1));
+
+    % Update orbit elements
+    a(t) = a(t-1) + da_dt * dt;
+    e(t) = e(t-1) + de_dt * dt;
+    i(t) = i(t-1) + di_dt * dt;
+    raan(t) = raan(t-1) + dRaan_dt * dt;
+    w(t) = w(t-1) + dw_dt * dt;
+    M(t) = M(t-1) + dM_dt * dt;
+end
+
+==================================================================================================================
+% ASEN-6015
+% Hwk 1 Prob 3, parts a,b,c
+
+clear
+close all
+clc
+init;
+
+%% constants
+err = 1;    % velocity vector pointing error in radial direction (deg)
+r1 = 200 + Rearth;
+r2 = 35786 + Rearth;
+% circular orbit velocity
+v1 = sqrt(Gearth/r1);
+v2 = sqrt(Gearth/r2);
+
+% orbital elements of transfer orbit (Hohmann)
+e = EccfromRpRa(r1,r2);
+a = (r1+r2)/2;
+Tof = PeriodfromA(Gearth, a)/2;  % time of flight
+Ti = PeriodfromA(Gearth, r1);   % period of lower orbit
+Tf = PeriodfromA(Gearth, r2);   % period of higher orbit
+rp = r1;                        % transfer periapsis
+ra = r2;                        % transfer apoapsis
+vt1 = VfromRA(Gearth,r1,a);     % velocity of transfer at periapsis
+vt2 = VfromRA(Gearth,r2,a);     % velocity of transfer at apoapsis
+
+
+hi = HfromRe(Gearth,r1,0)  ; % momentum initial orbit
+hf = HfromRe(Gearth,r2,0)   ;% momentum final orbit
+ht = HfromAe(Gearth,a,e)    ;% momentum transfer orbit
+% delta v impulse burns
+dv1 = vt1-v1;
+dv2 = v2-vt2;
+
+% generate data for initial orbit for plotting
+[Rx1,Ry1] = circularOrbit(Gearth,r1);
+
+% find eccentric anomaly of transfer
+t = linspace(0,Tof,1000);
+
+EAt = []; TA = []; rt = [];
+for i = 1:length(t)
+    EAt(i) = FindEccAnomaly(t(i),a,e,Gearth);
+    TAt(i) = deg2rad(TAfromEA(e,EAt(i)));
+    rt(i) = RfromEA(a,e,EAt(i));
+end
+
+% data points for initial circular orbit
+t = linspace(0,Ti,1000);
+Tai = 2 * pi * t / Ti;
+
+% data points for final circular orbit
+t = linspace(0,Tf,1000);
+Taf = 2 * pi * t / Tf;
+
+%% Simulate transfer orbit
+% No errors in thrust vector
+k=Gearth;
+w=sqrt(k/(r1^3));       % initial angular velocity at lower orbit
+
+[t,y] = hohmannTransfer(r1,k,w,Tof,Tf,dv1,dv2,0);
+
+% Simulate ERROR CONDITIONS
+[te,ye] = hohmannTransfer(r1,k,w,Tof,Tf,dv1,dv2,1);
+
+dy = y-ye;
+
+X = y(1,end) * [cos(y(3,end)) sin(y(3,end)) 0];
+X_dot = y(2,end)* [cos(y(3,end)) sin(y(3,end)) 0];
+
+%% Sensitivity study
+% finite difference dy/dk (ypert-ynom)/(kpert-knom) 
+% k = pointing error
+% y = position on arrival of final orbit
+
+dk = 1;
+dy = [y(1001:end,1) y(1001:end,3)] - [ye(1001:end,1) ye(1001:end,3)];    % difference in position final states
+dy = y(1001:end,1) - ye(1001:end,1);
+sens_rf = mean(dy/dk)
+
+% transfer orbit (0.1 degree error in radial direction)
+dk1 = 0.1;
+[t1,y1] = hohmannTransfer(r1,k,w,Tof,Tf,dv1,dv2,dk1);
+dy1 = y(1001:end,1) - y1(1001:end,1);
+exp_sens1 = sens_rf*dk1
+sens_rf1 = mean(dy1/dk1)*dk1
+
+% transfer orbit (-0.3 degree error in radial direction)
+dk3 = -0.3;
+[t3,y3] = hohmannTransfer(r1,k,w,Tof,Tf,dv1,dv2,dk3);
+dy3 = y(1001:end,1) - y3(1001:end,1);
+exp_sens2 = sens_rf*(-0.3)
+sens_rf2 = mean(dy3/dk3)*dk3
+
+%% functions
+function dy=myfunc(t,y,a)
+    dy=zeros(4,1);
+    dy(1)=y(2);
+    dy(2)=y(1).*(y(4)^2)-(a./(y(1)^2));
+    dy(3)=y(4);
+    dy(4)=(-2.*y(2).*(y(4))./y(1));
+end
+
+function [x,y] = circularOrbit(mu,r)
+init    
+    T = PeriodfromA(mu,r);
+    t = linspace(0,T,1000);
+    n = MMfromP(T);
+    x = r * sin(n.*t);
+    y = r * cos(n.*t);
+end
+
+function [t,y] = hohmannTransfer(r1,a,w,tof,to2,dv1,dv2,err)
+    if err ~= 0
+        Dv1 = [dv1*sind(err) dv1*cosd(err)];
+        Dv2 = [dv2*sind(err) dv2*cosd(err)];
+    else
+        Dv1 = [0 dv1];
+        Dv2 = [0 dv2];
+    end
+
+    % transfer orbit (burn 1)
+    tspan = linspace(0,tof,1000);
+    x1 =[r1;Dv1(1);0;w+Dv1(2)/r1];  % initial conditions with error in radial direction
+    [t1,y1] = ode45(@(t1,y1) myfunc(tspan,y1,a), tspan, x1);
+   
+    % final orbit after 2nd burn using output from previous ode
+    tspan = linspace(0,to2,1000);
+    x2=[y1(1000,1); y1(1000,2)+Dv2(1); y1(1000,3); y1(1000,4)+Dv2(2)/y1(1000,1)]; % initial conditions
+    [t2,y2] = ode45(@(t2,y2) myfunc(tspan,y2,a), tspan, x2);
+
+    t = [t1; t1(end)+t2];
+    y = [y1; y2];
+end
+
+===================================================================================================================
+
+clear
+close all
+init;
+% Constants
+mu = Gearth;
+dt = 10; % Time step (s)
+
+% Initial conditions
+r = [6571 ; 0; 0];              % Initial position at 200 km altitude (km)
+v = [0; sqrt(mu / norm(r)); 0]; % Initial velocity for circular orbit (km/s)
+a_i = 0.03;                     % Constant acceleration during burn (km/s^2)
+
+% Hohmann transfer parameters
+r1 = 6571 ;                     % Initial orbit radius (m)
+r2 = 42157 ;                    % Final orbit radius (m)
+v1 = sqrt(mu / r1);             % Initial orbit velocity (m/s)
+v2 = sqrt(mu / r2);             % Final orbit velocity (m/s)
+a_t = (r1+r2)/2;                % semi major axis of transfer orbit
+v_transfer1 = VfromRA(mu,r1,a_t);   % Initial velocity of transfer orbit (km/s)
+v_transfer2 = VfromRA(mu,r2,a_t);   % Final velocity of transfer orbit (km/s)
+
+t_transfer = PeriodfromA(mu,a_t)/2 ; % Time of transfer
+t_orbit1 = PeriodfromA(mu,r1);    % Period of initial orbit
+t_orbit2 = PeriodfromA(mu,r2);    % Period of final orbit
+
+total_time = t_orbit2 + t_transfer + t_orbit1; % Total simulation time (s)
+
+% calculate max burn time by dividing delta-v by max acceleration
+burn1 = (v_transfer1-v1)/a_i;       
+burn2 = (v2-v_transfer2)/a_i;
+
+% Preallocate arrays for position and velocity
+num_steps = floor(total_time / dt);
+positions = zeros(3, num_steps);
+velocities = zeros(3, num_steps);
+tspan = linspace(0,total_time,num_steps);
+j = 1;
+% Simulation loop
+for i = 1:length(tspan)
+    % Calculate gravitational force
+    r_mag = norm(r);
+    F_gravity = -mu / r_mag^3 * r;
+    
+    % Apply Hohmann transfer burns
+    if tspan(i) >= floor(t_orbit1 )  &&  tspan(i) < floor(t_orbit1+ 0.39*(burn1) )  % start first burn at 200 km altitude for 1/3 max burn time
+       a_burn = a_i*v/norm(v) + [0.001; 0; 0];             % acceleration in the direction of the velocity vector (+ thrust vector error)
+    elseif norm(r) >= 0.62*r2 && norm(v) < v2          % when at nearing target and velocity less than requiredi) 
+       a_burn = a_i*v/norm(v) + [0.001; 0; 0];
+    else
+       a_burn = [0; 0; 0];
+    end
+
+    % Update velocity and position
+    a_total = F_gravity + a_burn;
+    v = v + a_total * dt;
+    r = r + v * dt;
+    
+    % Store position and velocity
+    positions(:, i) = r;
+    velocities(:, i) = v;
+
+    % Update velocity and position
+    a_total = F_gravity + a_burn;
+    v = v + a_total * dt;
+    r = r + v * dt;
+    
+    % Store position and velocity
+    positions(:, i) = r;
+    velocities(:, i) = v;
+end

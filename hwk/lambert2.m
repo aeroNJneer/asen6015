@@ -33,7 +33,7 @@ function [deltav1,deltav2] = lambert2(mu,R1,R2,V1,V2,TOF,path)
         n_min = sqrt(mu/a_min^3);
         TOF_min = 1/n_min*((alpha_min-beta_min)-(sin(alpha_min)-sin(beta_min)));
 
-        if (TOF_min - TOF < 0)
+        if (TOF > TOF_min )
             lesserTOF = false;
         end
         
@@ -43,8 +43,7 @@ function [deltav1,deltav2] = lambert2(mu,R1,R2,V1,V2,TOF,path)
         % error tolerance
         tol = 1e-6;
         diff = 1000;
-        i = 1;+
-        2
+        i = 1;
         while (diff > tol)  
             % Lambert's equation
             anew = fsolve(@(a)Lamberts(mu,a,s,c,TOF,lesserTOF,path),a0,options);
@@ -57,7 +56,7 @@ function [deltav1,deltav2] = lambert2(mu,R1,R2,V1,V2,TOF,path)
             
                 if i==100
                     disp("could not find value for Lambert")
-                    deltav1 = 0; deltav2 = 0; Tofnew = 0;
+                    deltav1 = NaN; deltav2 = NaN;
                     return;
                 end
                 a0 = anew + 10;

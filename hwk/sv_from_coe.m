@@ -47,6 +47,7 @@ R3_w = [ cos(w) sin(w) 0
 -sin(w) cos(w) 0
 0 0 1];
 %...Equation 4.49:
+
 Q_pX = (R3_w*R1_i*R3_W)';
 %...Equations 4.51 (r and v are column vectors):
 r = Q_pX*rp;

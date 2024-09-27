@@ -49,8 +49,7 @@ x2e=[y1e(1000,1);y1e(1000,2) + (dv2*sind(error));y1e(1000,3);y(1000,4)+(dv2*cosd
 
 figure(6);
 
-
-@@ -175,6 +187,18 @@ s.DisplayLabels={'Radial Position (km)', 'Radial Velocity (km/sec)', 'Angular Po
+s.DisplayLabels={'Radial Position (km)', 'Radial Velocity (km/sec)', 'Angular Position')
 ax = findobj(s.NodeChildren, 'Type','Axes');
 set([ax.YLabel],'Rotation',90,'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Bottom')
 title('Delta from Nominal States - Final Orbit');
