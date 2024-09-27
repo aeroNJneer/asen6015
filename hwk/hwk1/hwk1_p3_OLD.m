@@ -1,10 +1,9 @@
-
+% ASEN-6015
+% Hwk 1 Prob 3, parts a,b,c
 clear
 close all
 init;
-error = 1; % degree in r_hat direction
-% problem 3 - Hohmann transfer
-
+error = 1;      % velocity vector pointing error in radial direction
 
 r1 = 200 + Rearth;
 r2 = 35786;

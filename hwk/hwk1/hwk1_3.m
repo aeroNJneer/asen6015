@@ -1,27 +1,30 @@
+% ASEN-6015
+% Hwk 1 Prob 3, parts a,b,c
+
 clear
 close all
 clc
 init;
-err = 1; % degree in r_hat direction
-% problem 3 - Hohmann transfer
 
+%% constants
+err = 1;    % velocity vector pointing error in radial direction (deg)
 r1 = 200 + Rearth;
 r2 = 35786 + Rearth;
 % circular orbit velocity
 v1 = sqrt(Gearth/r1);
 v2 = sqrt(Gearth/r2);
 
-% orbital elements of transfer
+% orbital elements of transfer orbit (Hohmann)
 e = EccfromRpRa(r1,r2);
 a = (r1+r2)/2;
 Tof = PeriodfromA(Gearth, a)/2;  % time of flight
 Ti = PeriodfromA(Gearth, r1);   % period of lower orbit
 Tf = PeriodfromA(Gearth, r2);   % period of higher orbit
-rp = r1;
-ra = r2;
+rp = r1;                        % transfer periapsis
+ra = r2;                        % transfer apoapsis
+vt1 = VfromRA(Gearth,r1,a);     % velocity of transfer at periapsis
+vt2 = VfromRA(Gearth,r2,a);     % velocity of transfer at apoapsis
 
-vt1 = VfromRA(Gearth,r1,a);
-vt2 = VfromRA(Gearth,r2,a);
 
 hi = HfromRe(Gearth,r1,0)  ; % momentum initial orbit
 hf = HfromRe(Gearth,r2,0)   ;% momentum final orbit
@@ -30,6 +33,7 @@ ht = HfromAe(Gearth,a,e)    ;% momentum transfer orbit
 dv1 = vt1-v1;
 dv2 = v2-vt2;
 
+% generate data for initial orbit for plotting
 [Rx1,Ry1] = circularOrbit(Gearth,r1);
 
 %% Plot the Hohmann Transfer Orbits
@@ -52,7 +56,7 @@ Tai = 2 * pi * t / Ti;
 t = linspace(0,Tf,1000);
 Taf = 2 * pi * t / Tf;
 
-% Plot the orbit
+% Plot the 3 orbits
 figure(1);
 polarplot(Tai, r1 * ones(size(Tai)),Taf,r2*ones(size(Taf)),TAt,rt);
 title('Ideal Initial, Transfer and Final Orbits');
@@ -60,7 +64,7 @@ title('Ideal Initial, Transfer and Final Orbits');
 %% Simulate transfer orbit
 % No errors in thrust vector
 k=Gearth;
-w=sqrt(k/(r1^3));
+w=sqrt(k/(r1^3));       % initial angular velocity at lower orbit
 
 [t,y] = hohmannTransfer(r1,k,w,Tof,Tf,dv1,dv2,0);
 
@@ -119,35 +123,23 @@ sens_rf2 = mean(dy3/dk3)*dk3
 
 %% finite burn
 
-% [r,r_dot, theta, theta_dot, h, h_dot]
-<<<<<<< Updated upstream
-accel = 0.03;             % constant acceleration 30 m/s
-dv = [0, 0, 0, dv1, 0, 0]';         % burn vector
-btime = norm(dv)/norm(accel);
-r0 = [r1, 0,0,0,0, 0]';
-v0 = [0, v1, 0]';
-=======
-accel = 0.03;             % constant acceleration 30 m/s^
-dv = [0, dv1, 0]';        % burn vector
-btime = norm(dv)/norm(accel);
-r0 = [r1, 0, 0]';
-v0 = [0, v1, 0]';  % at periapsis
->>>>>>> Stashed changes
-
+accel = 0.03;                   % constant acceleration 30 m/s^
+dv = [0, dv1, 0]';              % burn vector
+btime = norm(dv)/norm(accel);   % total burn time for delta-v with constant accel
+r0 = [r1, 0, 0]';               % at periapsis
+v0 = [0, v1/r1, 0]';               % at periapsis - only velocity in radial direction
 % solve ODEs
 tspan = linspace(0,btime,1000);
-x1 = [r0;v0/r1];
+x1 = [r0;v0];
+
+
 [tfin,yfin] = ode45(@(tfin,yfin) finiteburn(tfin,yfin,dv,accel), tspan, [r0 ;v0]);
 
-<<<<<<< Updated upstream
-r = solext.y()
-=======
 % coasting after finite burn using previous ode
 tspan = linspace(0,Tof,1000);
 r2 =[yfin(1000,1); yfin(1000,2); yfin(1000,3)]; % initial conditions
 v2 = [yfin(1000,4); yfin(1000,5); yfin(1000,6)]; 
 [t2fin,y2fin] = ode45(@(t2fin,y2fin) finiteburn(t2fin,y2fin,0,0), tspan, [r2 ;v2]);
->>>>>>> Stashed changes
 
 yfinite = [yfin;y2fin];
 X = [];
