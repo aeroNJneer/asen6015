@@ -10,7 +10,7 @@ function [deltav1,deltav2] = lambert2(mu,R1,R2,V1,V2,TOF,path)
     
     t_angle = acosd(dot(R2,R1)/(r2*r1));
     if (path == "long")
-        t_angle = 2*pi - t_angle;
+        t_angle = 360 - t_angle;    % degrees
     end
 
     c = sqrt(r1^2+r2^2-(2*r1*r2*cosd(t_angle)));
@@ -80,8 +80,8 @@ function [deltav1,deltav2] = lambert2(mu,R1,R2,V1,V2,TOF,path)
 
     % use this to find velocity vectors (f & g)
     f = F(r2,p,t_angle);
-    g = G(Gsun,r2,r1,p,t_angle);
-    fdot = Fdot(Gsun,r2,r1,p,t_angle);
+    g = G(mu,r2,r1,p,t_angle);
+    fdot = Fdot(mu,r2,r1,p,t_angle);
     gdot = Gdot(r1,p,t_angle);
 
     V1_f = (R2-f*R1)/g;
