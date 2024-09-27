@@ -6,7 +6,7 @@ init;
 mu = Gearth;
 R = Rearth; % Radius of Earth (km)
 dt = 1; % Time step (s)
-
+err = 1;            % error in thrust vector (deg)
 % Initial conditions
 r = [6571 ; 0; 0]; % Initial position at 200 km altitude (m)
 v = [0; sqrt(mu / norm(r)); 0]; % Initial velocity for circular orbit (m/s)
@@ -14,45 +14,14 @@ v = [0; sqrt(mu / norm(r)); 0]; % Initial velocity for circular orbit (m/s)
 % Hohmann transfer parameters
 r1 = 6571 ; % Initial orbit radius (km)
 r2 = 42157 ; % Final orbit radius (km)
-v1 = sqrt(mu / r1);             % Initial orbit velocity (m/s)
-v2 = sqrt(mu / r2);             % Final orbit velocity (m/s)
-a_t = (r1+r2)/2;                % semi major axis of transfer orbit
-v_transfer1 = VfromRA(mu,r1,a_t);   % Initial velocity of transfer orbit (km/s)
-v_transfer2 = VfromRA(mu,r2,a_t);   % Final velocity of transfer orbit (km/s)
 
-t_transfer = PeriodfromA(mu,a_t)/2; % Time of transfer
-t_orbit1 = PeriodfromA(mu,r1);      % Period of initial orbit
-t_orbit2 = PeriodfromA(mu,r2);      % Period of final orbit
+error_vector = [sind(err) cosd(err) 0]';
 
-total_time = floor(t_orbit2 + t_transfer + t_orbit1); % Total simulation time (s)
-num_steps = total_time/dt
-% Preallocate arrays for position and velocity
-positions = zeros(3, num_steps);
-velocities = zeros(3, num_steps);
-
-% Simulation loop
-for i = 1:num_steps
-    % Calculate gravitational force
-    r_mag = norm(r);
-    F_gravity = -mu / r_mag^3 * r;
-    
-    % Apply Hohmann transfer burns
-    if i == floor(t_orbit1) % First burn at 200 km altitude after first period
-        delta_v1 = v_transfer1 - v1;
-        v = v + [0; delta_v1; 0];
-    elseif i == floor(t_orbit1+t_transfer) % Second burn at 35786 km altitude
-        delta_v2 = v2 - v_transfer2;
-        v = v + [0; -delta_v2; 0];
-    end
-    
-    % Update velocity and position
-    a_total = F_gravity;
-    v = v + a_total * dt;
-    r = r + v * dt;
-    
-    % Store position and velocity
-    positions(:, i) = r;
-    velocities(:, i) = v;
+simulations = [0, 1, 0.1, -0.3];        % errors for simulations to be done
+positions = cell(1,4);
+velocities = cell(1,4);
+for i = length( simulations)
+    positions(i), velocities(1) = simulateHohmannTransfer(r1,r2,simulations(i),dt);
 end
 
 % Plotting the orbit
@@ -62,3 +31,52 @@ xlabel('X (m)');
 ylabel('Y (m)');
 title('Orbit Simulation with Hohmann Transfer (Impulsive Burns)');
 grid on;
+
+% Simulation loop
+
+function [positions,velocities]  = simulateHohmannTransfer(r1,r2,error_vector,dt)
+    init;
+    mu = evalin('base','mu');
+    r = [r1 ; 0; 0]; % Initial position at 200 km altitude (m)
+    v = [0; sqrt(mu / norm(r)); 0]; % Initial velocity for circular orbit (m/s)
+    
+    v1 = sqrt(mu / r1);             % Initial orbit velocity (m/s)
+    v2 = sqrt(mu / r2);             % Final orbit velocity (m/s)
+    a_t = (r1+r2)/2;                % semi major axis of transfer orbit
+    v_transfer1 = VfromRA(mu,r1,a_t);   % Initial velocity of transfer orbit (km/s)
+    v_transfer2 = VfromRA(mu,r2,a_t);   % Final velocity of transfer orbit (km/s)
+    
+    t_transfer = PeriodfromA(mu,a_t)/2; % Time of transfer
+    t_orbit1 = PeriodfromA(mu,r1);      % Period of initial orbit
+    t_orbit2 = PeriodfromA(mu,r2);      % Period of final orbit
+    
+    total_time = floor(t_orbit2 + t_transfer + t_orbit1); % Total simulation time (s)
+    num_steps = total_time/dt
+    % Preallocate arrays for position and velocity
+    positions = zeros(3, num_steps);
+    velocities = zeros(3, num_steps);
+
+    for i = 1:num_steps
+        % Calculate gravitational force
+        r_mag = norm(r);
+        F_gravity = -mu / r_mag^3 * r;
+        
+        % Apply Hohmann transfer burns
+        if i == floor(t_orbit1) % First burn at 200 km altitude after first period
+            delta_v1 = (v_transfer1 - v1) * error_vector;
+            v = v + abs(delta_v1);
+        elseif i == floor(t_orbit1+t_transfer) % Second burn at 35786 km altitude
+            delta_v2 = (v2 - v_transfer2) * error_vector;
+            v = v - delta_v2;
+        end
+        
+        % Update velocity and position
+        a_total = F_gravity;
+        v = v + a_total * dt;
+        r = r + v * dt;
+        
+        % Store position and velocity
+        positions(:, i) = r;
+        velocities(:, i) = v;
+    end
+end 
