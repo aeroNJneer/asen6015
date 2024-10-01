@@ -24,7 +24,7 @@ tspan = 0:dt:tgo;
 % cos(theta_he) = dot(r,v)/R0
 
 theta_he = deg2rad(30);      % heading angle in degrees
-ydot = vm*sin(theta_he);
+ydot = -vm*sin(theta_he);
 x0 = [0, ydot, 0]';
 Xi = proNav(A,B,x0,R0,vc,tspan,dt,N,k,false);
 
@@ -51,6 +51,8 @@ plot(tspan, Xi(:,4));
 ylabel('Normal Acceleration Command (ft/s^2)');
 xlabel('Time (s)');
 
+
+
 function states = proNav(A,B,x0,R0,vc,tspan,dt,Nvalues,k,augmented)
     
     for N = Nvalues
@@ -65,9 +67,9 @@ function states = proNav(A,B,x0,R0,vc,tspan,dt,Nvalues,k,augmented)
 
             % Proportional Navigation command
             if(augmented)
-                nc(i) = N * lambda_dot + k * lambda_ddot;
+                nc(i) = N * lambda_dot * vc + 0.5 * N * x(3);
             else
-                nc(i) = N * lambda_dot;
+                nc(i) = N * lambda_dot * vc;
             end
 
             % State update
@@ -77,9 +79,11 @@ function states = proNav(A,B,x0,R0,vc,tspan,dt,Nvalues,k,augmented)
             % Store results
             y(i) = x(1);
             ydot(i) = x(2);
+            ZEM(i) = -x(1)/(tspan(end) - (i-1)*dt);
             nt(i) = x(3);
 
         end
         states = [y' ydot' nt' nc'];
     end
+
 end 
