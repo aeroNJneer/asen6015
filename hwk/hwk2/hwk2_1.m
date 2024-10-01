@@ -23,7 +23,7 @@ tspan = 0:dt:tgo;
 % part i: theta_he = 30 degrees, nt = 0;
 % cos(theta_he) = dot(r,v)/R0
 
-theta_he = deg2rad(30);      % heading angle in degrees
+theta_he = deg2rad(30);      % heading angle in degrees (-rhat * vhat)
 ydot = -vm*sin(theta_he);
 x0 = [0, ydot, 0]';
 Xi = proNav(A,B,x0,R0,vc,tspan,dt,N,k,false);
@@ -54,7 +54,7 @@ xlabel('Time (s)');
 
 
 function states = proNav(A,B,x0,R0,vc,tspan,dt,Nvalues,k,augmented)
-    
+    theta_he = evalin('base','theta_he');
     for N = Nvalues
         % Initialize state vector
         x = x0;
@@ -62,8 +62,9 @@ function states = proNav(A,B,x0,R0,vc,tspan,dt,Nvalues,k,augmented)
         
         for i = 1:length(tspan)
             % Calculate line-of-sight rate 
-            lambda_dot = x(2) / r;
-            lambda_ddot = x(3) / r;
+            lambda_dot = x(2) / r^2;
+            lambda_ddot = x(3) / r;     % 2 * lambda_dot *r_dot/r
+                                        % nt_theta + (N-2) * r_dot * lambda_dot
 
             % Proportional Navigation command
             if(augmented)
@@ -81,9 +82,11 @@ function states = proNav(A,B,x0,R0,vc,tspan,dt,Nvalues,k,augmented)
             ydot(i) = x(2);
             ZEM(i) = -x(1)/(tspan(end) - (i-1)*dt);
             nt(i) = x(3);
-
+           theta_he(i) = atan(y(i)/r);
+            temp(i) = -nc(i)*tspan(end)/3000/theta_he(i)
         end
         states = [y' ydot' nt' nc'];
     end
 
+    % -nc * tf / vm / theta_he vs t/tf
 end 
