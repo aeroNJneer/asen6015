@@ -18,7 +18,7 @@ rf = 42164;
 Rf = rf * rf_hat;  % final position
 
 Tof = 37864;
-tspan = [0 : dt : Tof];
+tspan = 0:dt:Tof;
 
 [v1, v2,iter] = lambert_univ(mu,R0,Rf,Tof,1);
 iter
@@ -32,8 +32,7 @@ r = R0;
 v = v1;
 tspan = 0:dt:Tof;
 tof = Tof;
-burn = 0;
-%v2_tol = v2+1e-2*v2;
+burn_a = 0;
 for i = 1:length(tspan)
     vg = v2 - v1;       % velocity to go
 
@@ -42,9 +41,9 @@ for i = 1:length(tspan)
     F_gravity = 0;     % -g * R0/r_mag; 
 
     % Apply transfer burns
-    if abs(vg(1)) < 1e-4 ||  abs(vg(2)) < 1e-4 || abs(vg(3)) < 1e-4
+    if norm(vg) > 0.01
        a_burn = -ai*vg/norm(vg);     % in direction of vg
-       burn = burn + 1;             % count the burn time
+       burn_a = burn_a+1;             % count the burn time
     else
        a_burn = [0; 0; 0];
     end
@@ -59,7 +58,7 @@ for i = 1:length(tspan)
     R(:, i) = r;
     V(:, i) = v1;
 end
-burn
+burn_a
 [x,y] = circularOrbit(mu,r0,length(tspan));
 
 % Problem 2 Part 3
@@ -71,6 +70,7 @@ G = computeGravityGradient(rf, mu); % Compute gravity-gradient matrix
 r = R0;
 v = v1;
 tof = Tof;
+burn_b = 0;
 % iterate through the simulation, constantly updating r0 until we get to rf
 for i = 1:length(tspan)
     vg = v2 - v1;       % velocity to go 
@@ -82,12 +82,11 @@ for i = 1:length(tspan)
     % Apply transfer burns
     % when we get close to the target delta-v then no more burns until
     % error grows too big OR get sufficiently close to target 
-    if abs(vg(1)) < 0.1 ||  abs(vg(2)) < 0.1 || abs(vg(3)) < 0.1
-
+    if norm(vg) > 0.01
         a_burn = -ai*vg/norm(vg);     % in direction of vg
         Q = -1/(dt*i - tof) * (eye(3) + (dt*i - tof)^2 * G / 2); % Compute Q matrix
         a_burn = Q * a_burn; % Update acceleration vector using Q matrix
-       burn = burn + 1;             % count the burn time
+       burn_b = burn_b + 1;             % count the burn time
     else
        a_burn = [0; 0; 0];
     end
@@ -103,7 +102,7 @@ for i = 1:length(tspan)
     R1(:, i) = r;
     V1(:, i) = v1;
 end
-
+burn_b
 delR = R1(:,end) - Rf
 
 figure(3);
