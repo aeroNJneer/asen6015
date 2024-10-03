@@ -80,12 +80,13 @@ for i = 1:length(tspan)
     F_gravity = 0;     % -g * R0/r_mag; 
 
     % Apply transfer burns
-    if abs(vg(1)) < 1e-4 ||  abs(vg(2)) < 1e-4 || abs(vg(3)) < 1e-4
+    % when we get close to the target delta-v then no more burns until
+    % error grows too big OR get sufficiently close to target 
+    if abs(vg(1)) < 0.1 ||  abs(vg(2)) < 0.1 || abs(vg(3)) < 0.1
 
-    a_burn = -ai*vg/norm(vg);     % in direction of vg
-    Q = -1/(dt*i - tof) * (eye(3) + (dt*i - tof)^2 * G / 2); % Compute Q matrix
-    a_burn = Q * a_burn; % Update acceleration vector using Q matrix
-      
+        a_burn = -ai*vg/norm(vg);     % in direction of vg
+        Q = -1/(dt*i - tof) * (eye(3) + (dt*i - tof)^2 * G / 2); % Compute Q matrix
+        a_burn = Q * a_burn; % Update acceleration vector using Q matrix
        burn = burn + 1;             % count the burn time
     else
        a_burn = [0; 0; 0];
@@ -115,6 +116,8 @@ hold on;
 plot(x,y)
 legend('Lambert guidance','Q-guidance', 'initial orbit','Location','southwest')
 hold off;
+xlim([-60000 40000]);
+ylim([-60000 40000]);
 
 % plot from nominal
 
