@@ -23,8 +23,8 @@ tspan = 0:dt:Tof;
 [v1, v2,iter] = lambert_univ(mu,R0,Rf,Tof,1);
 iter
 % Problem 2 Part b
-% simulate a case with simple lambert guidance routine where steering
-% direction is determined by a_T = a_T v_hat_d
+% simulate a case with simple lambert guidance routine with cross product
+% guidance
 
 % iterate through the simulation, constantly updating r0 until we get to rf
 ai = 0.03;      % constant acceleration 30 m/s
@@ -71,10 +71,12 @@ r = R0;
 v = v1;
 tof = Tof;
 burn_b = 0;
+dvg = 0;
+
 % iterate through the simulation, constantly updating r0 until we get to rf
 for i = 1:length(tspan)
     vg = v2 - v1;       % velocity to go 
-
+    vghat = vg/norm(vg);
     % Calculate gravitational force
     r_mag = norm(r);
     F_gravity = 0;     % -g * R0/r_mag; 
@@ -83,9 +85,12 @@ for i = 1:length(tspan)
     % when we get close to the target delta-v then no more burns until
     % error grows too big OR get sufficiently close to target 
     if norm(vg) > 0.01
-        a_burn = -ai*vg/norm(vg);     % in direction of vg
-        Q = -1/(dt*i - tof) * (eye(3) + (dt*i - tof)^2 * G / 2); % Compute Q matrix
-        a_burn = Q * a_burn; % Update acceleration vector using Q matrix
+        % a_burn = -ai*vg/norm(vg);     % in direction of vg
+        Q = -1/dt * (eye(3) + (dt^2 * G / 2)); % Compute Q matrix
+        b = -Q *vg;
+        C = abs(norm(b - dvg));
+        q = -dot(vghat,b)+sqrt(dot(vghat,b)^2 - norm(b)^2 + C^2);
+        a_burn = Q*vg + q*vghat;  % Update acceleration vector using Q matrix
        burn_b = burn_b + 1;             % count the burn time
     else
        a_burn = [0; 0; 0];
@@ -98,12 +103,14 @@ for i = 1:length(tspan)
     r = r + v1 * dt;
     tof = tof - dt;                 % decrement time remaining
     [v1, v2] = lambert_univ(mu,r,Rf,tof,1);
+    dvg = (vg-(v2-v1))/dt;
     % Store position and velocity
     R1(:, i) = r;
     V1(:, i) = v1;
 end
 burn_b
-delR = R1(:,end) - Rf
+delR = R(:,end) -Rf
+delR1 = R1(:,end) - Rf
 
 figure(3);
 plot(R(1, :), R(2, :), R1(1,:),R1(2,:));
@@ -113,7 +120,7 @@ title('Orbits Solving Lamberts Problem') ;
 grid on;
 hold on;
 plot(x,y)
-legend('Lambert guidance','Q-guidance', 'initial orbit','Location','southwest')
+legend('Lambert guidance','Cross-product guidance', 'initial orbit','Location','southwest')
 hold off;
 xlim([-60000 40000]);
 ylim([-60000 40000]);

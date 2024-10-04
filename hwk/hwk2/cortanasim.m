@@ -40,7 +40,7 @@ for N = Nvalues
     Vmx = vm*cos(theta + he);
     Vmy = vm*sin(theta + he);
     Vx = Vtx - Vmx;     % relative velocity, x_hat
-    Vy = Vtx - Vmy;     % relative velocity, y_hat
+    Vy = Vty - Vmy;     % relative velocity, y_hat
     Vc = -(Rx*Vx + Ry*Vy)/R;  % closing velocity
     lambdad = (Rx*Vy-Ry*Vx)/(R^2);
 
@@ -81,7 +81,7 @@ for N = Nvalues
         lambdad = (Rx*Vy-Ry*Vx)/(R^2);
         T(i,N-2) = T(i-1,N-2) + dt;
         % Calculate closing velocity
-        Vc = (Rx*Vx + Ry*Vy)/R;     
+        Vc = -(Rx*Vx + Ry*Vy)/R;     
         end 
     end
 
