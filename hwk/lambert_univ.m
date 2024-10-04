@@ -1,9 +1,9 @@
-function [v1, v2] = lambert_universal_variables(mu, r1, r2, dt, direction)
+function [v1, v2,iterations] = lambert_universal_variables(mu, r1, r2, dt, direction)
     r1_norm = norm(r1);
     r2_norm = norm(r2);
     cos_dnu = dot(r1, r2) / (r1_norm * r2_norm);
     A = direction * sqrt(r1_norm * r2_norm * (1 + cos_dnu));
-    if acosd(cos_dnu) == 0 || A == 0
+    if acos(cos_dnu) == 0 || A == 0
         return;
     end
 
@@ -11,14 +11,14 @@ function [v1, v2] = lambert_universal_variables(mu, r1, r2, dt, direction)
     c2 = 1/2;
     c3 = 1/6;
     z_up = 4 * pi^2;
-    z_low = -4 * pi^2;
+    z_low = -4 * pi;
     dz = 0.01;
     dt_new = 1;
     i = 1;
-    while (abs(dt) - abs(dt_new) > 1e-6)
+    while abs(abs(dt_new) - abs(dt)) > 1e-6
         y = r1_norm + r2_norm + A * (z * c3 - 1) / sqrt(c2);
         if A > 0 && y < 0
-            z_low = zlow + dz;
+            z_low = z_low + dz;
         end
         x = sqrt(y / c2);
         dt_new = (x^3 * c3 + A * sqrt(y)) / sqrt(mu);
@@ -34,22 +34,25 @@ function [v1, v2] = lambert_universal_variables(mu, r1, r2, dt, direction)
         if (z > 1e-6)
             c2 = (1-cos(sqrt(z)))/z;
             c3 = (sqrt(z)-sin(sqrt(z)))/sqrt(z^3);
-        elseif (z < -1e-1)
+        elseif (z < -1e-6)
             c2 = (1-cosh(-z))/z;
-            c3 = (sinh(-z) - sqrt(-z))/sqrt
+            c3 = (sinh(-z) - sqrt(-z))/sqrt(-z^3);
         else 
             c2 = 1/2;
             c3 = 1/6;
         end
         i = i+1;
+        if i>100
+            break;
+        end
     end
 
     f = 1 - y / r1_norm;
     g = A * sqrt(y / mu);
     g_dot = 1 - y / r2_norm;
-    disp("it took " + i + " iterations")
-    v1 = (r2 - f * r1) / g;
-    v2 = (g_dot * r2 - r1) / g;
+    v1 = (r2 - f * r1) / g;     % required velocity to make transfer
+    v2 = (g_dot * r2 - r1) / g; % required velocity for 2nd burn
+    iterations = i;
 end
 
 
