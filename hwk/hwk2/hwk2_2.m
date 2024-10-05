@@ -30,48 +30,48 @@ iter
 ai = 0.03;      % constant acceleration 30 m/s
 r = R0;
 v = v1;
-tspan = 0:dt:Tof;
-tof = Tof;
+tspan = 0:dt:Tof; 
+tof = Tof; 
 burn_a = 0;
 for i = 1:length(tspan)
     vg = v2 - v1;       % velocity to go
 
     % Calculate gravitational force
-    r_mag = norm(r);
+    r_mag = norm(r); 
     F_gravity = 0;     % -g * R0/r_mag; 
 
-    % Apply transfer burns
-    if norm(vg) > 0.01
+    % Apply transfer burns          
+    if norm(vg) > 0.01 
        a_burn = -ai*vg/norm(vg);     % in direction of vg
        burn_a = burn_a+1;             % count the burn time
     else
        a_burn = [0; 0; 0];
     end
-
+ 
     % Update velocity and position
     a_total = F_gravity + a_burn;
     v1 = v1 + a_total * dt;
-    r = r + v1 * dt;
+    r = r + v1 * dt;   
     tof = tof - dt;                 % decrement time remaining
     [v1, v2] = lambert_univ(mu,r,Rf,tof,1);
     % Store position and velocity
     R(:, i) = r;
     V(:, i) = v1;
 end
-burn_a
+burn_a 
 [x,y] = circularOrbit(mu,r0,length(tspan));
 
 % Problem 2 Part 3
 [v1, v2,~] = lambert_univ(mu,R0,Rf,Tof,1);
 
-G = computeGravityGradient(rf, mu); % Compute gravity-gradient matrix
+G = computeGravityGradient(Rf, mu); % Compute gravity-gradient matrix
 % Q = -(eye(3) + (tf-t)^2*G/2)/(tf-t);
 % reset variables
-r = R0;
+r = R0;      
 v = v1;
 tof = Tof;
 burn_b = 0;
-dvg = 0;
+dvg = (v1-V0)/dt;
 
 % iterate through the simulation, constantly updating r0 until we get to rf
 for i = 1:length(tspan)
@@ -85,12 +85,14 @@ for i = 1:length(tspan)
     % when we get close to the target delta-v then no more burns until
     % error grows too big OR get sufficiently close to target 
     if norm(vg) > 0.01
+  %      dt = 1
         % a_burn = -ai*vg/norm(vg);     % in direction of vg
-        Q = -1/dt * (eye(3) + (dt^2 * G / 2)); % Compute Q matrix
+        Q = -(1/dt) * (eye(3) + (dt^2 * G / 2)); % Compute Q matrix
+       % Q = -1/(dt*i - tof) * (eye(3) + (dt*i - tof)^2 * G / 2); % Compute Q matrix
         b = -Q *vg;
         C = abs(norm(b - dvg));
-        q = -dot(vghat,b)+sqrt(dot(vghat,b)^2 - norm(b)^2 + C^2);
-        a_burn = Q*vg + q*vghat;  % Update acceleration vector using Q matrix
+        q = -dot(vghat,b)-sqrt(dot(vghat,b)^2 - norm(b)^2 + C^2);
+        a_burn = ai*(Q*vg + q*vghat);  % Update acceleration vector using Q matrix
        burn_b = burn_b + 1;             % count the burn time
     else
        a_burn = [0; 0; 0];
@@ -122,8 +124,8 @@ hold on;
 plot(x,y)
 legend('Lambert guidance','Cross-product guidance', 'initial orbit','Location','southwest')
 hold off;
-xlim([-60000 40000]);
-ylim([-60000 40000]);
+% xlim([-60000 40000]);
+% ylim([-60000 40000]);
 
 % plot from nominal
 
@@ -143,6 +145,9 @@ end
 
 % compute gravity-gradient matrix G
 function G = computeGravityGradient(R, mu)
+
     r = norm(R);
     G = (3 * mu / r^5) * (R' * R - (r^2) * eye(3));
+
+ 
 end
