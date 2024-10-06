@@ -12,7 +12,7 @@ g = 9.08665;        % accel due to gravity
 r0_hat = [1 0 0];
 r0 = 6578;
 R0 = r0* r0_hat';
-V0 = VfromRA(mu,R0,R0);
+V0 = VfromRA(mu,R0,R0)';
 rf_hat = [-cosd(5); sind(5); 0];
 rf = 42164;
 Rf = rf * rf_hat;  % final position
@@ -90,10 +90,10 @@ for i = 1:length(tspan)
         Q = -(1/dt) * (eye(3) + (dt^2 * G / 2)); % Compute Q matrix
        % Q = -1/(dt*i - tof) * (eye(3) + (dt*i - tof)^2 * G / 2); % Compute Q matrix
         b = -Q *vg;
-        C = abs(norm(b - dvg));
+        C = norm(b - dvg);
         q = -dot(vghat,b)-sqrt(dot(vghat,b)^2 - norm(b)^2 + C^2);
         a_burn = ai*(Q*vg + q*vghat);  % Update acceleration vector using Q matrix
-       burn_b = burn_b + 1;             % count the burn time
+        burn_b = burn_b + 1;             % count the burn time
     else
        a_burn = [0; 0; 0];
     end
@@ -145,9 +145,12 @@ end
 
 % compute gravity-gradient matrix G
 function G = computeGravityGradient(R, mu)
+x = R(1);
+y = R(2);
+z = R(3);
+r = norm(R);
 
-    r = norm(R);
-    G = (3 * mu / r^5) * (R' * R - (r^2) * eye(3));
-
- 
+G = [mu/(abs(x)^2 + abs(y)^2 + abs(z)^2)^(3/2) - (3*mu*x*abs(x)*(x + conj(x)))/(2*(x*conj(x))^(1/2)*(abs(x)^2 + abs(y)^2 + abs(z)^2)^(5/2)),   -(3*mu*x*abs(y)*(y + conj(y)))/(2*(y*conj(y))^(1/2)*(abs(x)^2 + abs(y)^2 + abs(z)^2)^(5/2)),  0;
+-(3*mu*y*abs(x)*(x + conj(x)))/(2*(x*conj(x))^(1/2)*(abs(x)^2 + abs(y)^2 + abs(z)^2)^(5/2)), mu/(abs(x)^2 + abs(y)^2 + abs(z)^2)^(3/2) - (3*mu*y*abs(y)*(y + conj(y)))/(2*(y*conj(y))^(1/2)*(abs(x)^2 + abs(y)^2 + abs(z)^2)^(5/2)),                                            0;
+-(3*mu*z*abs(x)*(x + conj(x)))/(2*(x*conj(x))^(1/2)*(abs(x)^2 + abs(y)^2 + abs(z)^2)^(5/2)),  -(3*mu*z*abs(y)*(y + conj(y)))/(2*(y*conj(y))^(1/2)*(abs(x)^2 + abs(y)^2 + abs(z)^2)^(5/2)), mu/(abs(x)^2 + abs(y)^2 + abs(z)^2)^(3/2)] ;
 end
