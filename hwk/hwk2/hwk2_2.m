@@ -7,7 +7,7 @@ clc
 init;
 dt = 10;
 mu = Gearth;
-g = 9.08665;        % accel due to gravity
+g = 0.00908665;        % accel due to gravity
 
 r0_hat = [1 0 0];
 r0 = 6578;
@@ -35,17 +35,17 @@ tof = Tof;
 burn_a = 0;
 for i = 1:length(tspan)
     vg = v2 - v1;       % velocity to go
-
+    r_mag = norm(r);     
     % Calculate gravitational force
-    r_mag = norm(r); 
-    F_gravity = 0;     % -g * R0/r_mag; 
+    F_gravity = 0; % -g * r/r_mag (ignore for now)
 
     % Apply transfer burns          
     if norm(vg) > 0.01 
        a_burn = -ai*vg/norm(vg);     % in direction of vg
-       burn_a = burn_a+1;             % count the burn time
+       burn_a(i) = 1;                % track the burn time
     else
        a_burn = [0; 0; 0];
+       burn_a(i) = 0;
     end
  
     % Update velocity and position
@@ -58,14 +58,14 @@ for i = 1:length(tspan)
     R(:, i) = r;
     V(:, i) = v1;
 end
-burn_a 
+burn_a(i) 
 [x,y] = circularOrbit(mu,r0,length(tspan));
 
 % Problem 2 Part 3
 [v1, v2,~] = lambert_univ(mu,R0,Rf,Tof,1);
 
 G = computeGravityGradient(Rf, mu); % Compute gravity-gradient matrix
-% Q = -(eye(3) + (tf-t)^2*G/2)/(tf-t);
+
 % reset variables
 r = R0;      
 v = v1;
@@ -77,25 +77,28 @@ dvg = (v1-V0)/dt;
 for i = 1:length(tspan)
     vg = v2 - v1;       % velocity to go 
     vghat = vg/norm(vg);
+    r_mag = norm(r);    
     % Calculate gravitational force
-    r_mag = norm(r);
-    F_gravity = 0;     % -g * R0/r_mag; 
+    F_gravity = 0; % -g * r/r_mag (ignore for now)
 
     % Apply transfer burns
     % when we get close to the target delta-v then no more burns until
     % error grows too big OR get sufficiently close to target 
     if norm(vg) > 0.01
-  %      dt = 1
-        % a_burn = -ai*vg/norm(vg);     % in direction of vg
         Q = -(1/dt) * (eye(3) + (dt^2 * G / 2)); % Compute Q matrix
        % Q = -1/(dt*i - tof) * (eye(3) + (dt*i - tof)^2 * G / 2); % Compute Q matrix
         b = -Q *vg;
         C = norm(b - dvg);
         q = -dot(vghat,b)-sqrt(dot(vghat,b)^2 - norm(b)^2 + C^2);
         a_burn = ai*(Q*vg + q*vghat);  % Update acceleration vector using Q matrix
-        burn_b = burn_b + 1;             % count the burn time
+        burn_b(i) = 1;             % count the burn time
+  %   elseif norm(vg) > 1e-3
+  %      dt = 0.1;
+  % % put in some other type of guidancee
+  %       burn_b(i) = 0.5;             % count the burn time
     else
        a_burn = [0; 0; 0];
+       burn_b(i) = 0;  
     end
 
     % Update velocity and position
@@ -110,7 +113,7 @@ for i = 1:length(tspan)
     R1(:, i) = r;
     V1(:, i) = v1;
 end
-burn_b
+burn_b(i)
 delR = R(:,end) -Rf
 delR1 = R1(:,end) - Rf
 
@@ -133,6 +136,16 @@ figure (4)
 plot(tspan(1:end-1),vecnorm(V1(:,1:end-1))-vecnorm(V(:,1:end-1)))
 title('Difference in \Deltav betweenn Lambert with Q-guidance')
 
+figure(5)
+plot(tspan(1:end-1),vecnorm(V(:,1:end-1)),tspan(1:end-1),vecnorm(V1(:,1:end-1)))
+title('vector')
+
+figure(6)
+plot(tspan(end-100:end),burn_a(end-100:end),tspan(end-100:end),burn_b(end-100:end))
+title('Times of Burn')
+legend('Lambert guidance','Cross-product guidance','Location','southwest')
+ylim([0,2]);
+
 % compute circular orbit data points
 function [x,y] = circularOrbit(mu,r,pts)
 init    
@@ -142,6 +155,8 @@ init
     x = r * sin(n.*t);
     y = r * cos(n.*t);
 end
+
+
 
 % compute gravity-gradient matrix G
 function G = computeGravityGradient(R, mu)

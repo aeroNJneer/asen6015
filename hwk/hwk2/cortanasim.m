@@ -2,7 +2,7 @@ close all
 clear
 g = 32.174;         % gravitational accel
 % Simulation parameters
-nt = 3 * g;         % acceleration of target
+nt = 0 * g;         % acceleration of target
 Nvalues = [3 4 5];  % guidance gain
 he = deg2rad(30);   % heading error
 augmented = true;
@@ -89,16 +89,19 @@ for N = Nvalues
 %         tgo = R(i,N-2)/Vc;
 %         ZEM = Vc * tgo;
         end 
-    end
+end
+
+output=[T',xm',ym',xt',yt',nc'];
+save c:\src\asen6015\datfil.txt output -ascii
 
 % Plot results for PN
 figure(1);
 subplot(2, 1, 1);
-plot(T, ym);
+plot(T(:,1), ym(:,1),T(:,2),ym(:,2),T(:,3),ym(:,3));
 xlabel('Time (s)');
 ylabel('y (m)');
 title('Proportional Navigation - Vertical Displacement (ft)');
-legend('N=3', 'N=4', 'N=5','Location','west');
+legend('N=3', 'N=4', 'N=5','Location','northeast');
 grid on;
 
 subplot(2,1,2);
@@ -107,10 +110,11 @@ xlabel('Time (s)');
 ylabel('ProNav Control Acceleration nc (ft/s^2)');
 legend('N=3', 'N=4', 'N=5');
 subplot(2, 1, 2);
-plot(T, nc, 'DisplayName', ['N = ', num2str(N)]);
+plot(T(:,1), nc(:,1),T(:,2),nc(:,2),T(:,3),nc(:,3));
 xlabel('Time (s)');
-ylabel('ProNav Control Acceleration nc (ft/s^2)');
-legend('N=3', 'N=4', 'N=5');
+ylabel('Acceleration (m/s^2)');
+title('ProNav Control Acceleration n_c (ft/s^2)');
+legend('N=3', 'N=4', 'N=5','Location','southeast');
 grid on;
 
 figure(2)
@@ -126,7 +130,7 @@ xlabel('Time (s)');
 ylabel('ProNav Control Acceleration - Vertical Velocity (ft/s)');
 legend('N=3', 'N=4', 'N=5');
 
-figure(4)
+figure(3)
 plot(xm,ym,xt,yt)
 legend('N=3', 'N=4', 'N=5');
 title('Proportional Navigation - Collision Path');
