@@ -2,7 +2,7 @@ close all
 clear
 g = 32.174;         % gravitational accel
 % Simulation parameters
-nt = 0 * g;         % acceleration of target
+nt = 3 * g;         % acceleration of target
 Nvalues = [3 4 5];  % guidance gain
 he = deg2rad(30);   % heading error
 augmented = true;
@@ -91,47 +91,74 @@ for N = Nvalues
         end 
 end
 
-output=[T',xm',ym',xt',yt',nc'];
-save c:\src\asen6015\datfil.txt output -ascii
+output=[T,xm,ym,xt,yt,nc];
+save 'c:\src\asen6015\datfil.txt' output -ascii -tabs
 
 % Plot results for PN
 figure(1);
-subplot(2, 1, 1);
-plot(T(:,1), ym(:,1),T(:,2),ym(:,2),T(:,3),ym(:,3));
+subplot(3, 1, 1);
+plot(T(:,1), nc(:,1)/g,T(:,1),nc(:,2)/g,T(:,1),nc(:,3)/g);
 xlabel('Time (s)');
-ylabel('y (m)');
-title('Proportional Navigation - Vertical Displacement (ft)');
-legend('N=3', 'N=4', 'N=5','Location','northeast');
-grid on;
-
-subplot(2,1,2);
-plot(T,xm,T,xt)
-xlabel('Time (s)');
-ylabel('ProNav Control Acceleration nc (ft/s^2)');
-legend('N=3', 'N=4', 'N=5');
-subplot(2, 1, 2);
-plot(T(:,1), nc(:,1),T(:,2),nc(:,2),T(:,3),nc(:,3));
-xlabel('Time (s)');
-ylabel('Acceleration (m/s^2)');
+ylabel('Acceleration - n_c (g''s)');
 title('ProNav Control Acceleration n_c (ft/s^2)');
 legend('N=3', 'N=4', 'N=5','Location','southeast');
 grid on;
 
+
+subplot(3,1,2);
+plot(T(:,1), ym(:,1),T(:,1),ym(:,2),T(:,1),ym(:,3));
+xlabel('Time (s)');
+ylabel('Vertical Position - y (m)');
+title('ProNav Vertical Displacement (ft)');
+legend('N=3', 'N=4', 'N=5','Location','northeast');
+grid on;
+
+subplot(3,1,3);
+plot(T(:,1), Vmy(:,1),T(:,1),Vmy(:,2),T(:,1),Vmy(:,3));
+title('ProNav Missile Vertical Velocity - \Deltay (ft/s)');
+xlabel('Time (s)');
+ylabel('Vertical Velocity (ft/s)')
+legend('N=3', 'N=4', 'N=5');
+
+% remove entries with zerosym3 = noZeros(ym(:,1));
+xt3 = noZeros(xt(:,1));
+xt4 = noZeros(xt(:,2));
+xt5 = noZeros(xt(:,3));
+xm3 = [0;noZeros(xm(:,1))];
+xm4 = [0;noZeros(xm(:,2))];
+xm5 = [0;noZeros(xm(:,3))];
+yt3 = [0;noZeros(yt(:,1))];
+yt4 = [0;noZeros(yt(:,2))];
+yt5 = [0;noZeros(yt(:,3))];
+ym3 = [0;noZeros(ym(:,1))];
+ym4 = [0;noZeros(ym(:,2))];
+ym5 = [0;noZeros(ym(:,3))];
+
 figure(2)
-subplot(2,1,1);
-plot(T,xm,T,xt)
-xlabel('Time (s)');
-ylabel('ProNav Control Acceleration - Horizontal Displacement (ft)');
-legend('N=3', 'N=4', 'N=5');
+subplot(3,1,1)
+plot(xt3,yt3,xm3,ym3);
+legend('Target','Missile');
+title('ProNav Collision Path N=3');
+xlabel('Horizontal Position (ft)');
+ylabel('Vertical Position (ft)');
+% ylim([-1000 4000]);
 
-subplot(2,1,2)
-plot(T,Vmy)
-xlabel('Time (s)');
-ylabel('ProNav Control Acceleration - Vertical Velocity (ft/s)');
-legend('N=3', 'N=4', 'N=5');
+subplot(3,1,2)
+plot(xt4,yt4,xm4,ym4);
+legend('Target','Missile');
+title('ProNav Collision Path N=4');
+xlabel('Horizontal Position (ft)');
+ylabel('Vertical Position (ft)')
+% ylim([-1000 4000]);
 
-figure(3)
-plot(xm,ym,xt,yt)
-legend('N=3', 'N=4', 'N=5');
-title('Proportional Navigation - Collision Path');
+subplot(3,1,3)
+plot(xt5,yt5,xm5,ym5);
+legend('Target','Missile');
+title('ProNav Collision Path N=5');
+xlabel('Horizontal Position (ft)');
+ylabel('Vertical Position (ft)')
+% ylim([-1000 4000]);
 
+function x = noZeros(m)
+    x = m(m~=0);
+end
