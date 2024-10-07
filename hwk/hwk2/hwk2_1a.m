@@ -5,7 +5,7 @@ g = 32.174;         % gravitational accel
 nt = 3 * g;         % acceleration of target
 Nvalues = [3 4 5];  % guidance gain
 he = deg2rad(30);   % heading error
-augmented = true;
+augmented = false;
 dt = 0.01;
 dtfine = 0.0001;
 
@@ -20,7 +20,7 @@ for N = Nvalues
     ym(1,N-2) = 0;        % Missile initial y position (ft)
     xt(1,N-2) = R0;       % Target initial x position (ft)
     yt(1,N-2) = 0;        % Target initial y position (ft)
-    beta = 0;       % Target FPA
+    beta = 0;             % Target FPA
     i = 1;
 
 
@@ -92,7 +92,7 @@ for N = Nvalues
 end
 
 output=[T,xm,ym,xt,yt,nc];
-save 'c:\src\asen6015\datfil.txt' output -ascii -tabs
+% save 'c:\src\asen6015\datfil.txt' output -ascii -tabs
 
 % Plot results for PN
 figure(1);
@@ -101,24 +101,26 @@ plot(T(:,1), nc(:,1)/g,T(:,1),nc(:,2)/g,T(:,1),nc(:,3)/g);
 xlabel('Time (s)');
 ylabel('Acceleration - n_c (g''s)');
 title('ProNav Control Acceleration n_c (ft/s^2)');
-legend('N=3', 'N=4', 'N=5','Location','southeast');
+legend('N=3', 'N=4', 'N=5','Location','best');
+ylim([-20 10]);
 grid on;
+
 
 
 subplot(3,1,2);
 plot(T(:,1), ym(:,1),T(:,1),ym(:,2),T(:,1),ym(:,3));
 xlabel('Time (s)');
 ylabel('Vertical Position - y (m)');
-title('ProNav Vertical Displacement (ft)');
-legend('N=3', 'N=4', 'N=5','Location','northeast');
+title(' ProNav Missile Vertical Displacement (ft)');
+legend('N=3', 'N=4', 'N=5','Location','best');
 grid on;
 
 subplot(3,1,3);
 plot(T(:,1), Vmy(:,1),T(:,1),Vmy(:,2),T(:,1),Vmy(:,3));
-title('ProNav Missile Vertical Velocity - \Deltay (ft/s)');
+title(' ProNav Missile Vertical Velocity - \Deltay (ft/s)');
 xlabel('Time (s)');
 ylabel('Vertical Velocity (ft/s)')
-legend('N=3', 'N=4', 'N=5');
+legend('N=3', 'N=4', 'N=5','Location','best');
 
 % remove entries with zerosym3 = noZeros(ym(:,1));
 xt3 = noZeros(xt(:,1));
@@ -134,39 +136,45 @@ ym3 = [0;noZeros(ym(:,1))];
 ym4 = [0;noZeros(ym(:,2))];
 ym5 = [0;noZeros(ym(:,3))];
 
+if nt == 0
+    yt3 = yt(1:length(xm3),1);
+    yt4 = yt(1:length(xm4),2);
+    yt5 = yt(1:length(xm5),3);
+end
+
 figure(2)
 subplot(3,1,1)
 plot(xt3,yt3,xm3,ym3);
-legend('Target','Missile');
-title('ProNav Collision Path N=3');
+legend('Target','Missile','Location','best');
+title(' ProNav Collision Path N=3');
 xlabel('Horizontal Position (ft)');
 ylabel('Vertical Position (ft)');
-% ylim([-1000 4000]);
+ %ylim([-1000 4000]);
 
 subplot(3,1,2)
 plot(xt4,yt4,xm4,ym4);
-legend('Target','Missile');
-title('ProNav Collision Path N=4');
+legend('Target','Missile','Location','best');
+title(' ProNav Collision Path N=4');
 xlabel('Horizontal Position (ft)');
 ylabel('Vertical Position (ft)')
 % ylim([-1000 4000]);
 
 subplot(3,1,3)
 plot(xt5,yt5,xm5,ym5);
-legend('Target','Missile');
-title('ProNav Collision Path N=5');
+legend('Target','Missile','Location','best');
+title(' ProNav Collision Path N=5');
 xlabel('Horizontal Position (ft)');
 ylabel('Vertical Position (ft)')
-% ylim([-1000 4000]);
+ %ylim([-2000 500]);
 
 
 figure(3)
 plot(T(:,1), ZEM(:,1),T(:,2),ZEM(:,2),T(:,3),ZEM(:,3));
 xlabel('Time (s)');
 ylabel('ZEM (ft)');
-title('ProNav Zero Effort Miss (ft)');
-legend('N=3', 'N=4', 'N=5','Location','southeast');
-ylim([-17000 1000])
+title(' ProNav Zero Effort Miss (ft)');
+legend('N=3', 'N=4', 'N=5','Location','best');
+ylim([-16000,1500])
 grid on;
 
 function x = noZeros(m)
