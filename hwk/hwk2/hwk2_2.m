@@ -40,14 +40,14 @@ for i = 1:length(tspan)
     vg = v2 - v1;       % velocity to go
     r_mag = norm(r);     
     % Calculate gravitational force
-    F_gravity = 0; % -g * r/r_mag (ignore for now)
+    F_gravity = -g * r/r_mag; %(ignore for now)
 
     % Apply transfer burns          
     if norm(vg) > 0.01 
        a_burn = -ai*vg/norm(vg);     % in direction of vg
        burn_a(i) = 1;                % track the burn time
     else
-       a_burn = [0; 0; 0];
+       a_burn = F_gravity;
        burn_a(i) = 0;
     end
  
@@ -82,7 +82,7 @@ for i = 1:length(tspan)
     vghat = vg/norm(vg);
     r_mag = norm(r);    
     % Calculate gravitational force
-    F_gravity = 0; % -g * r/r_mag (ignore for now)
+    F_gravity = -g * r/r_mag ; %(ignore for now)
 
     % Apply transfer burns
     % when we get close to the target delta-v then no more burns until
@@ -96,7 +96,7 @@ for i = 1:length(tspan)
         a_burn = ai*(Q*vg + q*vghat);  % Update acceleration vector using Q matrix
         burn_b(i) = 1;             % count the burn time
     else
-       a_burn = [0; 0; 0];
+       a_burn = F_gravity;
        burn_b(i) = 0;  
     end
 
@@ -168,24 +168,11 @@ G = [mu/(abs(x)^2 + abs(y)^2 + abs(z)^2)^(3/2) - (3*mu*x*abs(x)*(x + conj(x)))/(
 -(3*mu*z*abs(x)*(x + conj(x)))/(2*(x*conj(x))^(1/2)*(abs(x)^2 + abs(y)^2 + abs(z)^2)^(5/2)),  -(3*mu*z*abs(y)*(y + conj(y)))/(2*(y*conj(y))^(1/2)*(abs(x)^2 + abs(y)^2 + abs(z)^2)^(5/2)), mu/(abs(x)^2 + abs(y)^2 + abs(z)^2)^(3/2)] ;
 end
 
-function [positions,velocities]  = simulateHohmannTransfer(r1,r2,error_vector,dt,dv1,dv2,tof)
+function [positions,velocities]  = simulateHohmannTransfer(r1,r2,error_vector,dt,v1,v2,tof)
     init;
     mu = evalin('base','mu');
     r = r1; % Initial position at 200 km altitude (m)
-     v = [0; sqrt(mu / norm(r)); 0]; % Initial velocity for circular orbit (m/s)
-    % must convert to xyz a
-    % xis
-   
-    v1 = sqrt(mu / r1);             % Initial orbit velocity (m/s)
-%     v2 = sqrt(mu / r2);             % Final orbit velocity (m/s)
-%     a_t = (r1+r2)/2;                % semi major axis of transfer orbit
-%     v_transfer1 = VfromRA(mu,r1,a_t);   % Initial velocity of transfer orbit (km/s)
-%     v_transfer2 = VfromRA(mu,r2,a_t);   % Final velocity of transfer orbit (km/s)
-    
-%     t_transfer = PeriodfromA(mu,a_t)/2; % Time of transfer
-%     t_orbit1 = PeriodfromA(mu,r1);      % Period of initial orbit
-%     t_orbit2 = PeriodfromA(mu,r2);      % Period of final orbit
-%     
+    v = [0; sqrt(mu / norm(r)); 0]; % Initial velocity for circular orbit (m/s)
     total_time = tof % Total simulation time (s)
     num_steps = floor(total_time/dt);
     % Preallocate arrays for position and velocity
@@ -194,16 +181,17 @@ function [positions,velocities]  = simulateHohmannTransfer(r1,r2,error_vector,dt
 
     for i = 1:num_steps
         % Calculate gravitational force
+        vgo = v2-v;
         r_mag = norm(r);
-        F_gravity = -mu / r_mag^3 * r;
+        F_gravity = -mu * r/ r_mag^3;
         
         % Apply Hohmann transfer burns
         if i == 1 % First burn at 200 km altitude after first period
-            delta_v1 = dv1 * error_vector;
+            delta_v1 = v1 * error_vector;
             v =  delta_v1;
-        elseif i == num_steps-1 % Second burn at 35786 km altitude
-            delta_v2 = dv2 * error_vector;
-            v = delta_v2;
+        elseif abs(vgo) < 1e-4 % Second burn at 35786 km altitude
+         %   delta_v2 = v2 * error_vector;
+          %  v = delta_v2;
         end
         
         % Update velocity and position
