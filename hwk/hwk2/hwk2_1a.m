@@ -2,7 +2,7 @@ close all
 clear
 g = 32.174;         % gravitational accel
 % Simulation parameters
-nt = 3 * g;         % acceleration of target
+nt = 0 * g;         % acceleration of target
 Nvalues = [3 4 5];  % guidance gain
 he = deg2rad(30);   % heading error
 augmented = false;
@@ -22,7 +22,6 @@ for N = Nvalues
     yt(1,N-2) = 0;        % Target initial y position (ft)
     beta = 0;             % Target FPA
     i = 1;
-
 
     % Target velocity components
     Vtx(i,N-2) = -vt*cos(beta);
@@ -104,7 +103,7 @@ title('ProNav Control Acceleration n_c (ft/s^2)');
 legend('N=3', 'N=4', 'N=5','Location','best');
 ylim([-20 10]);
 grid on;
-
+sgtitle('Proportional Navigation')
 
 
 subplot(3,1,2);

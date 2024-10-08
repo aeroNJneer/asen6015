@@ -92,10 +92,6 @@ for i = 1:length(tspan)
         q = -dot(vghat,b)-sqrt(dot(vghat,b)^2 - norm(b)^2 + C^2);
         a_burn = ai*(Q*vg + q*vghat);  % Update acceleration vector using Q matrix
         burn_b(i) = 1;             % count the burn time
-  %   elseif norm(vg) > 1e-3
-  %      dt = 0.1;
-  % % put in some other type of guidancee
-  %       burn_b(i) = 0.5;             % count the burn time
     else
        a_burn = [0; 0; 0];
        burn_b(i) = 0;  
@@ -155,8 +151,6 @@ init
     x = r * sin(n.*t);
     y = r * cos(n.*t);
 end
-
-
 
 % compute gravity-gradient matrix G
 function G = computeGravityGradient(R, mu)
