@@ -22,7 +22,9 @@ tspan = 0:dt:Tof;
 
 [v1, v2,iter] = lambert_univ(mu,R0,Rf,Tof,1);
 iter
-[positions,velocities] =  simulateHohmannTransfer(r0,rf,1,10,v1,v2,Tof);
+[positions,velocities] =  simulateHohmannTransfer(R0,Rf,1,dt,v1,v2,Tof);
+
+
 % Problem 2 Part b
 % simulate a case with simple lambert guidance routine with cross product
 % guidance
@@ -169,7 +171,7 @@ end
 function [positions,velocities]  = simulateHohmannTransfer(r1,r2,error_vector,dt,dv1,dv2,tof)
     init;
     mu = evalin('base','mu');
-    r = [r1 ; 0; 0]; % Initial position at 200 km altitude (m)
+    r = r1; % Initial position at 200 km altitude (m)
      v = [0; sqrt(mu / norm(r)); 0]; % Initial velocity for circular orbit (m/s)
     % must convert to xyz a
     % xis
@@ -198,10 +200,10 @@ function [positions,velocities]  = simulateHohmannTransfer(r1,r2,error_vector,dt
         % Apply Hohmann transfer burns
         if i == 1 % First burn at 200 km altitude after first period
             delta_v1 = dv1 * error_vector;
-            v = v + abs(delta_v1);
+            v =  delta_v1;
         elseif i == num_steps-1 % Second burn at 35786 km altitude
             delta_v2 = dv2 * error_vector;
-            v = v - delta_v2;
+            v = delta_v2;
         end
         
         % Update velocity and position
