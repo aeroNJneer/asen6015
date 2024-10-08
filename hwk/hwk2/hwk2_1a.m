@@ -2,10 +2,10 @@ close all
 clear
 g = 32.174;         % gravitational accel
 % Simulation parameters
-nt = 0 * g;         % acceleration of target
+nt = 3 * g;         % acceleration of target
 Nvalues = [3 4 5];  % guidance gain
 he = deg2rad(30);   % heading error
-augmented = false;
+augmented = true;
 dt = 0.01;
 dtfine = 0.0001;
 

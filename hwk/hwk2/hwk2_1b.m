@@ -54,7 +54,7 @@ for j = 1:numsims
     tgoerr = sigma*randn;
     tgo = R(i,j)/Vc + tgoerr;
     ZEM = Vc * tgo;
-
+    ZEMfinal = [];
     T(i,j) = 0;
     while Vc > 0
         % Simulation loop for different guidance laws and initial conditions       
@@ -63,7 +63,7 @@ for j = 1:numsims
             dt = dtfine;
         end
         if augmented
-            nc(i) = N*ZEM/tgo^2 + 0.5*N*nt;
+            nc(i) = N*ZEM(i-1)/tgo^2 + 0.5*N*nt;
         else
             nc(i) = N*Vc*lambdad;
             %nc(i) = N*ZEM/tgo^2;
@@ -97,9 +97,10 @@ for j = 1:numsims
         % Calculate closing velocity
         Vc = -(Rx(i)*Vx + Ry(i)*Vy)/R(i);     
         tgo = R(i)/Vc + tgoerr;
-        ZEM = tgo * (Rx(i)*Vy - Ry(i)*Vx)/R(i);
+        ZEM(i) = tgo * (Rx(i)*Vy - Ry(i)*Vx)/R(i);
     end
-    ZEMfinal(j) = ZEM;
+
+    ZEMfinal = [ZEMfinal ZEM];
     Vcfinal(j) = Vc;
     Tcollision(j) = T(i);
 end
@@ -107,10 +108,14 @@ end
    devT = std(Tcollision)
    meanT = mean(Tcollision)
 
-   figure
+figure
 scatter(1:length(Tcollision),Tcollision)
 
-
+figure(2)
+histfit(Tcollision)
+title('Distribution of Time of Collision with t_g_o Error')
+xlabel('Time to Collision (s)')
+ylabel('Count')
 % % Plot results for PN
 % figure(1);
 % subplot(3, 1, 1);
@@ -134,8 +139,8 @@ scatter(1:length(Tcollision),Tcollision)
 % xlabel('Time (s)');
 % ylabel('Vertical Velocity (ft/s)')
 % 
-% figure(2)
-% plot(xt,yt,xm,ym);
+% figure(3)
+% plot(T,ZEMfinal);
 % legend('Target','Missile');
 % title('ProNav Collision Path N=4');
 % xlabel('Horizontal Position (ft)');
