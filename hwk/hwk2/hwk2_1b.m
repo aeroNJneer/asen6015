@@ -2,13 +2,14 @@
 
 close all
 clear
+rng('shuffle');
 g = 32.174;         % gravitational accel
 % Simulation parameters
 nt = 3 * g;         % acceleration of target
 N = 4;  % guidance gain
 he = deg2rad(30);   % heading error
 augmented = true;
-dt = 0.1;
+dt = 0.01;
 dtfine = 0.001;
 numsims = 100;   % number of siimulations
 
@@ -58,7 +59,7 @@ for j = 1:numsims
     while Vc > 0
         % Simulation loop for different guidance laws and initial conditions       
         i= i+1;
-        if Vc <=100
+        if Vc <=1000
             dt = dtfine;
         end
         if augmented
@@ -90,9 +91,12 @@ for j = 1:numsims
         lambda = atan2(Ry(i),Rx(i));
         lambdad = (Rx(i)*Vy-Ry(i)*Vx)/(R(i)^2);
         T(i) = T(i-1) + dt;
+        if T(i) > 14
+            break;
+        end
         % Calculate closing velocity
         Vc = -(Rx(i)*Vx + Ry(i)*Vy)/R(i);     
-        tgo = R(i)/Vc +tgoerr;
+        tgo = R(i)/Vc + tgoerr;
         ZEM = tgo * (Rx(i)*Vy - Ry(i)*Vx)/R(i);
     end
     ZEMfinal(j) = ZEM;
@@ -100,7 +104,11 @@ for j = 1:numsims
     Tcollision(j) = T(i);
 end
    dev = std(ZEMfinal)
-plot(1:length(Tcollision),Tcollision)
+   devT = std(Tcollision)
+   meanT = mean(Tcollision)
+
+   figure
+scatter(1:length(Tcollision),Tcollision)
 
 
 % % Plot results for PN
