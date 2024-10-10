@@ -6,15 +6,17 @@
 
 clear
 close all
-a = [1; 0];
-b = [1; 1];
-gam = [0.5; 0.5; 0.5];
+clc
+a = [1; 0; 10];             % lower a results in lower J and better response
+b = [0.1; 0; 0.1];          % lower b results in lower J, but lower response
+q = [1; 0.1; 0.1];       % lower q results in lower J
 x0 = [1 -1 1 -1 1]';
 dt = 0.1;
 tsim = 1:dt:10;
 u = zeros(2,length(tsim));
 u(:,1) = 1;         % impulse function
 
+cost = @(x,y) y.*x.^2;
 % integral J = 1/3 x3^3
 A = [5 0 3 0 1;
      3 0 0 -2 0;
@@ -32,24 +34,37 @@ C = [0 0 1 0 0];
 D = [];
 sys = ss(A,B,C,[]);
 
-Q = zeros(5,5);
 i=1;
-%for i = 1:length(a)
-    Q(3,3) = gam(i) * x0(3)^2;
+for i = 1:length(a)
+    % update Q and R
+    Q = [0 0 0 0 0;
+        0 0 0 0 0;
+        0 0 q(i) 0 0;
+        0 0 0 0 0;
+        0 0 0 0 0];
 
     R = [a(i) 0;
          0 b(i)];    
-    [~,pd] = chol(R)
-
-    [K,P,poles] = lqr(A,B,Q,R);
+    % if R = 0 then cost does not depend on R
+    % so minimize J = integral x'Q x dt
+    % 
+    
+    [Pstar, K, L] = icare(A,B,Q,R,[],[],[])
+    
+    try
+        [K,P,poles] = lqr(A,B,Q,R);
+    catch
+        K = zeros(2,5);
+    end
+    % Lyupanov equation     H'P + PH = -S
     H = A-B*K;
-    eig(H)
+    eig(H)      % is closed loop system symptotically stable?
     
     S = Q + K'*R*K;
-    
+    eig(S)      % is S PSD or PD?
     sys1 = ss(H,B,C,D);
     
-    J = x0'*P*x0;       % minimize J by adjusting P/K
+    J(i) = x0'*P*x0       % minimize J by adjusting P/K
     
    [ycalc, tout, xcalc] = initial(sys1,x0,tsim)
    figure(i)
@@ -58,9 +73,10 @@ i=1;
    xlabel('Time (s)');
    ylabel('States');
    legend('x1','x2','x3','x4','x5');
-   figure(2)
-   plot(tout,ycalc)
-%end
+   % figure(i+1)
+   % plot(tout,ycalc)
+end
+min(J)
 Stm = expm(A*20);
 
 x = x0;
@@ -80,7 +96,8 @@ end
     % eig(H)          % all negative real parts in eigenvalues
     
 % Problem 2
+% 
+% L = eye(5);
+% Rwi = [0:1 0:2 0:1 0:3 0:2];
+% wt = rand(5)' * Rwi'
 
-L = eye(5);
-Rwi = [0:1 0:2 0:1 0:3 0:2];
-wt = rand(5)' * Rwi'
