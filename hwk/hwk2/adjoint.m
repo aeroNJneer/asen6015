@@ -48,7 +48,7 @@ for i = 2:length(t)
     heading_error = LOS_angle - theta_m;
     
     % Proportional Navigation (PN)
-    nc(i) = 3 * Vc * heading_error; % Using N = 3 for simplicity
+    nc(i) = 4 * Vc * heading_error; 
     
     % Update state
     x(:, i) = x(:, i-1) + (A * x(:, i-1) + B * nc(i)) * dt;

@@ -65,8 +65,7 @@ for j = 1:numsims
         if augmented
             nc(i) = N*ZEM(i-1)/tgo^2 + 0.5*N*nt;
         else
-            nc(i) = N*Vc*lambdad;
-            %nc(i) = N*ZEM/tgo^2;
+            nc(i) = N*ZEM/tgo^2;
         end
         % acceleration components
         amx = -nc*sin(lambda);
@@ -116,33 +115,3 @@ histfit(Tcollision)
 title('Distribution of Time of Collision with t_g_o Error')
 xlabel('Time to Collision (s)')
 ylabel('Count')
-% % Plot results for PN
-% figure(1);
-% subplot(3, 1, 1);
-% plot(T,nc/g);
-% xlabel('Time (s)');
-% ylabel('Acceleration - n_c (g''s)');
-% title('ProNav Control Acceleration n_c (ft/s^2)');
-% grid on;
-% 
-% 
-% subplot(3,1,2);
-% plot(T,ym);
-% xlabel('Time (s)');
-% ylabel('Vertical Position - y (m)');
-% title('ProNav Vertical Displacement (ft)');
-% grid on;
-% 
-% subplot(3,1,3);
-% plot(T,Vmy);
-% title('ProNav Missile Vertical Velocity - \Deltay (ft/s)');
-% xlabel('Time (s)');
-% ylabel('Vertical Velocity (ft/s)')
-% 
-% figure(3)
-% plot(T,ZEMfinal);
-% legend('Target','Missile');
-% title('ProNav Collision Path N=4');
-% xlabel('Horizontal Position (ft)');
-% ylabel('Vertical Position (ft)');
-% 

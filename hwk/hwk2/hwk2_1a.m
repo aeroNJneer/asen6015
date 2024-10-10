@@ -58,7 +58,6 @@ for N = Nvalues
             nc(i,N-2) = N*Vc*lambdad + 0.5*N*nt;
         else
             nc(i,N-2) = N*Vc*lambdad;
-            %nc(i,N-2) = N*ZEM/tgo^2;
         end
         % acceleration components
         amx = -nc*sin(lambda);
