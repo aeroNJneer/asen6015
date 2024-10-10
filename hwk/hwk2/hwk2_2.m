@@ -21,8 +21,14 @@ Tof = 37864;
 tspan = 0:dt:Tof;
 
 [v1, v2,iter] = lambert_univ(mu,R0,Rf,Tof,1);
-iter
-[positions,velocities] =  simulateHohmannTransfer(R0,Rf,1,dt,v1,v2,Tof);
+
+% Time vector for simulation
+t = linspace(0, Tof, 1000);
+
+% Simulate the orbits
+orbit1 = simulate_orbit(R0, V0, t, mu);
+transfer_orbit = simulate_orbit(R0, v1, t, mu);
+orbit2 = simulate_orbit(Rf, v2, linspace(t(end),t(end)+5000,1000), mu);
 
 
 % Problem 2 Part b
@@ -123,18 +129,18 @@ ylabel('Y (m)');
 title('Orbits Solving Lamberts Problem') ;
 grid on;
 hold on;
-plot(x,y)
-legend('Lambert guidance','Cross-product guidance', 'initial orbit','Impulse guidance','Location','best')
-plot(positions(1,:),positions(2,:));
+plot(transfer_orbit(:,1),transfer_orbit(:,2),'r--');
+hold on;
+plot(x,y);
+hold on;
 hold off;
-% xlim([-60000 40000]);
-% ylim([-60000 40000]);
+legend('Lambert guidance','Cross-product guidance', 'Two impulse transfer','Initial orbit','Location','best')
 
 % plot from nominal
 
 figure (4)
 plot(tspan(1:end-1),vecnorm(V1(:,1:end-1))-vecnorm(V(:,1:end-1)))
-title('Difference in \Deltav betweenn Lambert with Q-guidance')
+title('Difference in \Deltav betweenn Lambert and Cross-Vector Guidance')
 
 figure(5)
 plot(tspan(1:end-1),vecnorm(V(:,1:end-1)),tspan(1:end-1),vecnorm(V1(:,1:end-1)))
@@ -168,39 +174,18 @@ G = [mu/(abs(x)^2 + abs(y)^2 + abs(z)^2)^(3/2) - (3*mu*x*abs(x)*(x + conj(x)))/(
 -(3*mu*z*abs(x)*(x + conj(x)))/(2*(x*conj(x))^(1/2)*(abs(x)^2 + abs(y)^2 + abs(z)^2)^(5/2)),  -(3*mu*z*abs(y)*(y + conj(y)))/(2*(y*conj(y))^(1/2)*(abs(x)^2 + abs(y)^2 + abs(z)^2)^(5/2)), mu/(abs(x)^2 + abs(y)^2 + abs(z)^2)^(3/2)] ;
 end
 
-function [positions,velocities]  = simulateHohmannTransfer(r1,r2,error_vector,dt,v1,v2,tof)
-    init;
-    mu = evalin('base','mu');
-    r = r1; % Initial position at 200 km altitude (m)
-    v = [0; sqrt(mu / norm(r)); 0]; % Initial velocity for circular orbit (m/s)
-    total_time = tof % Total simulation time (s)
-    num_steps = floor(total_time/dt);
-    % Preallocate arrays for position and velocity
-    positions = zeros(3, num_steps);
-    velocities = zeros(3, num_steps);
+% Function to simulate the orbit
+function orbit = simulate_orbit(r0, v0, t, mu)
+    options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
+    [~, state] = ode45(@(t, y) two_body(t, y, mu), t, [r0, v0], options);
+    orbit = state(:, 1:3);
+end
 
-    for i = 1:num_steps
-        % Calculate gravitational force
-        vgo = v2-v;
-        r_mag = norm(r);
-        F_gravity = -mu * r/ r_mag^3;
-        
-        % Apply Hohmann transfer burns
-        if i == 1 % First burn at 200 km altitude after first period
-            delta_v1 = v1 * error_vector;
-            v =  delta_v1;
-        elseif abs(vgo) < 1e-4 % Second burn at 35786 km altitude
-         %   delta_v2 = v2 * error_vector;
-          %  v = delta_v2;
-        end
-        
-        % Update velocity and position
-        a_total = F_gravity;
-        v = v + a_total * dt;
-        r = r + v * dt;
-        
-        % Store position and velocity
-        positions(:, i) = r;
-        velocities(:, i) = v;
-    end
-end 
+% Two-body equations of motion
+function dydt = two_body(~, y, mu)
+    r = y(1:3);
+    v = y(4:6);
+    r_norm = norm(r);
+    a = -mu / r_norm^3 * r;
+    dydt = [v; a];
+end

@@ -30,14 +30,14 @@ t = linspace(0, tof, 1000);
 % Simulate the orbits
 orbit1 = simulate_orbit(r1, v_initial, t, mu);
 transfer_orbit = simulate_orbit(r1, v1, t, mu);
-orbit2 = simulate_orbit(r2, v2, t, mu);
+orbit2 = simulate_orbit(r2, v2, linspace(t(end),t(end)+5000,1000), mu);
 
 % Plot the orbits
 figure;
-plot3(orbit1(:,1), orbit1(:,2), orbit1(:,3), 'b', 'DisplayName', 'Initial Orbit');
+plot(orbit1(:,1), orbit1(:,2), 'b', 'DisplayName', 'Initial Orbit');
 hold on;
-plot3(transfer_orbit(:,1), transfer_orbit(:,2), transfer_orbit(:,3), 'r--', 'DisplayName', 'Transfer Orbit');
-plot3(orbit2(:,1), orbit2(:,2), orbit2(:,3), 'g', 'DisplayName', 'Final Orbit');
+plot(transfer_orbit(:,1), transfer_orbit(:,2), 'r--', 'DisplayName', 'Transfer Orbit');
+ plot(orbit2(:,1), orbit2(:,2), 'g', 'DisplayName', 'Final Orbit');
 legend;
 xlabel('X (km)');
 ylabel('Y (km)');
