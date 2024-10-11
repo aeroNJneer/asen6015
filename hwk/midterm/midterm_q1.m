@@ -3,20 +3,21 @@
 % Nicole James
 % 10/10/24
 
+% Q1
 clear
 clc
 close all
 mu = 98600.4418; 
 a = 3728;           % semi-major axis of ISS
 n = sqrt(mu/a^3);   %  mean motion of ISS
-dt = 0.001;           % timestep 
+dt = 0.01;           % timestep 
 
-t = 0:dt:10;    % 50 seconds
+t = 0:dt:60*20;    % 50 seconds
 %initial conditions
 x0 = -1.0;
 y0 = -0.25
-xdot0 = 3;
-ydot0 = -0.5;
+xdot0 = 0.003;
+ydot0 = -0.005;
 
 % xddot - 2*n*ydot - 3*n^2*x = ux
 % yddot + 2*n*xdot = uy
@@ -63,43 +64,132 @@ rmin= min(abs(r))   % r_min = 0.4114 km
 tmin = find(r==rmin)*dt     % t_min = 0.312 sec
 
 % Plot
-figure;
-subplot(2, 1, 1);
+figure(1);
 yyaxis left;
 plot(t, X(1,:),t,X(3,:));
 title('Total States vs. Time');
 ylabel('x (km)');
 grid on;
-xtitle('Time (s)');
-ytitle('States')
+xlabel('Time (s)');
+ylabel('Distance (km)')
 yyaxis right;
-plot(t, X);
-title('Total States vs. Time');
-ylabel('x (km)');
+plot(t, X(2,:),t,X(4,:));
+ylabel('Velocity (km/s)');
 legend('$x(t) (km)$','$\dot{x}(t) (km/s)$','$y(t) (km)$','$\dot{y}(t) (km/s)$','Location','best','Interpreter','latex');
 grid on;
-xtitle('Time (s)');
-ytitle('States')
-
-subplot(2, 1, 2);
-plot(t, X(2,:)',t,X(4,:));
-ylabel('\deltax (km/s)');
-grid on;
-% subplot(4, 1, 3);
-% plot(t, X(3,:)');
-% ylabel('y (km)');
-% grid on;
-% subplot(4, 1, 4);
-% plot(t, X(4,:)');
-% ylabel('\deltay (km/s)');
-% xlabel('Time t (s)');
-% grid on;
-xlim([0 t(end)])
-ylim([-5 30])
-
 
 figure(2)
 plot(X(1,:),X(3,:))
+title('Dragon Trajectory (ISS at origin)')
+xlabel('x (km)')
+ylabel('y (km)')
+grid on;
+
+% Q2
+% final conditions
+xf = 0.25;
+yf = 0;
+xdotf = 0.002;
+ydotf = 0.;
+Xf = [xf; xdotf; yf; ydotf];
+% calculate nominal trajectory (ProNav)
+
+delXnom = Xf - X0;  % delta states
+vgonom = [delXnom(2), delXnom(4)]';  % velocity to go
+
+
+% find optimal trajectory 
+
+
+
+
+%%
+% Constants
+% vm = 3000;      % Missile velocity (ft/s)
+% vt = 1000;      % Target velocity (ft/s)
+% R0 = 40000;     % Initial range (ft)
+% 
+% for N = Nvalues
+%     % Initial conditions
+%     xm(1,N-2) = x0;        % Dragon initial x position (ft)
+%     ym(1,N-2) = y0;        % Dragon initial y position (ft)
+%     xt(1,N-2) = 0;       % ISS initial x position (ft)
+%     yt(1,N-2) = 0;        % ISS initial y position (ft)
+%     beta = 0;             % Target FPA
+%     i = 1;
+% 
+%     % Target velocity components
+%     Vtx(i,N-2) = -vt*cos(beta);
+%     Vty(i,N-2) = vt*sin(beta);
+% 
+%     % Relative positions
+%     Rx(i,N-2) = xt(i,N-2) - xm(i,N-2);
+%     Ry(i,N-2) = yt(i,N-2) - ym(i,N-2);
+%     R(i,N-2) = sqrt(Rx(i,N-2)^2 + Ry(i,N-2)^2);
+% 
+%     % calculate angles
+%     lambda = atan2(Ry(i,N-2),Rx(i,N-2));
+%     L = asin(vt*sin(beta+lambda)/vm);  
+%     theta = lambda + L;
+% 
+%     % mission velocity
+%     Vmx(i,N-2) = vm*cos(theta + he);
+%     Vmy(i,N-2) = vm*sin(theta + he);
+%     Vx = Vtx(i,N-2) - Vmx(i,N-2);     % relative velocity, x_hat
+%     Vy = Vty(i,N-2) - Vmy(i,N-2);     % relative velocity, y_hat
+%     Vc = -(Rx(i,N-2)*Vx + Ry(i,N-2)*Vy)/R(i,N-2);  % closing velocity
+%     lambdad = (Rx(i,N-2)*Vy-Ry(i,N-2)*Vx)/(R(i,N-2)^2);
+%     tgo = R(i,N-2)/Vc;
+%     ZEM(i,N-2) = Vc * tgo;
+% 
+%     T(i,N-2) = 0;
+%     while Vc > 0
+%         % Simulation loop for different guidance laws and initial conditions       
+%         i= i+1;
+%         if Vc <=1000
+%             dt = dtfine;
+%         end
+%         if augmented
+%             nc(i,N-2) = N*Vc*lambdad + 0.5*N*nt;
+%         else
+%             nc(i,N-2) = N*Vc*lambdad;
+%         end
+%         % acceleration components
+%         amx = -nc*sin(lambda);
+%         amy = nc*cos(lambda);
+% 
+%         betad = nt/vt;
+%         beta = beta + dt*betad;
+%         Vtx(i,N-2) = -vt*cos(beta);
+%         Vty(i,N-2) = vt*sin(beta);  
+%         Vmx(i,N-2) = Vmx(i-1,N-2) + dt*amx(i,N-2);
+%         Vmy(i,N-2) = Vmy(i-1,N-2) + dt*amy(i,N-2);
+% 
+%         xt(i,N-2) = xt(i-1) + dt*Vtx(i,N-2);
+%         yt(i,N-2) = yt(i-1) + dt*Vty(i,N-2);
+%         xm(i,N-2) = xm(i-1,N-2) + dt*Vmx(i,N-2);
+%         ym(i,N-2) = ym(i-1,N-2) + dt*Vmy(i,N-2);
+%         Rx(i,N-2) = xt(i,N-2) - xm(i,N-2);
+%         Ry(i,N-2) = yt(i,N-2) - ym(i,N-2);
+%         R(i,N-2) = sqrt(Rx(i,N-2)^2 + Ry(i,N-2)^2);
+%         Vx = Vtx(i,N-2) - Vmx(i,N-2);
+%         Vy = Vty(i,N-2) - Vmy(i,N-2);
+%         lambda = atan2(Ry(i,N-2),Rx(i,N-2));
+%         lambdad = (Rx(i,N-2)*Vy-Ry(i,N-2)*Vx)/(R(i,N-2)^2);
+%         T(i,N-2) = T(i-1,N-2) + dt;
+%         % Calculate closing velocity
+%         Vc = -(Rx(i,N-2)*Vx + Ry(i,N-2)*Vy)/R(i,N-2);     
+%         tgo = R(i)/Vc;
+%         ZEM(i,N-2) = tgo * (Rx(i)*Vy - Ry(i)*Vx)/R(i);
+%         end 
+% end
+% 
+% output=[T,xm,ym,xt,yt,nc];
+% 
+% 
+
+%%
+
 % Calculate perturbation vector
 % Initialize perturbation state
 % dx(:, 1) = [0, 0.075, 0, -0.021]';
