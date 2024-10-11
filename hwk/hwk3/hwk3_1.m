@@ -2,16 +2,16 @@
 
 % a) gamma, a, b neq 0
 % b) a, b = 0
-%c) gamma neq 0, a or b new 0
+% c) gamma neq 0, a or b new 0
 
 clear
 close all
 clc
-a = [1; 0; 10];             % lower a results in lower J and better response
-b = [0.1; 0; 0.1];          % lower b results in lower J, but lower response
-q = [1; 0.1; 0.1];       % lower q results in lower J
+a = 1;              % lower a results in lower J and better response
+b = 1               % lower b results in lower J, but lower response
+q = 100;            % lower q results in lower J
 x0 = [1 -1 1 -1 1]';
-dt = 0.1;
+dt = 0.01;
 tsim = 1:dt:10;
 u = zeros(2,length(tsim));
 u(:,1) = 1;         % impulse function
@@ -32,72 +32,73 @@ B = [0 1;
 
 C = [0 0 1 0 0];
 D = [];
-sys = ss(A,B,C,[]);
+Q = [0 0 0 0 0;
+    0 0 0 0 0;
+    0 0 q 0 0;
+    0 0 0 0 0;
+    0 0 0 0 0];
+
+R = [a 0; 0 b];
 
 i=1;
-for i = 1:length(a)
-    % update Q and R
-    Q = [0 0 0 0 0;
-        0 0 0 0 0;
-        0 0 q(i) 0 0;
-        0 0 0 0 0;
-        0 0 0 0 0];
+[K,P,poles] = lqr(A,B,Q,R);
 
-    R = [a(i) 0;
-         0 b(i)];    
-    % if R = 0 then cost does not depend on R
-    % so minimize J = integral x'Q x dt
-    % 
-    
-    [Pstar, K, L] = icare(A,B,Q,R,[],[],[])
-    
-    try
-        [K,P,poles] = lqr(A,B,Q,R);
-    catch
-        K = zeros(2,5);
-    end
-    % Lyupanov equation     H'P + PH = -S
-    H = A-B*K;
-    eig(H)      % is closed loop system symptotically stable?
-    
-    S = Q + K'*R*K;
-    eig(S)      % is S PSD or PD?
-    sys1 = ss(H,B,C,D);
-    
-    J(i) = x0'*P*x0       % minimize J by adjusting P/K
-    
-   [ycalc, tout, xcalc] = initial(sys1,x0,tsim)
-   figure(i)
-   plot(tout,xcalc)
-   title('LQR Controller a=1, b=1, \gamma=0.5')
-   xlabel('Time (s)');
-   ylabel('States');
-   legend('x1','x2','x3','x4','x5');
-   % figure(i+1)
-   % plot(tout,ycalc)
-end
-min(J)
-Stm = expm(A*20);
+H = A-B*K;
+eig(H)      % is closed loop system symptotically stable?
+
+S = Q + K'*R*K;
+eig(S)      % is S PSD or PD?
+sys1 = ss(H,B,C,D);
+
+J(i) = x0'*P*x0       % minimize J by adjusting P/K
+
+[ycalc, tout, xcalc] = initial(sys1,x0,tsim);
+
+figure(1)
+plot(tout,xcalc)
+title('LQR Controller a=1, b=1, \gamma=100')
+xlabel('Time (s)');
+ylabel('States');
+legend('x1','x2','x3','x4','x5');
 
 x = x0;
 
 for i = 1:length(tsim)
     xdot(:,i) = H*x(:,i) + B*u(:,i);
-    x(:,i+1) = Stm * x(:,i) + Stm*B*u(:,i)*dt;
+    x(:,i+1) = x(:,i) + xdot(:,i)*dt;
     y(i) = C * x(:,i);
 end
 
-    % steps in lrq
-    % solve ricatti equation for P*, K, L (eigenvalues)
-    % [Pstar, K, L] = icare(A,B,Q,R,[],[],[]);
-    % chol(Pstar)
-    % K = inv(R)*B'*Pstar;
-    % H = A-B*K;      % must be asymptotically stable
-    % eig(H)          % all negative real parts in eigenvalues
-    
+figure(2)
+plot(tsim,x(:,1:end-1))
+title('LQR Controller States a=1, b=1, \gamma=100')
+xlabel('Time (s)');
+ylabel('States');
+legend('x1','x2','x3','x4','x5');
+ 
+figure(3)
+plot(tsim,y)
+title('LQR Controller Measurements a=1, b=1, \gamma=100')
+xlabel('Time (s)');
+ylabel('States');
+
+
 % Problem 2
-% 
-% L = eye(5);
-% Rwi = [0:1 0:2 0:1 0:3 0:2];
-% wt = rand(5)' * Rwi'
+
+L = eye(5);
+Rwi = [0.1 0.2 0.1 0.3 0.2];
+wt = randn(5)*Rwi'
+
+% use method of adjoints
+
+
+tbw = 10:-dt:0;
+
+Kf= S;      % K(tf,tf) = S
+kdot = @(A,B,Q,R,K) -K*A + K*B*inv(R)*B'*K - Q - K*A';
+
+[tout,kout] = ode45(@(tout,kout) kdot(A,B,Q,R,K),tbw,Kf);
+
+% Integrate the variational equations with control
+%[t, state] = ode45(@(t, state) gauss_variational_equations_with_control(t, state, xref, K), tspan, initial_state);
 
