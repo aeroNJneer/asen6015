@@ -7,42 +7,91 @@
 clear
 clc
 close all
-mu = 98600.4418; 
+% constants
+mu = 3.986004418e5;
 a = 3728;           % semi-major axis of ISS
 n = sqrt(mu/a^3);   %  mean motion of ISS
 dt = 0.01;           % timestep 
 
-t = 0:dt:60*20;    % 50 seconds
+tsim = 0:dt:60*20;   
+
+% function signatures
+
+% STMs for the Clohessy-Wiltshire equations
+Phirr = @(t) [4-3*cos(n*t), 0;
+                6*(sin(n*t)-n*t), 1];
+Phirv = @(t) [sin(n*t)/n, 2*(1-cos(n*t))/n;
+                2*(cos(n*t) -1)/n, (4*sin(n*t) - 3*n*t)/n];
+Phivr = @(t) [3*n*sin(n*t), 0;
+                6*n*(cos(n*t)-1), 0];
+Phivv = @(t) [cos(n*t), 2*sin(n*t);
+                -2*sin(n*t), 4*cos(n*t)-3];
+
+PHI = @(t)[Phirr(t) Phirv(t);
+            Phivr(t) Phivv(t)];
+
 %initial conditions
 x0 = -1.0;
 y0 = -0.25
 xdot0 = 0.003;
-ydot0 = -0.005;
+ydot0 = -0.0005;
+
+% final conditions
+xf = -0.25 ;
+yf = 0. ;
+xdotf = 0.0002 ;
+ydotf = 0. ;
+Xf = [xf; yf; xdotf; ydotf];
+
+r0 = [x0;y0];
+v0 = [xdot0;ydot0];
+rf = [xf;yf];
+vf = [xdotf;ydotf];
+
 
 % xddot - 2*n*ydot - 3*n^2*x = ux
 % yddot + 2*n*xdot = uy
-% X = [x; xdot; y; ydot]
+% X = [x; y; xdot; ydot]
+% x_hat in r_hat direction; y_hat in v_hat direction
 % u = [ux; uy]
 
-X0 = [x0; xdot0; y0; ydot0];
+X0 = [x0; y0; xdot0; ydot0];
 u0 = [0;0;]
 
-A = [0 1 0 0;
-        3*n^2 0 0 2*n;
-        0 0 0 1;
-        0 -2*n 0 0];
+A = [0 0 1 0;
+     0 0 0 1;
+     3*n^2 0 0 2*n;
+     0 0 -2*n 0];
 
 B = [0 0; 
-    1 0;
     0 0;
+    1 0;
     0 1];
 
 F = eye(4) + A*dt;
 G = B*dt;
 %u = zeros(2, length(t));
 
-dx = zeros(4,length(t));    % perturbation state vector
+dx = zeros(4,length(tsim));    % perturbation state vector
 
+i=0;
+% start loop
+for t = tsim
+    i=i+1;
+    r(i,:) = Phirr(t)*r0 + Phirv(t)*v0;
+    v(i,:) = Phivr(t)*r0 + Phivv(t)*v0;
+end
+
+figure(1)
+% plot red circle at origin
+plot(0,0,'ro')
+hold on
+plot(r(:,1),r(:,2))
+title('Dragon Trajectory relative to ISS')
+xlabel('x'), ylabel('y')
+axis equal
+grid on
+hold off
 
 % theta = omega * t;
 % xnom = r0*cos(n * t);
@@ -50,58 +99,108 @@ dx = zeros(4,length(t));    % perturbation state vector
 % xdotnom = -r0 * n * sin(n * t);
 % ydotnom = r0 * n * cos(n * t);
 
+% U = zeros(2, length(t));
+% X(:,1) = X0;
+% U(:,1) = u0;
+% r(1) = sqrt(x0^2 + y0^2);
+% for i = 1:length(t)-1
+%     dx(:,i) = A * X(:,i) + B * U(:,i);
+%     X(:,i+1) = X(:,i) + dx(:,i)*dt;
+%     r(i+1) = sqrt(X(1,i+1)^2 + X(2,i+1)^2);
+% end
+
+rmin= min(norm(r))   % r_min = 0.4114 km
+tmin = t(find(r==rmin))     % t_min = 0.312 sec
+
+% Plot
+% figure(1);
+% yyaxis left;
+% plot(t, X(1,:),t,X(2,:));
+% title('Total States vs. Time');
+% ylabel('x (km)');
+% grid on;
+% xlabel('Time (s)');
+% ylabel('Distance (km)')
+% yyaxis right;
+% plot(t, X(3,:),t,X(4,:));
+% ylabel('Velocity (m/s)');
+% legend('$x(t) (km)$','$y(t) (km)$','$\dot{x}(t) (m/s)$','$\dot{y}(t) (m/s)$','Location','best','Interpreter','latex');
+% grid on;
+
+figure(2)
+plot(X(1,:),X(2,:))
+title('Dragon Trajectory (ISS at origin) [7 min duration]')
+xlabel('x (km)')
+ylabel('y (km)')
+ xlim([-2.4 0]);
+% ylim([-0.6 0.6]);
+grid on;
+
+% Q2
+
+% calculate nominal trajectory (ProNav)
+
+delXnom = Xf - X0;  % delta states
+vgonom = [delXnom(3), delXnom(4)]';  % velocity to go
+
+% Calculate relative dynamics using phi
+theta0 = atan2(y0,x0);
+
+% rISS = [0; 0];           % always at origin
+% vISS = [0; sqrt(mu/a)];  % constant in y_hat direction
+
+% deltar1 = X0(1:2) - rISS;
+% deltav1 = X0(3:4) - vISS;
+% 
+% deltar2 = Xf(1:2) - rISS;
+% deltav2 = Xf(3:4) - vISS;
+
+
+% initial burn at t = ti
+deltaV1 = -inv(Phirv(t(2)))*Phirr(t(2))*r0 - v0
+% 
+deltaV2 = -(Phivr(t(end))-Phivv(t(end))*inv(Phirv(t(end))*Phirr(t(end))))*r0
+
+T=0:1:7*60;
+
+figure(3)
+% plot red circle at origin
+plot3(0,0,0,'ro')
+hold on
+
+% start loop
+for t=T
+    r = Phirr(t)*r0 + Phirv(t)*v0;
+    v = Phivr(t)*r0 + Phivv(t)*v0;
+    plot3(r(1),r(2),0,'k.');
+end
+rotate3d
+xlabel('x'), ylabel('y'), zlabel('z')
+axis equal
+grid on
+hold off
+
 U = zeros(2, length(t));
 X(:,1) = X0;
-U(:,1) = u0;
+U(:,1) = deltaV1;
+U(:,1200/dt) = deltaV2;
 r(1) = sqrt(x0^2 + y0^2);
 for i = 1:length(t)-1
     dx(:,i) = A * X(:,i) + B * U(:,i);
     X(:,i+1) = X(:,i) + dx(:,i)*dt;
-    r(i+1) = sqrt(X(1,i+1)^2 + X(3,i+1)^2);
+    r(i+1) = sqrt(X(1,i+1)^2 + X(2,i+1)^2);
 end
-
-rmin= min(abs(r))   % r_min = 0.4114 km
-tmin = find(r==rmin)*dt     % t_min = 0.312 sec
-
-% Plot
-figure(1);
-yyaxis left;
-plot(t, X(1,:),t,X(3,:));
-title('Total States vs. Time');
-ylabel('x (km)');
-grid on;
-xlabel('Time (s)');
-ylabel('Distance (km)')
-yyaxis right;
-plot(t, X(2,:),t,X(4,:));
-ylabel('Velocity (km/s)');
-legend('$x(t) (km)$','$\dot{x}(t) (km/s)$','$y(t) (km)$','$\dot{y}(t) (km/s)$','Location','best','Interpreter','latex');
-grid on;
-
-figure(2)
-plot(X(1,:),X(3,:))
-title('Dragon Trajectory (ISS at origin)')
+figure(4)
+plot(0,0,'ro')
+hold on;
+plot(X(1,:),X(2,:))
+title('Dragon Trajectory')
 xlabel('x (km)')
 ylabel('y (km)')
+% xlim([-2.4 0]);
+% ylim([-0.6 0.6]);
 grid on;
-
-% Q2
-% final conditions
-xf = 0.25;
-yf = 0;
-xdotf = 0.002;
-ydotf = 0.;
-Xf = [xf; xdotf; yf; ydotf];
-% calculate nominal trajectory (ProNav)
-
-delXnom = Xf - X0;  % delta states
-vgonom = [delXnom(2), delXnom(4)]';  % velocity to go
-
-
-% find optimal trajectory 
-
-
-
+hold off;
 
 %%
 % Constants
