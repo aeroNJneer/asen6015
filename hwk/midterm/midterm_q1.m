@@ -13,7 +13,7 @@ a = 3728;           % semi-major axis of ISS
 n = sqrt(mu/a^3);   %  mean motion of ISS
 dt = 0.01;           % timestep 
 
-tsim = 0:dt:60*20;   
+tsim = 0:dt:60*21;   
 
 % function signatures
 
@@ -77,27 +77,23 @@ dx = zeros(4,length(tsim));    % perturbation state vector
 i=0;
 % start loop
 for t = tsim
-    i=i+1;
-    r(i,:) = Phirr(t)*r0 + Phirv(t)*v0;
-    v(i,:) = Phivr(t)*r0 + Phivv(t)*v0;
+    i = i+1;
+    Xdyn(i,:) = Phirr(t)*r0 + Phirv(t)*v0;
+    Vdyn(i,:) = Phivr(t)*r0 + Phivv(t)*v0;
+    r(i) = norm(Xdyn(i,:));
 end
 
 figure(1)
 % plot red circle at origin
 plot(0,0,'ro')
 hold on
-plot(r(:,1),r(:,2))
+plot(Xdyn(:,1),Xdyn(:,2),'Color','blue')
 title('Dragon Trajectory relative to ISS')
-xlabel('x'), ylabel('y')
+xlabel('x (km)'), ylabel('y (km)')
 axis equal
 grid on
 hold off
 
-% theta = omega * t;
-% xnom = r0*cos(n * t);
-% ynom = r0*sin(n * t);
-% xdotnom = -r0 * n * sin(n * t);
-% ydotnom = r0 * n * cos(n * t);
 
 % U = zeros(2, length(t));
 % X(:,1) = X0;
@@ -109,8 +105,8 @@ hold off
 %     r(i+1) = sqrt(X(1,i+1)^2 + X(2,i+1)^2);
 % end
 
-rmin= min(norm(r))   % r_min = 0.4114 km
-tmin = t(find(r==rmin))     % t_min = 0.312 sec
+rmin= min(r)   % r_min = 0.4114 km
+tmin = tsim(find(r==rmin))    
 
 % Plot
 % figure(1);
@@ -125,83 +121,84 @@ tmin = t(find(r==rmin))     % t_min = 0.312 sec
 % plot(t, X(3,:),t,X(4,:));
 % ylabel('Velocity (m/s)');
 % legend('$x(t) (km)$','$y(t) (km)$','$\dot{x}(t) (m/s)$','$\dot{y}(t) (m/s)$','Location','best','Interpreter','latex');
+% % grid on;
+% 
+% figure(2)
+% plot(X(1,:),X(2,:))
+% title('Dragon Trajectory (ISS at origin) [7 min duration]')
+% xlabel('x (km)')
+% ylabel('y (km)')
+%  xlim([-2.4 0]);
+% % ylim([-0.6 0.6]);
 % grid on;
-
-figure(2)
-plot(X(1,:),X(2,:))
-title('Dragon Trajectory (ISS at origin) [7 min duration]')
-xlabel('x (km)')
-ylabel('y (km)')
- xlim([-2.4 0]);
-% ylim([-0.6 0.6]);
-grid on;
 
 % Q2
 
 % calculate nominal trajectory (ProNav)
 
-delXnom = Xf - X0;  % delta states
-vgonom = [delXnom(3), delXnom(4)]';  % velocity to go
-
-% Calculate relative dynamics using phi
-theta0 = atan2(y0,x0);
-
-% rISS = [0; 0];           % always at origin
-% vISS = [0; sqrt(mu/a)];  % constant in y_hat direction
-
-% deltar1 = X0(1:2) - rISS;
-% deltav1 = X0(3:4) - vISS;
+% delXnom = Xf - X0;  % delta states
+% vgonom = [delXnom(3), delXnom(4)]';  % velocity to go
 % 
-% deltar2 = Xf(1:2) - rISS;
-% deltav2 = Xf(3:4) - vISS;
-
-
-% initial burn at t = ti
-deltaV1 = -inv(Phirv(t(2)))*Phirr(t(2))*r0 - v0
+% % Calculate relative dynamics using phi
+% theta0 = atan2(y0,x0);
 % 
-deltaV2 = -(Phivr(t(end))-Phivv(t(end))*inv(Phirv(t(end))*Phirr(t(end))))*r0
+% 
+% % initial burn at t = ti
+% deltaV1 = -inv(Phirv(tsim(2)))*(rf-Phirr(tsim(2))*r0) - v0
+% % 
+% deltaV2 = -(Phivr(t(end))-Phivv(t(end))*inv(Phirv(t(end))*Phirr(t(end))))*r0
+% 
+% 
+% figure(3)
+% % plot red circle at origin
+% plot3(0,0,0,'ro')
+% hold on
+% 
+% 
+% U = zeros(2, length(tsim));
+% X(:,1) = X0;
+% U(:,1) = deltaV1;
+% U(:,1200/dt) = deltaV2;
+% r(1) = sqrt(x0^2 + y0^2);
+% for i = 1:length(tsim)-1
+%     dx(:,i) = A * X(:,i) + B * U(:,i);
+%     X(:,i+1) = X(:,i) + dx(:,i)*dt;
+%     r(i+1) = sqrt(X(1,i+1)^2 + X(2,i+1)^2);
+% end
+% figure(4)
+% plot(0,0,'ro')
+% hold on;
+% plot(X(1,:),X(2,:))
+% title('Dragon Trajectory')
+% xlabel('x (km)')
+% ylabel('y (km)')
+% % xlim([-2.4 0]);
+% % ylim([-0.6 0.6]);
+% grid on;
+% hold off;
 
-T=0:1:7*60;
 
-figure(3)
-% plot red circle at origin
-plot3(0,0,0,'ro')
-hold on
+% optimal control
 
-% start loop
-for t=T
-    r = Phirr(t)*r0 + Phirv(t)*v0;
-    v = Phivr(t)*r0 + Phivv(t)*v0;
-    plot3(r(1),r(2),0,'k.');
+R = [1 0;
+    0 1];
+Q = zeros(4);
+
+Astar = [A B*B';zeros(4) -A']
+Kdot = @(A,B,K) = -A'*K -K*A + K*B*B'*K;
+
+[tout,kout] = ode45(@(t,k) Kdot(A,B,k),tbw,k0); % find history of adjoints
+
+
+
+function dy = chworbit(y,n,u)
+    dy=zeros(4,1);
+
+    dy(1)=y(3);
+    dy(2)=y(4)
+    dy(3)=2*n*y(4)+3*n^2*y(1) + u(1);
+    dy(4)=-2*n*y(3) + u(2);
 end
-rotate3d
-xlabel('x'), ylabel('y'), zlabel('z')
-axis equal
-grid on
-hold off
-
-U = zeros(2, length(t));
-X(:,1) = X0;
-U(:,1) = deltaV1;
-U(:,1200/dt) = deltaV2;
-r(1) = sqrt(x0^2 + y0^2);
-for i = 1:length(t)-1
-    dx(:,i) = A * X(:,i) + B * U(:,i);
-    X(:,i+1) = X(:,i) + dx(:,i)*dt;
-    r(i+1) = sqrt(X(1,i+1)^2 + X(2,i+1)^2);
-end
-figure(4)
-plot(0,0,'ro')
-hold on;
-plot(X(1,:),X(2,:))
-title('Dragon Trajectory')
-xlabel('x (km)')
-ylabel('y (km)')
-% xlim([-2.4 0]);
-% ylim([-0.6 0.6]);
-grid on;
-hold off;
-
 %%
 % Constants
 % vm = 3000;      % Missile velocity (ft/s)
