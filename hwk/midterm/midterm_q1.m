@@ -11,7 +11,7 @@ close all
 mu = 3.986004418e5;
 a = 3728;           % semi-major axis of ISS
 n = sqrt(mu/a^3);   %  mean motion of ISS
-dt = 0.01;           % timestep 
+dt = 0.1;           % timestep 
 
 tsim = 0:dt:60*21;   
 
@@ -104,9 +104,9 @@ hold off
 %     X(:,i+1) = X(:,i) + dx(:,i)*dt;
 %     r(i+1) = sqrt(X(1,i+1)^2 + X(2,i+1)^2);
 % end
-
-rmin= min(r)   % r_min = 0.4114 km
-tmin = tsim(find(r==rmin))    
+% 
+% rmin= min(r)   % r_min = 0.4114 km
+% tmin = tsim(find(r==rmin))    
 
 % Plot
 % figure(1);
@@ -184,10 +184,31 @@ R = [1 0;
     0 1];
 Q = zeros(4);
 
-Astar = [A B*B';zeros(4) -A']
-Kdot = @(A,B,K) = -A'*K -K*A + K*B*B'*K;
+Astar = [A B*B';zeros(4) -A'];
+% k0 = zeros(4);
+ tbw = flip(tsim);
+% % [tout,kout] = ode45(@(t,k) Kdot(A,B,k),tbw,k0); % find history of K
+% % kout = reshape(kout.',4,4,[]);
+% 
 
-[tout,kout] = ode45(@(t,k) Kdot(A,B,k),tbw,k0); % find history of adjoints
+
+K0 = zeros(4);
+
+[tkout,kout] = ode45(@(t,k) Kdot(k,A,B),tbw,K0); % find history of K
+xstar(:,1) = x0;
+kout = reshape(kout.',4,4,[]);
+tkout = flip(tkout);
+
+for i = 1:length(tkout)
+    k = kout(:,:,length(tkout)+1-i);
+    ustar = -B'*k;
+    xdotstar(:,i) = A*xstar(:,i) + B*ustar*xstar(:,i);
+    xstar(:,i+1) = xstar(:,i) + xdotstar(:,i)*dt;
+ %   ystar(i) = C * xstar(:,i);
+    % calculate cost ... 
+end
+
+
 
 
 
@@ -199,6 +220,13 @@ function dy = chworbit(y,n,u)
     dy(3)=2*n*y(4)+3*n^2*y(1) + u(1);
     dy(4)=-2*n*y(3) + u(2);
 end
+
+function dk = Kdot(K,A,B)
+    k = reshape(K,size(A));
+    kdot = -k*A + k*B*B'*k - A'*k;
+    dk = kdot(:);
+end
+
 %%
 % Constants
 % vm = 3000;      % Missile velocity (ft/s)
