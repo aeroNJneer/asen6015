@@ -30,8 +30,7 @@ Phivv = @(t) [cos(n*t), 2*sin(n*t);
 PHI = @(t)[Phirr(t) Phirv(t);
             Phivr(t) Phivv(t)];
 
-Af = [Phirr(tfinal) Phirv(tfinal); Phirv(tfinal) Phivv(tfinal)]; % at final time to find delta-v
-Am = [Phirr(tfinal/2) Phirv(tfinal/2); Phirv(tfinal/2) Phivv(tfinal/2)]; % at middle point to find delta-v
+Phi_tf = [Phirr(tfinal) Phirv(tfinal); Phirv(tfinal) Phivv(tfinal)]; % at final time to find delta-v
 
 %initial conditions
 x0 = -1.0;
@@ -74,41 +73,7 @@ B = [0 0;
 % find and plot natural dynamics
 [tout, dynstate] = ode45(@(t,dynstate) cworbit(dynstate,n), 0:dt:tfinal, X0);
 
-% Now find what delta-v is required to hit final position
-deltav1 = Af \ ([rf; vf] - dynstate(end,:)')    
-
-% Apply delta-v to initial velocity
-v0_new = v0 + deltav1(3:4);     % add dv1 to v0
-X0nom = [r0; v0_new];       % update initial conditions
-
-[tout, nomstate] = ode45(@(t,nomstate) cworbit(nomstate,n), 0:dt:tfinal, X0nom);
-
-% find delta-v2 to align final state
-deltav2 = Af \ ([rf; vf] - nomstate(end,:)')    
-
-% look at position errors now 
-v0_2 = v0_new + deltav2(3:4)
-X0nom2 = [r0; v0_2]
-
-[tout2,nomstate1] = ode45(@(t,nomstate1) cworbit(nomstate1,n), 0:dt:tfinal/2,X0nom);
-
-X0nom2 = [nomstate1(end,1:2)'; v0_2];       % v0_2
-
-[tout3, nomstate2] = ode45(@(t,nomstate2) cworbit(nomstate2,n), tfinal/2:dt:tfinal, X0nom2);
-
-   % state = [state2; state3];[t4, nomstatef] = ode45(@(t,nomstatef) cworbit(nomstate,n), tfinal/2:dt:tfinal], X0nom2);
-    
-i=0;
-
 % Problem 2
-
-dr = rf-r0
-dv = vf-v0
-
-deltaV1a = -inv(Phirv(tfinal))*(Phirr(tfinal)*dr) - dv
-deltaV2a = -(Phivr(tfinal)-Phivv(tfinal)*inv(Phirv(tfinal))*Phirr(tfinal))*dr
-
-
 % optimal control
 R = [1 0;
     0 1];
@@ -118,14 +83,14 @@ Phistar = expm(Astar);
 Phistardot = Astar * Phistar;
 
 % k0 = zeros(4);
+% need to integrate backwards to find K
 tbw = flip(tsim);
-
-K0 =  eye(4);
 
 % Optimal trajectory simulation
 Q=zeros(4);
+Kf =  eye(4);
 
-[tkout,kout] = ode45(@(t,k) Kdot(k,A,B,Q),tbw,K0); % find history of K
+[tkout,kout] = ode45(@(t,k) Kdot(k,A,B,Q),tbw,Kf); % find history of K
 
 kout = reshape(kout.',4,4,[]);
 tkout = flip(tkout);
@@ -145,81 +110,29 @@ for i = 1:length(tkout)
 end
 
 % natural dynamics after reaching target position
-[tpost,statepost] = ode45(@(tpost,statepost) cworbit(statepost,n), tfinal:dt:tfinal+300,xactual(:,end));
+[tpost,statepost] = ode45(@(tpost,statepost) cworbit(statepost,n), tfinal:dt:tfinal+360,xactual(:,end));
 
-% plots
-    figure(1);
-    plot(dynstate(:,1), dynstate(:,2), 'm', 'DisplayName', 'Original Trajectory');
-    hold on;
-    plot(nomstate(:,1), nomstate(:,2),  'b', 'DisplayName', 'Adjusted Trajectory');
-    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
-    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
-    xlabel('X (km)');
-    ylabel('Y (km)');
-    title('Relative Motion with Natural Dynamics and Δv Adjustment');
-    legend('Location','best');
-    grid on;
-    hold off;
+% find initial value of lamba by backwards integration
 
-    figure(2)
-    plot(nomstate(:,1), nomstate(:,2),  'b', 'DisplayName', 'Adjusted Trajectory');
-    hold on
-    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
-    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
-    xlabel('X (km)');
-    ylabel('Y (km)');
-    title('Relative Motion with Δv Adjustment');
-    legend('Location','best');
-    grid on;
-    hold off;
-
-
-figure(3)
-% plot red circle at origin
-plot(xactual(1,:),xactual(2,:),'b')
-hold on
-    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
-    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
-    title('Optimal Dragon Trajectory to Final Position');
-xlabel('x (km)'), ylabel('y (km)')
-axis equal
-grid on
-legend('Location','best');
-hold off
-
-figure(4)
-plot(statepost(:,1),statepost(:,2),'b', 'DisplayName','Dragon Trajectory');
-hold on
-plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
-title('Dragon Trajectory after Final Position')
-legend('Location','best');
-
-figure(5)
-plot(nomstate(:,1), nomstate(:,2), 'm', 'DisplayName', 'Original Trajectory');
-hold on;
-plot(xactual(1,:), xactual(2,:),  'b', 'DisplayName', 'Adjusted Trajectory');
-plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
-plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
-xlabel('X (km)');
-ylabel('Y (km)');
-title('Relative Motion with Natural Dynamics and Δv Adjustment');
-legend('Location','best');
-grid on;
-hold off;
-
-figure(6)
-yyaxis left;
-plot(tsim,xactual(1,1:end)','b-',tsim,xactual(2,1:end),'r-')
-ylim([-1 1]);
-hold on
-yyaxis right;
-plot(tsim,xactual(3,1:end)','b--',tsim,xactual(4,1:end),'r--')
-legend('X','Y', 'X Velocity', 'Y velocity', 'Location','best');
-ylim([-0.003 0.003])
-grid on;
-hold off
-
-
+    Qf = eye(4); % Final state weighting matrix
+    xf = [-0.25; 0]; % Final state
+    tf = 1200; % Final time (s)
+    
+    % Final costate
+    lambda_T = Qf * xf;
+    
+    % Solve backward in time for lambda
+    [t, lambda] = ode45(@(t, lambda) costate_dynamics(t, lambda, A), [tf 0], lambda_T);
+    
+    % Initial costate (lambda0)
+    lambda0 = lambda(end, :)';
+    disp('Initial Lagrange multiplier (lambda0):');
+    disp(lambda0);
+    
+    % Costate dynamics function
+    function dLambda = costate_dynamics(t, lambda, A)
+        dLambda = -A' * lambda;
+    end
 % Problem 3
 
 x0e = -0.98;
@@ -244,30 +157,100 @@ for i = 1:length(tkout)
 end
 
 % Neighboring optimal control
+xstarn(:,i) = X0e;
+for i = 1:length(tkout)
+ %   e = xstar(:,i)-Xf;
+    xactualn(:,i) = xstarn(:,i) + Xf;   
+    k = kout(:,:,length(tkout)+1-i);
+    ustar = Ut(i)+inv(R)*(B'*k)*(xactualn(:,i)-xactual(:,i));
+ %   Utn(i,:) = ustar*xstarn(:,i) ;
+    xdotstarp(:,i) = A*(xstarn(:,i)) + B*ustar;% 
+    xstarn(:,i+1) = xstarn(:,i) + xdotstar(:,i)*dt;
+    
+    % calc cost ...
+end
 
 
+% plots
+figure(1);
+    plot(dynstate(1:6000,1), dynstate(1:6000,2), 'r', 'DisplayName', 'Original Dragon Trajectory');
+    hold on;
+    plot(xactual(1,:),xactual(2,:),'b','DisplayName','Optimal Trajectory')
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    xlabel('X (km)');
+    ylabel('Y (km)');
+    title('Relative Motion with Natural Dynamics and Δv Adjustment');
+    legend('Location','best');
+    grid on;
+    hold off;
 
-figure(7)
-plot(tkout,Ut)
-hold on
-plot(tkout,Utp)
-title('Control Input u(t)')
-legend('u_x','u_y','Location','best')
+figure(2)
+    % plot red circle at origin
+    plot(xactual(1,:),xactual(2,:),'b','DisplayName','Optimal Trajectory')
+    hold on
+    plot(statepost(:,1),statepost(:,2),'b--', 'DisplayName','Post Burn Trajectory');
+    hold on
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    title('Optimal Dragon Trajectory to Final Position + 6 minutes');
+    xlabel('x (km)'), ylabel('y (km)')
+    axis equal
+    grid on
+    legend('Location','best');
+    hold off
+
+figure(3)
+    yyaxis left;
+    plot(tsim,xactual(1,1:end)','b-',tsim,xactual(2,1:end),'r-')
+    ylim([-1 1]);
+    hold on
+    yyaxis right;
+    plot(tsim,xactual(3,1:end)','b--',tsim,xactual(4,1:end),'r--')
+    legend('X','Y', 'X Velocity', 'Y velocity', 'Location','best');
+    ylim([-0.003 0.003])
+    grid on;
+    hold off
 
 
-figure(8)
+figure(4)
+    plot(tkout,Ut)
+    title('Optimal Control Input u(t)')
+    legend('u_x','u_y','Location','best')
+    xlabel('Time (s)');
+    ylabel('Control Input')
+
+
+figure(5)
 % plot red circle at origin
-plot(xactual(1,:),xactual(2,:),'DisplayName','Optimal Trajectory');
-hold on
-plot(xactualp(1,:),xactualp(2,:),'DisplayName','Perturbed Trajectory')
+    plot(xactual(1,:),xactual(2,:),'DisplayName','Optimal Trajectory');
+    hold on
+    plot(xactualp(1,:),xactualp(2,:),'DisplayName','Perturbed Trajectory')
     plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
     plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
     title('Optimal Dragon Trajectory to Final Position');
-xlabel('x (km)'), ylabel('y (km)')
-axis equal
-grid on
-legend('Location','best');
-hold off
+    xlabel('x (km)'), ylabel('y (km)')
+    axis equal
+    grid on
+    legend('Location','best');
+    hold off
+
+figure(6)
+% plot red circle at origin
+    plot(xactual(1,:),xactual(2,:),'DisplayName','Optimal Trajectory');
+    hold on
+    plot(xactualn(1,:),xactualn(2,:),'DisplayName','Perturbed Trajectory')
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    plot(x0e, y0e, 'bo', 'DisplayName', 'Start Point');
+
+    title('Optimal Dragon Trajectory to Final Position');
+    xlabel('x (km)'), ylabel('y (km)')
+    axis equal
+    grid on
+    legend('Location','best');
+    hold off
+
 
 % CW dynamics function
 function dy = cworbit(y,n)
