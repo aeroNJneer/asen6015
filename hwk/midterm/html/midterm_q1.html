@@ -1,0 +1,749 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>midterm_q1</title><meta name="generator" content="MATLAB 9.13"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2024-10-15"><meta name="DC.source" content="midterm_q1.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="comment">% ASEN 6015</span>
+<span class="comment">% MIDTERM EXAM</span>
+<span class="comment">% Nicole James</span>
+<span class="comment">% 10/10/24</span>
+
+<span class="comment">% Problem 1</span>
+clear
+clc
+close <span class="string">all</span>
+set(0,<span class="string">'DefaultAxesXGrid'</span>,<span class="string">'on'</span>, <span class="keyword">...</span>
+    <span class="string">'DefaultAxesYGrid'</span>,<span class="string">'on'</span>, <span class="keyword">...</span>
+    <span class="string">'DefaultLineLineWidth'</span>,2, <span class="keyword">...</span>
+    <span class="string">'DefaultAxesLineWidth'</span>,1.5);
+set(groot, <span class="string">'defaultAxesFontSize'</span>,12, <span class="keyword">...</span>
+    <span class="string">'defaultTextFontSize'</span>,12, <span class="keyword">...</span>
+    <span class="string">'defaultLegendFontSize'</span>,14, <span class="keyword">...</span>
+    <span class="string">'defaultAxesTitleFontSizeMultiplier'</span>, 1.5, <span class="keyword">...</span>
+    <span class="string">'defaultAxesTitleFontSizeMultiplier'</span>, 1.2);
+<span class="comment">% constants</span>
+mu = 3.986004418e5;
+a = 3728;           <span class="comment">% semi-major axis of ISS</span>
+n = sqrt(mu/a^3);   <span class="comment">%  mean motion of ISS</span>
+dt = 0.1;           <span class="comment">% timestep</span>
+tfinal = 60*20;
+tsim = 0:dt:tfinal;
+
+<span class="comment">% function signatures</span>
+
+<span class="comment">% STMs for the Clohessy-Wiltshire equations</span>
+Phirr = @(t) [4-3*cos(n*t), 0;
+                6*(sin(n*t)-n*t), 1];
+Phirv = @(t) [sin(n*t)/n, 2*(1-cos(n*t))/n;
+                2*(cos(n*t) -1)/n, (4*sin(n*t) - 3*n*t)/n];
+Phivr = @(t) [3*n*sin(n*t), 0;
+                6*n*(cos(n*t)-1), 0];
+Phivv = @(t) [cos(n*t), 2*sin(n*t);
+                -2*sin(n*t), 4*cos(n*t)-3];
+PHI = @(t)[Phirr(t) Phirv(t);
+            Phivr(t) Phivv(t)];
+Phi_tf = [Phirr(tfinal) Phirv(tfinal); Phirv(tfinal) Phivv(tfinal)]; <span class="comment">% at final time to find delta-v</span>
+
+<span class="comment">%initial conditions</span>
+x0 = -1.0;
+y0 = -0.25;
+xdot0 = 0.003;
+ydot0 = -0.0005;
+X0 = [x0; y0; xdot0; ydot0];
+
+<span class="comment">% final conditions</span>
+xf = -0.25;
+yf = 0.;
+xdotf = 0.0002;
+ydotf = 0.;
+Xf = [xf; yf; xdotf; ydotf];
+
+r0 = [x0;y0];
+v0 = [xdot0;ydot0];
+rf = [xf;yf];
+vf = [xdotf;ydotf];
+
+<span class="comment">% State space matrices</span>
+<span class="comment">% xddot - 2*n*ydot - 3*n^2*x = ux</span>
+<span class="comment">% yddot + 2*n*xdot = uy</span>
+<span class="comment">% X = [x; y; xdot; ydot]</span>
+<span class="comment">% x_hat in r_hat direction; y_hat in v_hat direction</span>
+<span class="comment">% u = [ux; uy]</span>
+
+u0 = [0;0;];
+
+A = [0 0 1 0;
+     0 0 0 1;
+     3*n^2 0 0 2*n;
+     0 0 -2*n 0]
+
+B = [0 0;
+    0 0;
+    1 0;
+    0 1];
+
+<span class="comment">% Find STM for dynamic system</span>
+Phi0 = expm(A*dt)  <span class="comment">% use matrix exponential A is constant</span>
+Phidot0 = A*Phi0
+
+<span class="comment">% find and plot natural dynamics</span>
+[tout, dynstate] = ode45(@(t,dynstate) cworbit(dynstate,n), 0:dt:tfinal, X0);
+
+<span class="comment">% find closest approach and time</span>
+<span class="keyword">for</span> i = 1:length(dynstate)
+    r(i) = sqrt(dynstate(i,1)^2 + dynstate(i,2)^2);
+<span class="keyword">end</span>
+rmin = min(r)
+tmin = tout(r==rmin)
+
+<span class="comment">% Problem 2</span>
+<span class="comment">% optimal control</span>
+R = [1 0;
+    0 1];
+
+Astar = [A B*B';zeros(4) -A'];
+Phistar = expm(Astar);
+Phistardot = Astar * Phistar;
+
+<span class="comment">% k0 = zeros(4);</span>
+<span class="comment">% need to integrate backwards to find K</span>
+tbw = flip(tsim);
+
+<span class="comment">% Optimal trajectory simulation</span>
+Q=zeros(4);
+Kf =  eye(4);
+
+[tkout,kout] = ode45(@(t,k) Kdot(k,A,B,Q),tbw,Kf); <span class="comment">% find history of K</span>
+
+kout = reshape(kout.',4,4,[]);
+tkout = flip(tkout);
+
+xstar(:,1) = X0-Xf;
+<span class="comment">% OPTIMAL CONTROL</span>
+<span class="keyword">for</span> i = 1:length(tkout)
+ <span class="comment">%   e = xstar(:,i)-Xf;</span>
+    rstar(i) = norm(xstar(1,i),xstar(2,i));
+    xactual(:,i) = xstar(:,i) + Xf;
+    k = kout(:,:,length(tkout)+1-i);
+    ustar = -B'*k;
+    Ut(i,:) = ustar*xstar(:,i) ;
+    xdotstar(:,i) = A*(xstar(:,i)) + B*Ut(i,:)';<span class="comment">%</span>
+    xstar(:,i+1) = xstar(:,i) + xdotstar(:,i)*dt;
+    <span class="comment">% calc cost ...</span>
+<span class="keyword">end</span>
+
+<span class="comment">% natural dynamics after reaching target position (+ 6 minutes)</span>
+[tpost,statepost] = ode45(@(tpost,statepost) cworbit(statepost,n), tfinal:dt:tfinal+360,xactual(:,end));
+
+<span class="comment">% find initial value of lamba by backwards integration</span>
+
+    Qf = eye(4); <span class="comment">% Final state weighting matrix</span>
+    tf = 1200; <span class="comment">% Final time (s)</span>
+
+    <span class="comment">% Final costate</span>
+    lambda_T = Qf * Xf; <span class="comment">% Xf = final state as defined in problem</span>
+
+    <span class="comment">% Solve backward in time for lambda</span>
+    [t, lambda] = ode45(@(t, lambda) costate_dynamics(t, lambda, A), [tf 0], lambda_T);
+
+    <span class="comment">% Initial costate (lambda0)</span>
+    lambda0 = lambda(end, :)';
+    disp(<span class="string">'Initial Lagrange multiplier (lambda0):'</span>);
+    disp(lambda0);
+
+<span class="comment">% Problem 3</span>
+x0e = -0.98;
+y0e = -0.4;
+dxfe = 0.0037;
+dyfe = 0.0003;
+X0e = [x0e; y0e; dxfe; dyfe];
+pert = X0e - X0;
+
+<span class="comment">% OPTIMAL CONTROL + INITIAL STATE DEVIAION</span>
+xstarp(:,1) = X0e-Xf;
+<span class="keyword">for</span> i = 1:length(tkout)
+    xactualp(:,i) = xstarp(:,i) + Xf;   <span class="comment">% shift from final point as origin</span>
+    k = kout(:,:,length(tkout)+1-i);
+    ustar = -B'*k;
+    Utp(i,:) = ustar*xstar(:,i);
+    xdotstarp(:,i) = A*(xstar(:,i)) + B*Utp(i,:)';<span class="comment">%</span>
+    xstarp(:,i+1) = xstarp(:,i) + xdotstarp(:,i)*dt;
+<span class="keyword">end</span>
+
+<span class="comment">% NEIGHBORING OPTIMAL CONTROL</span>
+xstarn(:,1) = X0e-Xf;
+<span class="keyword">for</span> i = 1:length(tkout)
+    xactualn(:,i) = xstarn(:,i) + Xf;
+    dx = xstarn(:,i) - xstar(:,i);
+    k = kout(:,:,length(tkout)+1-i);
+    ustar = -B'*k;
+    Utn(i,:) = ustar*xstar(:,i) + B'*k*(xstarn(:,i) - xstar(:,i)) ;
+    xdotstarn(:,i) = A*(xstar(:,i)+dx) -B*B'*k*xstar(:,i) -B*B'*k*dx;<span class="comment">%</span>
+    xstarn(:,i+1) = xstarn(:,i) + xdotstarn(:,i)*dt;
+    <span class="comment">% calc cost ...</span>
+<span class="keyword">end</span>
+
+<span class="comment">% plots</span>
+figure(1);
+    plot(dynstate(1:4200,1), dynstate(1:4200,2), <span class="string">'r'</span>, <span class="string">'DisplayName'</span>, <span class="string">'Original Trajectory (over 7 minutes'</span>);
+    hold <span class="string">on</span>;
+    plot(xactual(1,:),xactual(2,:),<span class="string">'b'</span>,<span class="string">'DisplayName'</span>,<span class="string">'Optimal Trajectory'</span>)
+    plot(r0(1), r0(2), <span class="string">'go'</span>, <span class="string">'DisplayName'</span>, <span class="string">'Start Point'</span>);
+    plot(rf(1), rf(2),<span class="string">'ro'</span>, <span class="string">'DisplayName'</span>, <span class="string">'End Point'</span>);
+    xlabel(<span class="string">'X (km)'</span>);
+    ylabel(<span class="string">'Y (km)'</span>);
+    title(<span class="string">'Relative Motion with Natural Dynamics and Optimal Control'</span>);
+    legend(<span class="string">'Location'</span>,<span class="string">'best'</span>);
+    hold <span class="string">off</span>;
+
+figure(2)
+    <span class="comment">% plot red circle at origin</span>
+    plot(xactual(1,:),xactual(2,:),<span class="string">'b'</span>,<span class="string">'DisplayName'</span>,<span class="string">'Optimal Trajectory'</span>)
+    hold <span class="string">on</span>
+    plot(statepost(:,1),statepost(:,2),<span class="string">'b--'</span>, <span class="string">'DisplayName'</span>,<span class="string">'Post Burn Trajectory'</span>);
+    hold <span class="string">on</span>
+    plot(r0(1), r0(2), <span class="string">'go'</span>, <span class="string">'DisplayName'</span>, <span class="string">'Start Point'</span>);
+    plot(rf(1), rf(2),<span class="string">'ro'</span>, <span class="string">'DisplayName'</span>, <span class="string">'End Point'</span>);
+    title(<span class="string">'Optimal Dragon Trajectory to Final Position + 6 minutes'</span>);
+    xlabel(<span class="string">'x (km)'</span>), ylabel(<span class="string">'y (km)'</span>)
+    axis <span class="string">equal</span>
+
+    legend(<span class="string">'Location'</span>,<span class="string">'best'</span>);
+    hold <span class="string">off</span>
+
+figure(3)
+    yyaxis <span class="string">left</span>;
+    plot(tsim,xactual(1,1:end)',<span class="string">'b-'</span>,tsim,xactual(2,1:end),<span class="string">'r-'</span>)
+    ylim([-1 1]);
+    ylabel(<span class="string">'Location (km)'</span>)
+    hold <span class="string">on</span>
+    yyaxis <span class="string">right</span>;
+
+    plot(tsim,xactual(3,1:end)',<span class="string">'g--'</span>,tsim,xactual(4,1:end),<span class="string">'m--'</span>)
+    legend(<span class="string">'X'</span>,<span class="string">'Y'</span>, <span class="string">'X Velocity'</span>, <span class="string">'Y velocity'</span>, <span class="string">'Location'</span>,<span class="string">'best'</span>);
+    ylim([-0.003 0.003]);
+    title(<span class="string">'System State with Optimal Control over Time'</span>)
+    xlabel(<span class="string">'time (s)'</span>);
+    ylabel(<span class="string">'Velocity (km/s)'</span>)
+    hold <span class="string">off</span>
+
+figure(4)
+    plot(tkout,Ut)
+    hold <span class="string">on</span>
+    plot(tkout,Utn,<span class="string">'--'</span>)
+    title(<span class="string">'Optimal and Neighboring Control Input u(t)'</span>)
+    legend(<span class="string">'Optimal Control (u_x)'</span>,<span class="string">'Optimal Control (u_y)'</span>,<span class="string">'Neighboring Control (u_x)'</span>,<span class="string">'Neighboring Control (u_y)'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
+    xlabel(<span class="string">'Time (s)'</span>);
+    ylabel(<span class="string">'Control Input'</span>)
+hold <span class="string">off</span>
+
+figure(5)
+<span class="comment">% plot red circle at origin</span>
+    plot(xactual(1,:),xactual(2,:),<span class="string">'DisplayName'</span>,<span class="string">'Optimal Trajectory'</span>);
+    hold <span class="string">on</span>
+    plot(xactualp(1,:),xactualp(2,:),<span class="string">'DisplayName'</span>,<span class="string">'Perturbed Trajectory'</span>)
+    plot(r0(1), r0(2), <span class="string">'go'</span>, <span class="string">'DisplayName'</span>, <span class="string">'Start Point'</span>);
+    plot(rf(1), rf(2),<span class="string">'ro'</span>, <span class="string">'DisplayName'</span>, <span class="string">'End Point'</span>);
+    plot(xactualp(1,1), xactualp(2,2),<span class="string">'bo'</span>, <span class="string">'DisplayName'</span>, <span class="string">'Perturbed Start Point'</span>);
+    title(<span class="string">'Optimal  and Perturbed Trajectory to Final Position'</span>);
+    xlabel(<span class="string">'x (km)'</span>), ylabel(<span class="string">'y (km)'</span>)
+    axis <span class="string">equal</span>
+
+    legend(<span class="string">'Location'</span>,<span class="string">'best'</span>);
+    hold <span class="string">off</span>
+
+figure(6)
+<span class="comment">% plot red circle at origin</span>
+    plot(xactual(1,:),xactual(2,:),<span class="string">'DisplayName'</span>,<span class="string">'Optimal Trajectory'</span>);
+    hold <span class="string">on</span>
+    plot(xactualn(1,:),xactualn(2,:),<span class="string">'DisplayName'</span>,<span class="string">'Neighboring Control Trajectory'</span>)
+    plot(xactualp(1,:),xactualp(2,:),<span class="string">'DisplayName'</span>,<span class="string">'Perturbed Trajectory'</span>);
+
+    plot(r0(1), r0(2), <span class="string">'go'</span>, <span class="string">'DisplayName'</span>, <span class="string">'Nominal Start Point'</span>);
+    plot(rf(1), rf(2),<span class="string">'ro'</span>, <span class="string">'DisplayName'</span>, <span class="string">'End Point'</span>);
+    plot(x0e, y0e, <span class="string">'bo'</span>, <span class="string">'DisplayName'</span>, <span class="string">'Perturbed Start Point'</span>);
+
+    title(<span class="string">'Optimal Dragon Trajectory to Final Position'</span>);
+    xlabel(<span class="string">'x (km)'</span>), ylabel(<span class="string">'y (km)'</span>)
+    axis <span class="string">equal</span>
+    legend(<span class="string">'Location'</span>,<span class="string">'best'</span>);
+    hold <span class="string">off</span>
+
+figure(7);
+    plot(dynstate(1:6000,1), dynstate(1:6000,2), <span class="string">'r'</span>);
+    hold <span class="string">on</span>;
+    plot(r0(1), r0(2), <span class="string">'go'</span>, <span class="string">'DisplayName'</span>, <span class="string">'Start Point'</span>);
+    plot(rf(1), rf(2),<span class="string">'ro'</span>, <span class="string">'DisplayName'</span>, <span class="string">'End Point'</span>);
+    xlabel(<span class="string">'X (km)'</span>);
+    ylabel(<span class="string">'Y (km)'</span>);
+    title(<span class="string">'Relative Motion with Natural Dynamics over 10 Minutes'</span>);
+
+
+figure(8)
+<span class="comment">% plot red circle at origin</span>
+    plot(xactual(1,:),xactual(2,:),<span class="string">'DisplayName'</span>,<span class="string">'Optimal Trajectory'</span>);
+    hold <span class="string">on</span>
+    plot(r0(1), r0(2), <span class="string">'go'</span>, <span class="string">'DisplayName'</span>, <span class="string">'Nominal Start Point'</span>);
+    plot(rf(1), rf(2),<span class="string">'ro'</span>, <span class="string">'DisplayName'</span>, <span class="string">'End Point'</span>);
+    title(<span class="string">'Optimal Dragon Trajectory to Final Position'</span>);
+    xlabel(<span class="string">'x (km)'</span>), ylabel(<span class="string">'y (km)'</span>)
+    axis <span class="string">equal</span>
+    legend(<span class="string">'Location'</span>,<span class="string">'best'</span>);
+    hold <span class="string">off</span>
+
+figure(9)
+    plot(tkout,Ut)
+    title(<span class="string">'Optimal Control Input u(t)'</span>)
+    legend(<span class="string">'Optimal Control (u_x)'</span>,<span class="string">'Optimal Control (u_y)'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
+    xlabel(<span class="string">'Time (s)'</span>);
+    ylabel(<span class="string">'Control Input'</span>)
+    hold <span class="string">off</span>
+
+<span class="comment">% FUNCTIONS</span>
+<span class="comment">% CW dynamics function</span>
+<span class="keyword">function</span> dy = cworbit(y,n)
+    dy=zeros(4,1);
+    dy(1)=y(3);
+    dy(2)=y(4);
+    dy(3)=2*n*y(4)+3*n^2*y(1) ;
+    dy(4)=-2*n*y(3) ;
+<span class="keyword">end</span>
+
+<span class="comment">% K matrix equation</span>
+<span class="keyword">function</span> dk = Kdot(K,A,B,Q)
+    k = reshape(K,size(A));
+    kdot = -k*A + k*B*B'*k - A'*k -Q;
+    dk = kdot(:);
+<span class="keyword">end</span>
+
+<span class="comment">% Costate dynamics function</span>
+<span class="keyword">function</span> dLambda = costate_dynamics(t, lambda, A)
+    dLambda = -A' * lambda;
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">
+A =
+
+         0         0    1.0000         0
+         0         0         0    1.0000
+    0.0000         0         0    0.0055
+         0         0   -0.0055         0
+
+
+Phi0 =
+
+    1.0000         0    0.1000    0.0000
+   -0.0000    1.0000   -0.0000    0.1000
+    0.0000         0    1.0000    0.0006
+   -0.0000         0   -0.0006    1.0000
+
+
+Phidot0 =
+
+    0.0000         0    1.0000    0.0006
+   -0.0000         0   -0.0006    1.0000
+    0.0000         0   -0.0000    0.0055
+   -0.0000         0   -0.0055   -0.0000
+
+
+rmin =
+
+    0.9051
+
+
+tmin =
+
+   90.8000
+
+Initial Lagrange multiplier (lambda0):
+   -1.7369
+         0
+   16.7402
+ -357.3960
+
+</pre><img vspace="5" hspace="5" src="midterm_q1_01.png" alt=""> <img vspace="5" hspace="5" src="midterm_q1_02.png" alt=""> <img vspace="5" hspace="5" src="midterm_q1_03.png" alt=""> <img vspace="5" hspace="5" src="midterm_q1_04.png" alt=""> <img vspace="5" hspace="5" src="midterm_q1_05.png" alt=""> <img vspace="5" hspace="5" src="midterm_q1_06.png" alt=""> <img vspace="5" hspace="5" src="midterm_q1_07.png" alt=""> <img vspace="5" hspace="5" src="midterm_q1_08.png" alt=""> <img vspace="5" hspace="5" src="midterm_q1_09.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+% ASEN 6015
+% MIDTERM EXAM
+% Nicole James
+% 10/10/24
+
+% Problem 1
+clear
+clc
+close all
+set(0,'DefaultAxesXGrid','on', ...
+    'DefaultAxesYGrid','on', ...
+    'DefaultLineLineWidth',2, ...
+    'DefaultAxesLineWidth',1.5);
+set(groot, 'defaultAxesFontSize',12, ...
+    'defaultTextFontSize',12, ...
+    'defaultLegendFontSize',14, ...
+    'defaultAxesTitleFontSizeMultiplier', 1.5, ...
+    'defaultAxesTitleFontSizeMultiplier', 1.2);
+% constants
+mu = 3.986004418e5;
+a = 3728;           % semi-major axis of ISS
+n = sqrt(mu/a^3);   %  mean motion of ISS
+dt = 0.1;           % timestep 
+tfinal = 60*20;
+tsim = 0:dt:tfinal;   
+
+% function signatures
+
+% STMs for the Clohessy-Wiltshire equations
+Phirr = @(t) [4-3*cos(n*t), 0;
+                6*(sin(n*t)-n*t), 1];
+Phirv = @(t) [sin(n*t)/n, 2*(1-cos(n*t))/n;
+                2*(cos(n*t) -1)/n, (4*sin(n*t) - 3*n*t)/n];
+Phivr = @(t) [3*n*sin(n*t), 0;
+                6*n*(cos(n*t)-1), 0];
+Phivv = @(t) [cos(n*t), 2*sin(n*t);
+                -2*sin(n*t), 4*cos(n*t)-3];
+PHI = @(t)[Phirr(t) Phirv(t);
+            Phivr(t) Phivv(t)];
+Phi_tf = [Phirr(tfinal) Phirv(tfinal); Phirv(tfinal) Phivv(tfinal)]; % at final time to find delta-v
+
+%initial conditions
+x0 = -1.0;
+y0 = -0.25;
+xdot0 = 0.003;
+ydot0 = -0.0005;
+X0 = [x0; y0; xdot0; ydot0];
+
+% final conditions
+xf = -0.25;
+yf = 0.;
+xdotf = 0.0002;
+ydotf = 0.;
+Xf = [xf; yf; xdotf; ydotf];
+
+r0 = [x0;y0];
+v0 = [xdot0;ydot0];
+rf = [xf;yf];
+vf = [xdotf;ydotf];
+
+% State space matrices
+% xddot - 2*n*ydot - 3*n^2*x = ux
+% yddot + 2*n*xdot = uy
+% X = [x; y; xdot; ydot]
+% x_hat in r_hat direction; y_hat in v_hat direction
+% u = [ux; uy]
+
+u0 = [0;0;];
+
+A = [0 0 1 0;
+     0 0 0 1;
+     3*n^2 0 0 2*n;
+     0 0 -2*n 0]
+
+B = [0 0; 
+    0 0;
+    1 0;
+    0 1];
+
+% Find STM for dynamic system
+Phi0 = expm(A*dt)  % use matrix exponential A is constant
+Phidot0 = A*Phi0
+
+% find and plot natural dynamics
+[tout, dynstate] = ode45(@(t,dynstate) cworbit(dynstate,n), 0:dt:tfinal, X0);
+
+% find closest approach and time
+for i = 1:length(dynstate)
+    r(i) = sqrt(dynstate(i,1)^2 + dynstate(i,2)^2);
+end
+rmin = min(r)
+tmin = tout(r==rmin)
+
+% Problem 2
+% optimal control
+R = [1 0;
+    0 1];
+
+Astar = [A B*B';zeros(4) -A'];
+Phistar = expm(Astar);
+Phistardot = Astar * Phistar;
+
+% k0 = zeros(4);
+% need to integrate backwards to find K
+tbw = flip(tsim);
+
+% Optimal trajectory simulation
+Q=zeros(4);
+Kf =  eye(4);
+
+[tkout,kout] = ode45(@(t,k) Kdot(k,A,B,Q),tbw,Kf); % find history of K
+
+kout = reshape(kout.',4,4,[]);
+tkout = flip(tkout);
+
+xstar(:,1) = X0-Xf;
+% OPTIMAL CONTROL
+for i = 1:length(tkout)
+ %   e = xstar(:,i)-Xf;
+    rstar(i) = norm(xstar(1,i),xstar(2,i));
+    xactual(:,i) = xstar(:,i) + Xf;   
+    k = kout(:,:,length(tkout)+1-i);
+    ustar = -B'*k;
+    Ut(i,:) = ustar*xstar(:,i) ;
+    xdotstar(:,i) = A*(xstar(:,i)) + B*Ut(i,:)';% 
+    xstar(:,i+1) = xstar(:,i) + xdotstar(:,i)*dt;
+    % calc cost ...
+end
+
+% natural dynamics after reaching target position (+ 6 minutes)
+[tpost,statepost] = ode45(@(tpost,statepost) cworbit(statepost,n), tfinal:dt:tfinal+360,xactual(:,end));
+
+% find initial value of lamba by backwards integration
+
+    Qf = eye(4); % Final state weighting matrix
+    tf = 1200; % Final time (s)
+    
+    % Final costate
+    lambda_T = Qf * Xf; % Xf = final state as defined in problem
+    
+    % Solve backward in time for lambda
+    [t, lambda] = ode45(@(t, lambda) costate_dynamics(t, lambda, A), [tf 0], lambda_T);
+    
+    % Initial costate (lambda0)
+    lambda0 = lambda(end, :)';
+    disp('Initial Lagrange multiplier (lambda0):');
+    disp(lambda0);
+    
+% Problem 3
+x0e = -0.98;
+y0e = -0.4;
+dxfe = 0.0037;
+dyfe = 0.0003;
+X0e = [x0e; y0e; dxfe; dyfe];
+pert = X0e - X0;
+
+% OPTIMAL CONTROL + INITIAL STATE DEVIAION
+xstarp(:,1) = X0e-Xf;
+for i = 1:length(tkout)
+    xactualp(:,i) = xstarp(:,i) + Xf;   % shift from final point as origin
+    k = kout(:,:,length(tkout)+1-i);
+    ustar = -B'*k;
+    Utp(i,:) = ustar*xstar(:,i);
+    xdotstarp(:,i) = A*(xstar(:,i)) + B*Utp(i,:)';% 
+    xstarp(:,i+1) = xstarp(:,i) + xdotstarp(:,i)*dt;
+end
+
+% NEIGHBORING OPTIMAL CONTROL
+xstarn(:,1) = X0e-Xf;
+for i = 1:length(tkout)
+    xactualn(:,i) = xstarn(:,i) + Xf; 
+    dx = xstarn(:,i) - xstar(:,i);
+    k = kout(:,:,length(tkout)+1-i);
+    ustar = -B'*k;
+    Utn(i,:) = ustar*xstar(:,i) + B'*k*(xstarn(:,i) - xstar(:,i)) ;
+    xdotstarn(:,i) = A*(xstar(:,i)+dx) -B*B'*k*xstar(:,i) -B*B'*k*dx;% 
+    xstarn(:,i+1) = xstarn(:,i) + xdotstarn(:,i)*dt;
+    % calc cost ...
+end
+
+% plots
+figure(1);
+    plot(dynstate(1:4200,1), dynstate(1:4200,2), 'r', 'DisplayName', 'Original Trajectory (over 7 minutes');
+    hold on;
+    plot(xactual(1,:),xactual(2,:),'b','DisplayName','Optimal Trajectory')
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    xlabel('X (km)');
+    ylabel('Y (km)');
+    title('Relative Motion with Natural Dynamics and Optimal Control');
+    legend('Location','best');  
+    hold off;
+
+figure(2)
+    % plot red circle at origin
+    plot(xactual(1,:),xactual(2,:),'b','DisplayName','Optimal Trajectory')
+    hold on
+    plot(statepost(:,1),statepost(:,2),'bREPLACE_WITH_DASH_DASH', 'DisplayName','Post Burn Trajectory');
+    hold on
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    title('Optimal Dragon Trajectory to Final Position + 6 minutes');
+    xlabel('x (km)'), ylabel('y (km)')
+    axis equal
+    
+    legend('Location','best');
+    hold off
+
+figure(3)
+    yyaxis left;
+    plot(tsim,xactual(1,1:end)','b-',tsim,xactual(2,1:end),'r-')
+    ylim([-1 1]);
+    ylabel('Location (km)')
+    hold on
+    yyaxis right;
+
+    plot(tsim,xactual(3,1:end)','gREPLACE_WITH_DASH_DASH',tsim,xactual(4,1:end),'mREPLACE_WITH_DASH_DASH')
+    legend('X','Y', 'X Velocity', 'Y velocity', 'Location','best');
+    ylim([-0.003 0.003]);
+    title('System State with Optimal Control over Time')
+    xlabel('time (s)');
+    ylabel('Velocity (km/s)')
+    hold off
+
+figure(4)
+    plot(tkout,Ut)
+    hold on
+    plot(tkout,Utn,'REPLACE_WITH_DASH_DASH')
+    title('Optimal and Neighboring Control Input u(t)')
+    legend('Optimal Control (u_x)','Optimal Control (u_y)','Neighboring Control (u_x)','Neighboring Control (u_y)','Location','best')
+    xlabel('Time (s)');
+    ylabel('Control Input')
+hold off
+
+figure(5)
+% plot red circle at origin
+    plot(xactual(1,:),xactual(2,:),'DisplayName','Optimal Trajectory');
+    hold on
+    plot(xactualp(1,:),xactualp(2,:),'DisplayName','Perturbed Trajectory')
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    plot(xactualp(1,1), xactualp(2,2),'bo', 'DisplayName', 'Perturbed Start Point');
+    title('Optimal  and Perturbed Trajectory to Final Position');
+    xlabel('x (km)'), ylabel('y (km)')
+    axis equal
+    
+    legend('Location','best');
+    hold off
+
+figure(6)
+% plot red circle at origin
+    plot(xactual(1,:),xactual(2,:),'DisplayName','Optimal Trajectory');
+    hold on
+    plot(xactualn(1,:),xactualn(2,:),'DisplayName','Neighboring Control Trajectory')
+    plot(xactualp(1,:),xactualp(2,:),'DisplayName','Perturbed Trajectory');
+   
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Nominal Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    plot(x0e, y0e, 'bo', 'DisplayName', 'Perturbed Start Point');
+
+    title('Optimal Dragon Trajectory to Final Position');
+    xlabel('x (km)'), ylabel('y (km)')
+    axis equal
+    legend('Location','best');
+    hold off
+
+figure(7);
+    plot(dynstate(1:6000,1), dynstate(1:6000,2), 'r');
+    hold on;
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    xlabel('X (km)');
+    ylabel('Y (km)');
+    title('Relative Motion with Natural Dynamics over 10 Minutes');
+
+
+figure(8)
+% plot red circle at origin
+    plot(xactual(1,:),xactual(2,:),'DisplayName','Optimal Trajectory');
+    hold on
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Nominal Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    title('Optimal Dragon Trajectory to Final Position');
+    xlabel('x (km)'), ylabel('y (km)')
+    axis equal
+    legend('Location','best');
+    hold off
+
+figure(9)
+    plot(tkout,Ut)
+    title('Optimal Control Input u(t)')
+    legend('Optimal Control (u_x)','Optimal Control (u_y)','Location','best')
+    xlabel('Time (s)');
+    ylabel('Control Input')
+    hold off
+
+% FUNCTIONS
+% CW dynamics function
+function dy = cworbit(y,n)
+    dy=zeros(4,1);
+    dy(1)=y(3);
+    dy(2)=y(4);
+    dy(3)=2*n*y(4)+3*n^2*y(1) ;
+    dy(4)=-2*n*y(3) ;
+end
+
+% K matrix equation
+function dk = Kdot(K,A,B,Q)
+    k = reshape(K,size(A));
+    kdot = -k*A + k*B*B'*k - A'*k -Q;
+    dk = kdot(:);
+end
+
+% Costate dynamics function
+function dLambda = costate_dynamics(t, lambda, A)
+    dLambda = -A' * lambda;
+end
+
+
+##### SOURCE END #####
+--></body></html>

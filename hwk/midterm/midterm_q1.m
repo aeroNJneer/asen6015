@@ -35,10 +35,8 @@ Phivr = @(t) [3*n*sin(n*t), 0;
                 6*n*(cos(n*t)-1), 0];
 Phivv = @(t) [cos(n*t), 2*sin(n*t);
                 -2*sin(n*t), 4*cos(n*t)-3];
-
 PHI = @(t)[Phirr(t) Phirv(t);
             Phivr(t) Phivv(t)];
-
 Phi_tf = [Phirr(tfinal) Phirv(tfinal); Phirv(tfinal) Phivv(tfinal)]; % at final time to find delta-v
 
 %initial conditions
@@ -148,16 +146,13 @@ end
     disp('Initial Lagrange multiplier (lambda0):');
     disp(lambda0);
     
-
 % Problem 3
-
 x0e = -0.98;
 y0e = -0.4;
 dxfe = 0.0037;
 dyfe = 0.0003;
 X0e = [x0e; y0e; dxfe; dyfe];
 pert = X0e - X0;
-
 
 % OPTIMAL CONTROL + INITIAL STATE DEVIAION
 xstarp(:,1) = X0e-Xf;
@@ -168,11 +163,9 @@ for i = 1:length(tkout)
     Utp(i,:) = ustar*xstar(:,i);
     xdotstarp(:,i) = A*(xstar(:,i)) + B*Utp(i,:)';% 
     xstarp(:,i+1) = xstarp(:,i) + xdotstarp(:,i)*dt;
-
 end
 
 % NEIGHBORING OPTIMAL CONTROL
-
 xstarn(:,1) = X0e-Xf;
 for i = 1:length(tkout)
     xactualn(:,i) = xstarn(:,i) + Xf; 
@@ -301,6 +294,7 @@ figure(9)
     ylabel('Control Input')
     hold off
 
+% FUNCTIONS
 % CW dynamics function
 function dy = cworbit(y,n)
     dy=zeros(4,1);
