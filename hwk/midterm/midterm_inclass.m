@@ -35,23 +35,21 @@ Phivr = @(t) [3*n*sin(n*t), 0;
                 6*n*(cos(n*t)-1), 0];
 Phivv = @(t) [cos(n*t), 2*sin(n*t);
                 -2*sin(n*t), 4*cos(n*t)-3];
-
 PHI = @(t)[Phirr(t) Phirv(t);
             Phivr(t) Phivv(t)];
-
 Phi_tf = [Phirr(tfinal) Phirv(tfinal); Phirv(tfinal) Phivv(tfinal)]; % at final time to find delta-v
 
 %initial conditions
-x0 = -1.0;
-y0 = -0.25;
+x0 = -1.5;
+y0 = -0.5;
 xdot0 = 0.003;
-ydot0 = -0.0005;
+ydot0 = 0;
 X0 = [x0; y0; xdot0; ydot0];
 
 % final conditions
-xf = -0.25;
+xf = -0.05;
 yf = 0.;
-xdotf = 0.0002;
+xdotf = 0.;
 ydotf = 0.;
 Xf = [xf; yf; xdotf; ydotf];
 
@@ -74,7 +72,6 @@ A = [0 0 1 0;
      3*n^2 0 0 2*n;
      0 0 -2*n 0]
 
-
 B = [0 0; 
     0 0;
     1 0;
@@ -82,15 +79,20 @@ B = [0 0;
 
 % Find STM for dynamic system
 Phi0 = expm(A*dt)  % use matrix exponential A is constant
-Phidot0 = A*Phi0
+Phidot0 = A*Phi0;
 
 % find and plot natural dynamics
 [tout, dynstate] = ode45(@(t,dynstate) cworbit(dynstate,n), 0:dt:tfinal, X0);
+% use STM
 
+[toutstm,dynstatestm] = ode45(@(t,dynstatestm) dxstm(dynstatestm,A,B,u0), 0:dt:tfinal,X0);
 % find closest approach and time
 for i = 1:length(dynstate)
     r(i) = sqrt(dynstate(i,1)^2 + dynstate(i,2)^2);
 end
+
+figure(11)
+plot(tout,r)
 rmin = min(r)
 tmin = tout(r==rmin)
 
@@ -99,7 +101,7 @@ tmin = tout(r==rmin)
 R = [1 0;
     0 1];
 
-Astar = [A B*B';zeros(4) -A'];
+Astar = [A -B*B';zeros(4) -A'];
 Phistar = expm(Astar);
 Phistardot = Astar * Phistar;
 
@@ -117,6 +119,22 @@ kout = reshape(kout.',4,4,[]);
 tkout = flip(tkout);
 
 xstar(:,1) = X0-Xf;
+
+% STM
+Phistar0 = eye(8);
+Phistar0 = reshape(Phistar0,1,64);
+
+
+[tp, Phistarf] = ode45(@(t,Phistarf) dphistm(Phistarf,Astar), 0:dt:60*20,Phistar0);
+Phi_tf = reshape(Phistarf(end,:),8,8);
+lambda0 = inv(Phi_tf(1:4,5:8))*(Xf' - Phi_tf(1:4,1:4)*X0');
+
+%[Taug,Xaug] = ode45(@(t,X) dxaug(Xaug,A,Phi), 0:dt:60*20,[X0 lambada0']
+% history of control
+for i = 1:length(Taug)
+    uopt(i,:) = B'*Xaug(:,5:8);
+end
+
 % OPTIMAL CONTROL
 for i = 1:length(tkout)
  %   e = xstar(:,i)-Xf;
@@ -131,7 +149,7 @@ for i = 1:length(tkout)
 end
 
 % natural dynamics after reaching target position (+ 6 minutes)
-[tpost,statepost] = ode45(@(tpost,statepost) cworbit(statepost,n), tfinal:dt:tfinal+360,xactual(:,end));
+[tpost,statepost] = ode45(@(tpost,statepost) cworbit(statepost,n), tfinal:dt:tfinal+600,xactual(:,end));
 
 % find initial value of lamba by backwards integration
 
@@ -149,16 +167,13 @@ end
     disp('Initial Lagrange multiplier (lambda0):');
     disp(lambda0);
     
-
 % Problem 3
-
 x0e = -0.98;
 y0e = -0.4;
 dxfe = 0.0037;
 dyfe = 0.0003;
 X0e = [x0e; y0e; dxfe; dyfe];
 pert = X0e - X0;
-
 
 % OPTIMAL CONTROL + INITIAL STATE DEVIAION
 xstarp(:,1) = X0e-Xf;
@@ -169,13 +184,10 @@ for i = 1:length(tkout)
     Utp(i,:) = ustar*xstar(:,i);
     xdotstarp(:,i) = A*(xstar(:,i)) + B*Utp(i,:)';% 
     xstarp(:,i+1) = xstarp(:,i) + xdotstarp(:,i)*dt;
-
 end
 
-% % NEIGHBORING OPTIMAL CONTROL
-
+% NEIGHBORING OPTIMAL CONTROL
 xstarn(:,1) = X0e-Xf;
-% OPTIMAL CONTROL
 for i = 1:length(tkout)
     xactualn(:,i) = xstarn(:,i) + Xf; 
     dx = xstarn(:,i) - xstar(:,i);
@@ -208,11 +220,11 @@ figure(2)
     hold on
     plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
     plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
-    title('Optimal Dragon Trajectory to Final Position + 6 minutes');
-    xlabel('x (km)'), ylabel('y (km)')
-    axis equal
-    
+    title('Optimal Dragon Trajectory to Final Position + 10 minutes');
+    xlabel('x (km)'), ylabel('y (km)')    
     legend('Location','best');
+    xlim([-1.5 0]);
+    ylim([-1.5 .5])
     hold off
 
 figure(3)
@@ -295,7 +307,24 @@ figure(8)
     legend('Location','best');
     hold off
 
-    
+figure(9)
+    plot(tkout,Ut)
+    title('Optimal Control Input u(t)')
+    legend('Optimal Control (u_x)','Optimal Control (u_y)','Location','best')
+    xlabel('Time (s)');
+    ylabel('Control Input')
+    hold off
+
+    figure(10);
+    plot(dynstatestm(:,1), dynstatestm(:,2), 'r');
+    hold on;
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    xlabel('X (km)');
+    ylabel('Y (km)');
+    title('Relative Motion with Natural Dynamics over 10 Minutes');
+
+% FUNCTIONS
 % CW dynamics function
 function dy = cworbit(y,n)
     dy=zeros(4,1);
@@ -317,241 +346,12 @@ function dLambda = costate_dynamics(t, lambda, A)
     dLambda = -A' * lambda;
 end
 
-%%
-% Constants
-% vm = 3000;      % Missile velocity (ft/s)
-% vt = 1000;      % Target velocity (ft/s)
-% R0 = 40000;     % Initial range (ft)
-% 
-% for N = Nvalues
-%     % Initial conditions
-%     xm(1,N-2) = x0;        % Dragon initial x position (ft)
-%     ym(1,N-2) = y0;        % Dragon initial y position (ft)
-%     xt(1,N-2) = 0;       % ISS initial x position (ft)
-%     yt(1,N-2) = 0;        % ISS initial y position (ft)
-%     beta = 0;             % Target FPA
-%     i = 1;
-% 
-%     % Target velocity components
-%     Vtx(i,N-2) = -vt*cos(beta);
-%     Vty(i,N-2) = vt*sin(beta);
-% 
-%     % Relative positions
-%     Rx(i,N-2) = xt(i,N-2) - xm(i,N-2);
-%     Ry(i,N-2) = yt(i,N-2) - ym(i,N-2);
-%     R(i,N-2) = sqrt(Rx(i,N-2)^2 + Ry(i,N-2)^2);
-% 
-%     % calculate angles
-%     lambda = atan2(Ry(i,N-2),Rx(i,N-2));
-%     L = asin(vt*sin(beta+lambda)/vm);  
-%     theta = lambda + L;
-% 
-%     % mission velocity
-%     Vmx(i,N-2) = vm*cos(theta + he);
-%     Vmy(i,N-2) = vm*sin(theta + he);
-%     Vx = Vtx(i,N-2) - Vmx(i,N-2);     % relative velocity, x_hat
-%     Vy = Vty(i,N-2) - Vmy(i,N-2);     % relative velocity, y_hat
-%     Vc = -(Rx(i,N-2)*Vx + Ry(i,N-2)*Vy)/R(i,N-2);  % closing velocity
-%     lambdad = (Rx(i,N-2)*Vy-Ry(i,N-2)*Vx)/(R(i,N-2)^2);
-%     tgo = R(i,N-2)/Vc;
-%     ZEM(i,N-2) = Vc * tgo;
-% 
-%     T(i,N-2) = 0;
-%     while Vc > 0
-%         % Simulation loop for different guidance laws and initial conditions       
-%         i= i+1;
-%         if Vc <=1000
-%             dt = dtfine;
-%         end
-%         if augmented
-%             nc(i,N-2) = N*Vc*lambdad + 0.5*N*nt;
-%         else
-%             nc(i,N-2) = N*Vc*lambdad;
-%         end
-%         % acceleration components
-%         amx = -nc*sin(lambda);
-%         amy = nc*cos(lambda);
-% 
-%         betad = nt/vt;
-%         beta = beta + dt*betad;
-%         Vtx(i,N-2) = -vt*cos(beta);
-%         Vty(i,N-2) = vt*sin(beta);  
-%         Vmx(i,N-2) = Vmx(i-1,N-2) + dt*amx(i,N-2);
-%         Vmy(i,N-2) = Vmy(i-1,N-2) + dt*amy(i,N-2);
-% 
-%         xt(i,N-2) = xt(i-1) + dt*Vtx(i,N-2);
-%         yt(i,N-2) = yt(i-1) + dt*Vty(i,N-2);
-%         xm(i,N-2) = xm(i-1,N-2) + dt*Vmx(i,N-2);
-%         ym(i,N-2) = ym(i-1,N-2) + dt*Vmy(i,N-2);
-%         Rx(i,N-2) = xt(i,N-2) - xm(i,N-2);
-%         Ry(i,N-2) = yt(i,N-2) - ym(i,N-2);
-%         R(i,N-2) = sqrt(Rx(i,N-2)^2 + Ry(i,N-2)^2);
-%         Vx = Vtx(i,N-2) - Vmx(i,N-2);
-%         Vy = Vty(i,N-2) - Vmy(i,N-2);
-%         lambda = atan2(Ry(i,N-2),Rx(i,N-2));
-%         lambdad = (Rx(i,N-2)*Vy-Ry(i,N-2)*Vx)/(R(i,N-2)^2);
-%         T(i,N-2) = T(i-1,N-2) + dt;
-%         % Calculate closing velocity
-%         Vc = -(Rx(i,N-2)*Vx + Ry(i,N-2)*Vy)/R(i,N-2);     
-%         tgo = R(i)/Vc;
-%         ZEM(i,N-2) = tgo * (Rx(i)*Vy - Ry(i)*Vx)/R(i);
-%         end 
-% end
-% 
-% output=[T,xm,ym,xt,yt,nc];
-% 
-% 
+function dx = dxstm(x,A,B,u)
+    dx = A*x + B*u;
+end
 
-%%
+function dphi = dphistm(phi,A)
 
-% Calculate perturbation vector
-% Initialize perturbation state
-% dx(:, 1) = [0, 0.075, 0, -0.021]';
-% 
-% dx(:,1) = [0; 0; 0; 0];
-% % Compute perturbation states over time
-% for i = 2:length(t)
-%     dx(:, i) = F*dx(:,i-1) + G*u(:, i); 
-% end
-% 
-% 
-% 
-% Atilde = [0 1 0 0 ; 2*mu/r0^3 0 0 0 ; 0 0 0 1; 0 0 -mu/r0^3 0];
-% B = [0 0; 1 0; 0 0; 0 1];
-% F = eye(4) + Atilde*dt;
-% G = dt * B; 
-% 
-% % % Preallocate time and perturbation state vectors
-% % %t = 0:dt:2*pi/omegaE/4; % Time vector (s)
-% % t = 0:dt:14000;
-% % dx = zeros(4, length(t)); % Perturbation state vector
-% % % Define nominal state and control input over time
-% % xnom = [r0*ones(1, length(t)); % x value (km)
-% %     zeros(1, length(t)); % x velocity (km/s)
-% %     zeros(1, length(t)); % y value (rad)
-% %     y0dot*ones(1, length(t))]; % y velocity (rad/s)
-% % u = zeros(2, length(t));
-% % % Initialize perturbation state
-% % dx(:, 1) = [0,0.75,0,-0.021];
-% % % Compute perturbation states over time
-% % for i = 2:length(ghjny8ttvy )
-% %     dx(:, i) = F*dx(:, i - 1) + G*u(:, i);
-% % end
-% % % Compute total states over time
-% 
-% 
-% x0 = 6678;
-% y0 = 0;
-% r0 = sqrt(x0^2+y0^2);
-% x0dot = 0;
-% y0dot = r0 * sqrt(mu/r0^3);
-% omega = sqrt(mu/r0^3); % angular velocity of satellite
-% % Atilde is time varying so need to create paramaterized variable.... 
-% % -- pass in r and t (r0 for nominal)
-% % Atilde = [0 1 0 0; 
-% %     mu*(2*(cos(omega*t))^2-(sin(omega*t))^2)/r^3 0 3*mu*sin(omega*t)*cos(omega*t)/r^3 0;
-% %     0 0 0 1;
-% %     3*mu*sin(omega*t)*cos(omega*t)/r^3 0 mu*(2*(sin(omega*t)^2 -(cos(omega*t))^2))/r^3 0];
-% A0 = [0 1 0 0 ; 2*mu/r0^3 0 0 0 ; 0 0 0 1; 0 0 -mu/r0^3 0];
-% B = [0 0; 1 0; 0 0; 0 1];
-% F = eye(4) + Atilde*dt; % pass in r and t to Atilde... 
-% G = dt * B; 
-% 
-% % Define nonlinear model as anonymous function
-% pert = [0, 0.075, 0, -0.021]'; % perturbation 
-% xdot = @(x, u) [x(2);
-%     -mu*x(1)/sqrt((x(1)^2+x(3)^2)^3) + u(1);
-%     x(4);
-%     -mu*x(3)/sqrt((x(1)^2+x(3)^2)^3) + u(2)];
-% % Define initial total state
-% X0 = [x0, x0dot, y0, y0dot]' +  pert; 
-% % 
-% % Define wrapper function for use in ODE45
-% xdotwrap = @(t, x) xdot(x, [0; 0]);
-% % Compute total state using ODE45
-% options = odeset('RelTol', 1e-12); % Set ODE45 options
-% [tout, xnl] = ode45(xdotwrap, t, X0, options);
-% xnl = xnl'; % Take transpose so that dimensions match with xnom
-% 
-% % Plot
-% figure;
-% subplot(4, 1, 1);
-% plot(t, xnl(1, :));
-% title('Total States vs. Time, Nonlinear Dynanmics - ODE45');
-% ylabel('x (km)');
-% ;
-% subplot(4, 1, 2);
-% plot(t, xnl(2, :));
-% ylabel('\deltax (km/s)');
-% ;
-% subplot(4, 1, 3);
-% plot(t, xnl(3, :));
-% ylabel('y (km)');
-% ;
-% subplot(4, 1, 4);
-% plot(t, xnl(4, :));
-% ylabel('\deltay (km/s)');
-% xlabel('Time t (s)');
-% ;
-% % end of NL simulation
-% 
-% % % linearized nominal simulation
-% % Define nominal state and control input over time
-% dx = zeros(4, length(t)); % Perturbation state vector
-% theta = omega * t;
-% xnom = r0*cos(omega * t);
-% ynom = r0*sin(omega * t);
-% xdotnom = -r0 * omega * sin(omega * t);
-% ydotnom = r0 * omega * cos(omega * t);
-% 
-% u = zeros(2, length(t));
-% % Initialize perturbation state
-% dx(:, 1) = [0, 0.075, 0, -0.021]';
-% % Compute perturbation states over time
-% for i = 2:length(t)
-%     dx(:, i) = F*dx(:, i - 1) + G*u(:, i); % need to pass in r and t to Atilde...
-% end
-% 
-% % Compute total states over time
-% x = xnom + dx;
-% 
-% % Plot
-% figure;
-% subplot(4, 1, 1);
-% plot(t, x(1, :));
-% title('Total States vs. Time, Linearized DT SS Model');
-% ylabel('x (km)'); ylim([-7000, 7000])
-% ;
-% subplot(4, 1, 2);
-% plot(t, x(2, :));
-% ylabel('\deltax (km/s)');
-% ;
-% subplot(4, 1, 3);
-% plot(t, x(3, :));
-% ylabel('y (km)');
-% ;
-% subplot(4, 1, 4);
-% plot(t, x(4, :));
-% ylabel('\deltay (km/s)');
-% xlabel('Time t (s)');
-% ;
-% 
-% figure;
-% subplot(4, 1, 1);
-% plot(t, x(1, :) - xnl(1, 1:length(t)));
-% title('State Error vs. Time, Linearized DT SS Model vs. ODE45');
-% ylabel('x (km)');
-% ;
-% subplot(4, 1, 2);
-% plot(t, x(2, :) - xnl(2, 1:length(t)));
-% ylabel('dx (km/s)');
-% ;
-% subplot(4, 1, 3);
-% plot(t, x(3, :) - xnl(3, 1:length(t)));
-% ylabel('y (km)');
-% ;
-% subplot(4, 1, 4);
-% plot(t, x(4, :) - xnl(4, 1:length(t)));
-% ylabel('dy (km/s)');
-% xlabel('Time t (s)');
-% 
+    dphi = A*phi;
+end
+

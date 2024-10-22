@@ -58,6 +58,11 @@ v0 = [xdot0;ydot0];
 rf = [xf;yf];
 vf = [xdotf;ydotf];
 
+x0e = -0.98;
+y0e = -0.4;
+dxfe = 0.0037;
+dyfe = 0.0003;
+X0e = [x0e; y0e; dxfe; dyfe];
 % State space matrices
 % xddot - 2*n*ydot - 3*n^2*x = ux
 % yddot + 2*n*xdot = uy
@@ -83,11 +88,16 @@ Phidot0 = A*Phi0
 
 % find and plot natural dynamics
 [tout, dynstate] = ode45(@(t,dynstate) cworbit(dynstate,n), 0:dt:tfinal, X0);
+% use STM
 
+[toutstm,dynstatestm] = ode45(@(t,dynstatestm) dxstm(dynstatestm,A,B,u0), 0:dt:tfinal,X0)
 % find closest approach and time
 for i = 1:length(dynstate)
     r(i) = sqrt(dynstate(i,1)^2 + dynstate(i,2)^2);
 end
+
+figure(11)
+plot(tout,r)
 rmin = min(r)
 tmin = tout(r==rmin)
 
@@ -96,8 +106,8 @@ tmin = tout(r==rmin)
 R = [1 0;
     0 1];
 
-Astar = [A B*B';zeros(4) -A'];
-Phistar = expm(Astar);
+Astar = [A -B*B';zeros(4) -A'];
+Phistar = expm(Astar*dt);
 Phistardot = Astar * Phistar;
 
 % k0 = zeros(4);
@@ -294,6 +304,15 @@ figure(9)
     ylabel('Control Input')
     hold off
 
+    figure(10);
+    plot(dynstatestm(:,1), dynstatestm(:,2), 'r');
+    hold on;
+    plot(r0(1), r0(2), 'go', 'DisplayName', 'Start Point');
+    plot(rf(1), rf(2),'ro', 'DisplayName', 'End Point');
+    xlabel('X (km)');
+    ylabel('Y (km)');
+    title('Relative Motion with Natural Dynamics over 10 Minutes');
+
 % FUNCTIONS
 % CW dynamics function
 function dy = cworbit(y,n)
@@ -314,5 +333,9 @@ end
 % Costate dynamics function
 function dLambda = costate_dynamics(t, lambda, A)
     dLambda = -A' * lambda;
+end
+
+function dx = dxstm(x,A,B,u)
+    dx = A*x + B*u;
 end
 
