@@ -7,7 +7,7 @@
 clear
 close all
 clc
-a = 1;              % lower a results in lower J and better response
+a = 0;              % lower a results in lower J and better response
 b = 1 ;              % lower b results in lower J, but lower response
 q = 100;            % lower q results in lower J
 x0 = [1 -1 1 -1 1]';
@@ -17,7 +17,7 @@ u = zeros(2,length(tsim));
 %u(:,1) = 1;         % impulse function
 
 cost = @(x,y) y.*x.^2;
-% integral J = 1/3 x3^3
+
 A = [5 0 3 0 1;
      3 0 0 -2 0;
      0 -2 4 1 0;
