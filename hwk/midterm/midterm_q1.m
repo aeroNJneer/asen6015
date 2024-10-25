@@ -20,7 +20,7 @@ set(groot, 'defaultAxesFontSize',12, ...
 mu = 3.986004418e5;
 a = 3728;           % semi-major axis of ISS
 n = sqrt(mu/a^3);   %  mean motion of ISS
-dt = 0.1;           % timestep 
+dt = 0.01;           % timestep 
 tfinal = 60*20;
 tsim = 0:dt:tfinal;   
 
@@ -83,8 +83,8 @@ B = [0 0;
     0 1];
 
 % Find STM for dynamic system
-Phi0 = expm(A*dt)  % use matrix exponential A is constant
-Phidot0 = A*Phi0
+Phi0 = expm(A*dt);  % use matrix exponential A is constant
+Phidot0 = A*Phi0;
 
 % find and plot natural dynamics
 [tout, dynstate] = ode45(@(t,dynstate) cworbit(dynstate,n), 0:dt:tfinal, X0);

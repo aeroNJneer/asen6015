@@ -351,7 +351,7 @@ function dx = dxstm(x,A,B,u)
 end
 
 function dphi = dphistm(phi,A)
-
+    phi = reshape(phi,8,8);
     dphi = A*phi;
 end
 

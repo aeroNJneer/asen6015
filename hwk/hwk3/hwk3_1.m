@@ -11,11 +11,11 @@ a = 0;              % lower a results in lower J and better response
 b = 1 ;              % lower b results in lower J, but lower response
 q = 100;            % lower q results in lower J
 x0 = [1 -1 1 -1 1]';
-dt = 0.01;
-tsim = 1:dt:10;
+dt = 0.001;
+tsim = 0:dt:6;
 u = zeros(2,length(tsim));
 %u(:,1) = 1;         % impulse function
-
+u0 = [0;0];
 cost = @(x,y) y.*x.^2;
 
 A = [5 0 3 0 1;
@@ -52,14 +52,14 @@ sys1 = ss(H,B,C,D);
 
 J(i) = x0'*P*x0   ;    % minimize J by adjusting P/K
 
-[ycalc, tout, xcalc] = initial(sys1,x0,tsim);
-
-figure(1)
-plot(tout,xcalc)
-title('LQR Controller a=1, b=1, \gamma=100')
-xlabel('Time (s)');
-ylabel('States');
-legend('x1','x2','x3','x4','x5');
+% [ycalc, tout, xcalc] = initial(sys1,x0,tsim);
+% 
+% figure(1)
+% plot(tout,xcalc)
+% title('LQR Controller a=1, b=1, \gamma=100')
+% xlabel('Time (s)');
+% ylabel('States');
+% legend('x1','x2','x3','x4','x5');
 
 x = x0;
 
@@ -69,15 +69,28 @@ for i = 1:length(tsim)
     y(i) = C * x(:,i);
 end
 
-figure(2)
-plot(tsim,x(:,1:end-1))
+[toutstm,xstm] = ode45(@(t,xstm) dxstm(xstm,H,B,[0;0]),tsim ,x0);
+u = -K*xstm';
+ystm = C * xstm';
+% 
+% figure(2)
+% plot(tsim,x(:,1:end-1))
+% hold on
+% title('LQR Controller States a=1, b=1, \gamma=100')
+% xlabel('Time (s)');
+% ylabel('States');
+% legend('x1','x2','x3','x4','x5');
+
+figure(3)
+plot(toutstm,xstm)
+hold on
 title('LQR Controller States a=1, b=1, \gamma=100')
 xlabel('Time (s)');
 ylabel('States');
 legend('x1','x2','x3','x4','x5');
- 
-figure(3)
-plot(tsim,y)
+
+figure(4)
+plot(tsim,y,toutstm,ystm(:,3))
 title('LQR Controller Measurements a=1, b=1, \gamma=100')
 xlabel('Time (s)');
 ylabel('States');
@@ -107,17 +120,21 @@ for i = 1:length(tout)
     Ey = Ey + dEy*dt;
 end
 
-figure(4) 
+figure(5) 
 plot(tout,pout)
 title('Adjoints Evolution')
 xlabel('Time (s)')
 ylabel('Adjoint System State')
 legend('p_1','p_2','p_3','p_4','p_5','Location','best');
 
+figure(9)
+plot(flip(tout),xp(:,1:end-1))
+title('States from Adjoints')
+
 tout = flip(tout);
-figure(5)
+figure(6)
 plot(tout,yp);
-title('Measurement over Time (Adjoints)')
+title('Measurement over Time (Adjoints w/Error)')
 xlabel('Time (s)')
 ylabel('Measurement (x_3)')
 
@@ -136,25 +153,71 @@ for i = 1:length(tkout)
     xdotstar(:,i) = A*xstar(:,i) + B*ustar*xstar(:,i);
     xstar(:,i+1) = xstar(:,i) + xdotstar(:,i)*dt;
     ystar(i) = C * xstar(:,i);
+    uk(:,i) = ustar * xstar(:,i);
     % calculate cost ... 
 end
 
-figure(6)
+figure(7)
 plot(tkout,ystar)
 title('Measurement over Time (Optimal LQR)')
 xlabel('Time (s)')
 ylabel('Measurement (x_3)')
 
-figure(7)
+figure(8)
 plot(tkout,xstar(:,1:end-1))
 title('Optimal LQR Controller States a=1, b=1, \gamma=100')
 xlabel('Time (s)');
 ylabel('States');
 legend('x1','x2','x3','x4','x5');
- 
+
+figure(10)
+plot(tkout,u,'-',tsim,uk,'--')
+title('Control over Time')
+xlabel('Time (s)')
+ylabel('Control')
+legend('u_x (LQR)','u_y (LQR)','u_x (optimal)','u_y (optimal)','Location','best')
+
+% part c - compare LQR vs optimal controller
+figure(11)
+plot(tkout,u-uk)
+title('Difference in Control (LQR - Optimal LQR)')
+xlabel('Time (s)')
+ylabel('Control')
+legend('u_x','u_y','Location','best')
+
+figure(12)
+plot(tkout,y-ystar)
+title('Difference in Measurement (LQR - Optimal LQR)')
+xlabel('Time (s)')
+ylabel('Measurement')
+
+figure(13)
+plot(tkout,y,'-',tsim,ystar,'--')
+title('Control over Time')
+xlabel('Time (s)')
+ylabel('Control')
+legend('LQR','Optimal','Location','best')
+
+% part d - tracking controller
+r = @(t)[0; 0; sin(t*pi/5); 0; 0];
+X0 = [0; 0; 0; 0; 0];
+S0 = zeros(5);
+[tsout,sout] = ode45(@(t,s) Sdot(s,t,kout,A,B,R,Q),tbw,S0); % find history of S
+
+
+function dx = dxstm(x,A,B,u)
+    dx = A*x + B*u;
+end
 
 function dk = Kdot(K,A,B,R,Q)
     k = reshape(K,size(A));
     kdot = -k*A + k*B*inv(R)*B'*k - Q - A'*k;
     dk = kdot(:);
+end
+
+function ds = Sdot(s,t,K,A,B,R,Q)
+    r = [0; 0; sin(t*pi/5); 0; 0];
+    ds = -(A' - K*B*inv(R)*B')*s + Q*r;
+
+    
 end
