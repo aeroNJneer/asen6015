@@ -127,7 +127,8 @@ for i = 1:length(tout)
     up(:,i) = (B)'*(xdotp(:,i)-A*xp(:,i)-L*wt);
 
 end
-Ey
+vary = Ey
+varyf = (yp(end)-Ey(3))*(yp(end)-Ey(3))'
 
 figure(4) 
 plot(tout,pout)
