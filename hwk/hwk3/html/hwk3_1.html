@@ -1,0 +1,710 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>hwk3_1</title><meta name="generator" content="MATLAB 9.13"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2024-10-31"><meta name="DC.source" content="hwk3_1.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="comment">% ASEN-6015 Hwk 3</span>
+
+<span class="comment">% a) gamma, a, b neq 0</span>
+<span class="comment">% b) a, b = 0</span>
+<span class="comment">% c) gamma neq 0, a or b new 0</span>
+
+clear
+close <span class="string">all</span>
+clc
+
+set(0,<span class="string">'DefaultAxesXGrid'</span>,<span class="string">'on'</span>, <span class="keyword">...</span>
+    <span class="string">'DefaultAxesYGrid'</span>,<span class="string">'on'</span>, <span class="keyword">...</span>
+    <span class="string">'DefaultLineLineWidth'</span>,2, <span class="keyword">...</span>
+    <span class="string">'DefaultAxesLineWidth'</span>,1.5);
+set(groot, <span class="string">'defaultAxesFontSize'</span>,12, <span class="keyword">...</span>
+    <span class="string">'defaultTextFontSize'</span>,12, <span class="keyword">...</span>
+    <span class="string">'defaultLegendFontSize'</span>,14, <span class="keyword">...</span>
+    <span class="string">'defaultAxesTitleFontSizeMultiplier'</span>, 1.5, <span class="keyword">...</span>
+    <span class="string">'defaultAxesTitleFontSizeMultiplier'</span>, 1.2);
+
+a = 1;              <span class="comment">% lower a results in lower J and better response</span>
+b = 1 ;              <span class="comment">% lower b results in lower J, but lower response</span>
+q = 100;            <span class="comment">% lower q results in lower J</span>
+x0 = [1 -1 1 -1 1]';
+dt = 0.001;
+tsim = 0:dt:6;
+u = zeros(2,length(tsim));
+<span class="comment">%u(:,1) = 1;         % impulse function</span>
+r = @(t)[0; 0; sin(t*pi/5); 0; 0];  <span class="comment">% tracking function</span>
+
+u0 = [0;0];
+cost = @(x,y) y.*x.^2;
+
+A = [5 0 3 0 1;
+     3 0 0 -2 0;
+     0 -2 4 1 0;
+     1 3 -4 1 3;
+     0 2 2 0 -1];
+
+B = [0 1;
+     0 2;
+     0 0;
+     1 3;
+     1 1];
+
+C = [0 0 1 0 0];
+D = [];
+Q = [0 0 0 0 0;
+    0 0 0 0 0;
+    0 0 q 0 0;
+    0 0 0 0 0;
+    0 0 0 0 0];
+
+R = [a 0; 0 b];
+
+i=1;
+[K,P,poles] = lqr(A,B,Q,R);
+
+H = A-B*K;
+eig(H)  ;    <span class="comment">% is closed loop system symptotically stable?</span>
+
+S = Q + K'*R*K;
+eig(S)   ;   <span class="comment">% is S PSD or PD?</span>
+sys1 = ss(H,B,C,D);
+
+J(i) = x0'*P*x0   ;    <span class="comment">% minimize J by adjusting P/K</span>
+
+<span class="comment">% [ycalc, tout, xcalc] = initial(sys1,x0,tsim);</span>
+x = x0;
+
+<span class="keyword">for</span> i = 1:length(tsim)
+    xdot(:,i) = H*x(:,i) + B*u(:,i);
+    x(:,i+1) = x(:,i) + xdot(:,i)*dt;
+    y(i) = C * x(:,i);
+<span class="keyword">end</span>
+
+[toutstm,xstm] = ode45(@(t,xstm) dxstm(xstm,H,B,[0;0]),tsim ,x0);
+u = -K*xstm';
+ystm = C * xstm';
+
+figure(1)
+plot(toutstm,xstm)
+hold <span class="string">on</span>
+title(<span class="string">'LQR Controller States a=1, b=1, \gamma=100'</span>)
+xlabel(<span class="string">'Time (s)'</span>);
+ylabel(<span class="string">'States'</span>);
+legend(<span class="string">'x_1'</span>,<span class="string">'x_2'</span>,<span class="string">'x_3'</span>,<span class="string">'x_4'</span>,<span class="string">'x_5'</span>);
+
+figure(2)
+plot(tsim,y,toutstm,ystm(:,3))
+title(<span class="string">'LQR Controller Measurements a=1, b=1, \gamma=100'</span>)
+xlabel(<span class="string">'Time (s)'</span>);
+ylabel(<span class="string">'Measurements (y)'</span>);
+
+figure(3)
+plot(tsim,u)
+title(<span class="string">'LQR Controller Input a=1, b=1, \gamma=100'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Control (u)'</span>)
+legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
+
+<span class="comment">% Problem 2</span>
+<span class="comment">% part a</span>
+L = eye(5);
+Rwi = [0.1 0.2 0.1 0.3 0.2]';
+
+<span class="comment">% use method of adjoints</span>
+
+tbw = 6:-dt:0;  <span class="comment">% integrate backwards at t=6 .. t=0</span>
+pdot = @(A,p) -A'*p;
+p0 = C';
+[tout,pout] = ode45(@(t,p) pdot(H,p),tbw,p0); <span class="comment">% find history of adjoints</span>
+xp = x0;
+Ey=zeros(5,1);
+phip = expm(A*dt);
+yt(1) = 1;
+stm = expm(A*dt);
+<span class="comment">% integrate forward in time</span>
+<span class="keyword">for</span> i = 1:length(tout)
+    wt = randn(5,1).*Rwi;     <span class="comment">% generate random noise</span>
+    xdotp(:,i) = H*xp(:,i) + L*wt;
+    xp(:,i+1) = xp(:,i) + xdotp(:,i)*dt;
+    yp(i) = C*xp(:,i);
+
+    dEy = pout(length(pout)+1-i,:)*Rwi*pout(length(pout)+1-i,:)';
+    Ey = Ey + dEy*dt;
+    up(:,i) = (B)'*(xdotp(:,i)-A*xp(:,i)-L*wt);
+
+<span class="keyword">end</span>
+Ey
+
+figure(4)
+plot(tout,pout)
+title(<span class="string">'Adjoints Evolution'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Adjoint States'</span>)
+legend(<span class="string">'p_1'</span>,<span class="string">'p_2'</span>,<span class="string">'p_3'</span>,<span class="string">'p_4'</span>,<span class="string">'p_5'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>);
+
+
+figure(5)
+plot(flip(tout),xp(:,1:end-1))
+title(<span class="string">'Noisy States - Adjoints'</span>)
+legend(<span class="string">'x_1'</span>,<span class="string">'x_2'</span>,<span class="string">'x_3'</span>,<span class="string">'x_4'</span>,<span class="string">'x_5'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>);
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'States'</span>)
+
+figure(20)
+plot(tsim,up)
+title(<span class="string">'LQR Control Inputs - Adjoints'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Control'</span>)
+legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
+
+figure(6)
+plot(flip(tout),xp(:,1:end-1)-x(:,1:end-1))
+title(<span class="string">'States - Delta from Nominal - Adjoints'</span>)
+tout = flip(tout);
+legend(<span class="string">'x_1'</span>,<span class="string">'x_2'</span>,<span class="string">'x_3'</span>,<span class="string">'x_4'</span>,<span class="string">'x_5'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>);
+
+figure(7)
+plot(tout,yp);
+title(<span class="string">'Noisy Measurements - Adjoints'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Measurement (x_3)'</span>)
+
+figure(8)
+plot(tout,yp-y);
+title(<span class="string">'Measurements - Delta from nominal - Adjoints'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Measurement (x_3)'</span>)
+
+<span class="comment">% part B</span>
+<span class="comment">% Full LQR solution to system with NO noise</span>
+K0 = zeros(5);
+
+[tkout,kout] = ode45(@(t,k) Kdot(k,A,B,R,Q),tbw,K0); <span class="comment">% find history of K</span>
+
+xstar(:,1) = x0;
+kout = reshape(kout.',5,5,[]);
+tkout = flip(tkout);
+
+<span class="keyword">for</span> i = 1:length(tkout)
+    k = kout(:,:,length(tkout)+1-i);
+    ustar = -inv(R)*B'*k;
+    xdotstar(:,i) = A*xstar(:,i) + B*ustar*xstar(:,i);
+    xstar(:,i+1) = xstar(:,i) + xdotstar(:,i)*dt;
+    ystar(i) = C * xstar(:,i);
+    uk(:,i) = ustar * xstar(:,i);
+    <span class="comment">% calculate cost ...</span>
+<span class="keyword">end</span>
+
+figure(9)
+plot(tkout,ystar)
+title(<span class="string">'Optimal Time Varying LQR Measurement'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Measurement (x_3)'</span>)
+
+figure(10)
+plot(tkout,xstar(:,1:end-1))
+title(<span class="string">'Optimal Time Varying LQR States a=1, b=1, \gamma=100'</span>)
+xlabel(<span class="string">'Time (s)'</span>);
+ylabel(<span class="string">'States'</span>);
+legend(<span class="string">'x_1'</span>,<span class="string">'x_2'</span>,<span class="string">'x_3'</span>,<span class="string">'x_4'</span>,<span class="string">'x_5'</span>);
+
+figure(11)
+plot(tsim,uk)
+title(<span class="string">'Optimal Time Varying LQR Control'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Control'</span>)
+legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
+
+<span class="comment">% part c - compare LQR vs optimal controller</span>
+figure(12)
+plot(tkout,u-uk)
+title(<span class="string">'Difference in Control (LQR - Time Varying LQR)'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Control (u)'</span>)
+legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
+
+figure(13)
+plot(tkout,y-ystar)
+title(<span class="string">'Difference in Measurement (LQR - Time Varying LQR)'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Measurement (y)'</span>)
+
+figure(14)
+plot(tkout,y,<span class="string">'-'</span>,tsim,ystar,<span class="string">'--'</span>)
+title(<span class="string">'Optimal LQR Measurement over Time'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Measurement (y)'</span>)
+legend(<span class="string">'LQR'</span>,<span class="string">'Optimal'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
+
+<span class="comment">% part d - tracking controller</span>
+X0 = [0; 0; 0; 0; 0];
+
+s = zeros(5,length(tkout)+1);
+<span class="comment">% S(tf) = Q so set 1st s value to Q</span>
+Stf = 0;
+
+s(:,1) = Stf*r(tkout(end));
+<span class="comment">% integrate backward to find s</span>
+<span class="keyword">for</span> i = length(tkout):-1:1
+    rt = r(tkout(length(tkout)+1-i));
+    k = kout(:,:,i);
+    sdot = -(A' - k*B*inv(R)*B')*s(:,i) + Q*rt;
+    s(:,i+1) = s(:,i) + sdot*dt;
+<span class="keyword">end</span>
+
+xt(:,1) = [0; 0; 0; 0; 0];
+ut = [0;0];
+
+<span class="keyword">for</span> i = 1:length(tkout)
+    k = kout(:,:,length(tkout)+1-i);
+    rt = r(tkout(i));
+    utstar(:,i) = -inv(R)*B'*k*(xt(:,i)-rt) - inv(R)*B'*s(:,length(tkout)+1-i);
+
+    xdot = A*xt(:,i) + B*utstar(:,i);
+    xt(:,i+1) = xt(:,i) + xdot*dt;
+    yt(i) = C * xt(:,i);
+<span class="keyword">end</span>
+
+
+figure(15)
+plot(tkout,xt(3,1:end-1),<span class="string">'DisplayName'</span>,<span class="string">'x_3'</span>)
+hold <span class="string">on</span>;
+plot(tkout,sin(tkout*pi/5),<span class="string">'--'</span>,<span class="string">'DisplayName'</span>,<span class="string">'Reference'</span>)
+title(<span class="string">'Optimal LQ Tracking Controller States a=1, b=1, \gamma=100'</span>)
+xlabel(<span class="string">'Time (s)'</span>);
+ylabel(<span class="string">'States'</span>);
+legend(<span class="string">'Location'</span>,<span class="string">'best'</span>)
+<span class="comment">%ylim([-50 150])</span>
+
+figure(16)
+plot(tkout,yt)
+title(<span class="string">'Optimal LQ Tracking Measurement'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Measurement (y)'</span>)
+
+
+figure(17)
+plot(tkout,utstar)
+title(<span class="string">'Optimal LQ Tracking Control'</span>)
+xlabel(<span class="string">'Time (s)'</span>)
+ylabel(<span class="string">'Control'</span>)
+legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
+
+
+figure(18)
+plot(tkout,xt(:,1:end-1))
+hold <span class="string">on</span>;
+plot(tkout,sin(tkout*pi/5),<span class="string">'--'</span>)
+title(<span class="string">'Optimal LQ Tracking States a=1, b=1, \gamma=100'</span>)
+xlabel(<span class="string">'Time (s)'</span>);
+ylabel(<span class="string">'States'</span>);
+legend(<span class="string">'x_1'</span>,<span class="string">'x_2'</span>,<span class="string">'x_3'</span>,<span class="string">'x_4'</span>,<span class="string">'x_5'</span>,<span class="string">'Reference'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>);
+ylim([-50 150])
+
+<span class="keyword">function</span> dx = dxstm(x,A,B,u)
+    dx = A*x + B*u;
+<span class="keyword">end</span>
+
+<span class="keyword">function</span> dk = Kdot(K,A,B,R,Q)
+    k = reshape(K,size(A));
+    kdot = -k*A + k*B*inv(R)*B'*k - Q - A'*k;
+    dk = kdot(:);
+<span class="keyword">end</span>
+
+<span class="keyword">function</span> ds = Sdot(s,t,K,A,B,R,Q,tk)
+   <span class="comment">% r = [0; 0; sin(t*pi/5); 0; 0];</span>
+   k = interp1(tk,K,t);
+   s = reshape(s',5,5,[]);
+
+   ds = -(A' - k*B*inv(R)*B')*s + Q*[0; 0; sin(t*pi/5); 0; 0];
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">
+Ey =
+
+    0.0035
+   -0.0148
+    0.0749
+    0.0092
+    0.0015
+
+</pre><img vspace="5" hspace="5" src="hwk3_1_01.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_02.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_03.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_04.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_05.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_06.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_07.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_08.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_09.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_10.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_11.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_12.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_13.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_14.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_15.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_16.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_17.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_18.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_19.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+% ASEN-6015 Hwk 3 
+
+% a) gamma, a, b neq 0
+% b) a, b = 0
+% c) gamma neq 0, a or b new 0
+
+clear
+close all
+clc
+
+set(0,'DefaultAxesXGrid','on', ...
+    'DefaultAxesYGrid','on', ...
+    'DefaultLineLineWidth',2, ...
+    'DefaultAxesLineWidth',1.5);
+set(groot, 'defaultAxesFontSize',12, ...
+    'defaultTextFontSize',12, ...
+    'defaultLegendFontSize',14, ...
+    'defaultAxesTitleFontSizeMultiplier', 1.5, ...
+    'defaultAxesTitleFontSizeMultiplier', 1.2);
+
+a = 1;              % lower a results in lower J and better response
+b = 1 ;              % lower b results in lower J, but lower response
+q = 100;            % lower q results in lower J
+x0 = [1 -1 1 -1 1]';
+dt = 0.001;
+tsim = 0:dt:6;
+u = zeros(2,length(tsim));
+%u(:,1) = 1;         % impulse function
+r = @(t)[0; 0; sin(t*pi/5); 0; 0];  % tracking function
+
+u0 = [0;0];
+cost = @(x,y) y.*x.^2;
+
+A = [5 0 3 0 1;
+     3 0 0 -2 0;
+     0 -2 4 1 0;
+     1 3 -4 1 3;
+     0 2 2 0 -1];
+
+B = [0 1; 
+     0 2;
+     0 0;
+     1 3;
+     1 1];
+
+C = [0 0 1 0 0];
+D = [];
+Q = [0 0 0 0 0;
+    0 0 0 0 0;
+    0 0 q 0 0;
+    0 0 0 0 0;
+    0 0 0 0 0];
+
+R = [a 0; 0 b];
+
+i=1;
+[K,P,poles] = lqr(A,B,Q,R);
+
+H = A-B*K;
+eig(H)  ;    % is closed loop system symptotically stable?
+
+S = Q + K'*R*K;
+eig(S)   ;   % is S PSD or PD?
+sys1 = ss(H,B,C,D);
+
+J(i) = x0'*P*x0   ;    % minimize J by adjusting P/K
+
+% [ycalc, tout, xcalc] = initial(sys1,x0,tsim);
+x = x0;
+
+for i = 1:length(tsim)
+    xdot(:,i) = H*x(:,i) + B*u(:,i);
+    x(:,i+1) = x(:,i) + xdot(:,i)*dt;
+    y(i) = C * x(:,i);
+end
+
+[toutstm,xstm] = ode45(@(t,xstm) dxstm(xstm,H,B,[0;0]),tsim ,x0);
+u = -K*xstm';
+ystm = C * xstm';
+
+figure(1)
+plot(toutstm,xstm)
+hold on
+title('LQR Controller States a=1, b=1, \gamma=100')
+xlabel('Time (s)');
+ylabel('States');
+legend('x_1','x_2','x_3','x_4','x_5');
+
+figure(2)
+plot(tsim,y,toutstm,ystm(:,3))
+title('LQR Controller Measurements a=1, b=1, \gamma=100')
+xlabel('Time (s)');
+ylabel('Measurements (y)');
+
+figure(3)
+plot(tsim,u)
+title('LQR Controller Input a=1, b=1, \gamma=100')
+xlabel('Time (s)')
+ylabel('Control (u)')
+legend('u_1','u_2','Location','best')
+
+% Problem 2
+% part a
+L = eye(5);
+Rwi = [0.1 0.2 0.1 0.3 0.2]';
+
+% use method of adjoints
+
+tbw = 6:-dt:0;  % integrate backwards at t=6 .. t=0
+pdot = @(A,p) -A'*p;
+p0 = C';
+[tout,pout] = ode45(@(t,p) pdot(H,p),tbw,p0); % find history of adjoints
+xp = x0;
+Ey=zeros(5,1);
+phip = expm(A*dt);
+yt(1) = 1;
+stm = expm(A*dt);
+% integrate forward in time
+for i = 1:length(tout)
+    wt = randn(5,1).*Rwi;     % generate random noise
+    xdotp(:,i) = H*xp(:,i) + L*wt;
+    xp(:,i+1) = xp(:,i) + xdotp(:,i)*dt;
+    yp(i) = C*xp(:,i);
+
+    dEy = pout(length(pout)+1-i,:)*Rwi*pout(length(pout)+1-i,:)';
+    Ey = Ey + dEy*dt;
+    up(:,i) = (B)'*(xdotp(:,i)-A*xp(:,i)-L*wt);
+
+end
+Ey
+
+figure(4) 
+plot(tout,pout)
+title('Adjoints Evolution')
+xlabel('Time (s)')
+ylabel('Adjoint States')
+legend('p_1','p_2','p_3','p_4','p_5','Location','best');
+
+
+figure(5)
+plot(flip(tout),xp(:,1:end-1))
+title('Noisy States - Adjoints')
+legend('x_1','x_2','x_3','x_4','x_5','Location','best');
+xlabel('Time (s)')
+ylabel('States')
+
+figure(20)
+plot(tsim,up)
+title('LQR Control Inputs - Adjoints')
+xlabel('Time (s)')
+ylabel('Control')
+legend('u_1','u_2','Location','best') 
+
+figure(6)
+plot(flip(tout),xp(:,1:end-1)-x(:,1:end-1))
+title('States - Delta from Nominal - Adjoints')
+tout = flip(tout);
+legend('x_1','x_2','x_3','x_4','x_5','Location','best');
+
+figure(7)
+plot(tout,yp);
+title('Noisy Measurements - Adjoints')
+xlabel('Time (s)')
+ylabel('Measurement (x_3)')
+
+figure(8)
+plot(tout,yp-y);
+title('Measurements - Delta from nominal - Adjoints')
+xlabel('Time (s)')
+ylabel('Measurement (x_3)')
+
+% part B
+% Full LQR solution to system with NO noise
+K0 = zeros(5);
+
+[tkout,kout] = ode45(@(t,k) Kdot(k,A,B,R,Q),tbw,K0); % find history of K
+
+xstar(:,1) = x0;
+kout = reshape(kout.',5,5,[]);
+tkout = flip(tkout);
+
+for i = 1:length(tkout)
+    k = kout(:,:,length(tkout)+1-i);
+    ustar = -inv(R)*B'*k;
+    xdotstar(:,i) = A*xstar(:,i) + B*ustar*xstar(:,i);
+    xstar(:,i+1) = xstar(:,i) + xdotstar(:,i)*dt;
+    ystar(i) = C * xstar(:,i);
+    uk(:,i) = ustar * xstar(:,i);
+    % calculate cost ... 
+end
+
+figure(9)
+plot(tkout,ystar)
+title('Optimal Time Varying LQR Measurement')
+xlabel('Time (s)')
+ylabel('Measurement (x_3)')
+
+figure(10)
+plot(tkout,xstar(:,1:end-1))
+title('Optimal Time Varying LQR States a=1, b=1, \gamma=100')
+xlabel('Time (s)');
+ylabel('States');
+legend('x_1','x_2','x_3','x_4','x_5');
+
+figure(11)
+plot(tsim,uk)
+title('Optimal Time Varying LQR Control')
+xlabel('Time (s)')
+ylabel('Control')
+legend('u_1','u_2','Location','best')
+
+% part c - compare LQR vs optimal controller
+figure(12)
+plot(tkout,u-uk)
+title('Difference in Control (LQR - Time Varying LQR)')
+xlabel('Time (s)')
+ylabel('Control (u)')
+legend('u_1','u_2','Location','best')
+
+figure(13)
+plot(tkout,y-ystar)
+title('Difference in Measurement (LQR - Time Varying LQR)')
+xlabel('Time (s)')
+ylabel('Measurement (y)')
+
+figure(14)
+plot(tkout,y,'-',tsim,ystar,'REPLACE_WITH_DASH_DASH')
+title('Optimal LQR Measurement over Time')
+xlabel('Time (s)')
+ylabel('Measurement (y)')
+legend('LQR','Optimal','Location','best')
+
+% part d - tracking controller
+X0 = [0; 0; 0; 0; 0];
+
+s = zeros(5,length(tkout)+1);
+% S(tf) = Q so set 1st s value to Q
+Stf = 0;
+
+s(:,1) = Stf*r(tkout(end));
+% integrate backward to find s
+for i = length(tkout):-1:1
+    rt = r(tkout(length(tkout)+1-i));
+    k = kout(:,:,i);
+    sdot = -(A' - k*B*inv(R)*B')*s(:,i) + Q*rt;
+    s(:,i+1) = s(:,i) + sdot*dt;
+end
+
+xt(:,1) = [0; 0; 0; 0; 0];
+ut = [0;0];
+
+for i = 1:length(tkout)
+    k = kout(:,:,length(tkout)+1-i);
+    rt = r(tkout(i));
+    utstar(:,i) = -inv(R)*B'*k*(xt(:,i)-rt) - inv(R)*B'*s(:,length(tkout)+1-i);
+
+    xdot = A*xt(:,i) + B*utstar(:,i);
+    xt(:,i+1) = xt(:,i) + xdot*dt;
+    yt(i) = C * xt(:,i);
+end
+
+
+figure(15)
+plot(tkout,xt(3,1:end-1),'DisplayName','x_3')
+hold on;
+plot(tkout,sin(tkout*pi/5),'REPLACE_WITH_DASH_DASH','DisplayName','Reference')
+title('Optimal LQ Tracking Controller States a=1, b=1, \gamma=100')
+xlabel('Time (s)');
+ylabel('States');
+legend('Location','best')
+%ylim([-50 150])
+
+figure(16)
+plot(tkout,yt)
+title('Optimal LQ Tracking Measurement')
+xlabel('Time (s)')
+ylabel('Measurement (y)')
+
+
+figure(17)
+plot(tkout,utstar)
+title('Optimal LQ Tracking Control')
+xlabel('Time (s)')
+ylabel('Control')
+legend('u_1','u_2','Location','best')
+
+
+figure(18)
+plot(tkout,xt(:,1:end-1))
+hold on;
+plot(tkout,sin(tkout*pi/5),'REPLACE_WITH_DASH_DASH')
+title('Optimal LQ Tracking States a=1, b=1, \gamma=100')
+xlabel('Time (s)');
+ylabel('States');
+legend('x_1','x_2','x_3','x_4','x_5','Reference','Location','best');
+ylim([-50 150])
+
+function dx = dxstm(x,A,B,u)
+    dx = A*x + B*u;
+end
+
+function dk = Kdot(K,A,B,R,Q)
+    k = reshape(K,size(A));
+    kdot = -k*A + k*B*inv(R)*B'*k - Q - A'*k;
+    dk = kdot(:);
+end
+
+function ds = Sdot(s,t,K,A,B,R,Q,tk)
+   % r = [0; 0; sin(t*pi/5); 0; 0];
+   k = interp1(tk,K,t);
+   s = reshape(s',5,5,[]);
+
+   ds = -(A' - k*B*inv(R)*B')*s + Q*[0; 0; sin(t*pi/5); 0; 0];    
+end
+##### SOURCE END #####
+--></body></html>
