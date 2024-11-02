@@ -7,6 +7,17 @@
 clear
 close all
 clc
+
+set(0,'DefaultAxesXGrid','on', ...
+    'DefaultAxesYGrid','on', ...
+    'DefaultLineLineWidth',2, ...
+    'DefaultAxesLineWidth',1.5);
+set(groot, 'defaultAxesFontSize',12, ...
+    'defaultTextFontSize',12, ...
+    'defaultLegendFontSize',14, ...
+    'defaultAxesTitleFontSizeMultiplier', 1.5, ...
+    'defaultAxesTitleFontSizeMultiplier', 1.2);
+
 a = 1;              % lower a results in lower J and better response
 b = 1 ;              % lower b results in lower J, but lower response
 q = 100;            % lower q results in lower J
@@ -55,14 +66,6 @@ sys1 = ss(H,B,C,D);
 J(i) = x0'*P*x0   ;    % minimize J by adjusting P/K
 
 % [ycalc, tout, xcalc] = initial(sys1,x0,tsim);
-% 
-% figure(1)
-% plot(tout,xcalc)
-% title('LQR Controller a=1, b=1, \gamma=100')
-% xlabel('Time (s)');
-% ylabel('States');
-% legend('x1','x2','x3','x4','x5');
-
 x = x0;
 
 for i = 1:length(tsim)
@@ -74,14 +77,6 @@ end
 [toutstm,xstm] = ode45(@(t,xstm) dxstm(xstm,H,B,[0;0]),tsim ,x0);
 u = -K*xstm';
 ystm = C * xstm';
-% 
-% figure(2)
-% plot(tsim,x(:,1:end-1))
-% hold on
-% title('LQR Controller States a=1, b=1, \gamma=100')
-% xlabel('Time (s)');
-% ylabel('States');
-% legend('x1','x2','x3','x4','x5');
 
 figure(1)
 plot(toutstm,xstm)
@@ -89,20 +84,25 @@ hold on
 title('LQR Controller States a=1, b=1, \gamma=100')
 xlabel('Time (s)');
 ylabel('States');
-legend('x1','x2','x3','x4','x5');
+legend('x_1','x_2','x_3','x_4','x_5');
 
 figure(2)
 plot(tsim,y,toutstm,ystm(:,3))
 title('LQR Controller Measurements a=1, b=1, \gamma=100')
 xlabel('Time (s)');
-ylabel('States');
+ylabel('Measurements (y)');
 
+figure(3)
+plot(tsim,u)
+title('LQR Controller Input a=1, b=1, \gamma=100')
+xlabel('Time (s)')
+ylabel('Control (u)')
+legend('u_1','u_2','Location','best')
 
 % Problem 2
 % part a
 L = eye(5);
 Rwi = [0.1 0.2 0.1 0.3 0.2]';
-%wt = randn(5)*Rwi';
 
 % use method of adjoints
 
@@ -114,48 +114,59 @@ xp = x0;
 Ey=zeros(5,1);
 phip = expm(A*dt);
 yt(1) = 1;
+stm = expm(A*dt);
 % integrate forward in time
 for i = 1:length(tout)
-    wt = randn(5)*Rwi;     % generate random noise
+    wt = randn(5,1).*Rwi;     % generate random noise
     xdotp(:,i) = H*xp(:,i) + L*wt;
     xp(:,i+1) = xp(:,i) + xdotp(:,i)*dt;
-    yp(i) = pout(length(pout)+1-i,:) * xp(:,i);
-%     dyt(i) = C*phip*L*wt;
-%     yt(i+1) = yt(i) + dyt(i)*dt;
-    dEy = pout(length(pout)+1-i,:)*L*Rwi*L'*pout(length(pout)+1-i,:)';
+    yp(i) = C*xp(:,i);
+
+    dEy = pout(length(pout)+1-i,:)*Rwi*pout(length(pout)+1-i,:)';
     Ey = Ey + dEy*dt;
+    up(:,i) = (B)'*(xdotp(:,i)-A*xp(:,i)-L*wt);
+
 end
-Ey
+vary = Ey
+varyf = (yp(end)-Ey(3))*(yp(end)-Ey(3))'
 
-
-figure(3) 
+figure(4) 
 plot(tout,pout)
 title('Adjoints Evolution')
 xlabel('Time (s)')
-ylabel('Adjoint System State')
+ylabel('Adjoint States')
 legend('p_1','p_2','p_3','p_4','p_5','Location','best');
 
-figure(4)
-plot(flip(tout),xp(:,1:end-1),flip(tout),x(:,1:end-1),'--')
-title('Noisy States For Methods of Adjoints')
-tout = flip(tout);
-legend('x_1','x_2','x_3','x_4','x_5','Location','best');
-
-figure(18)
-plot(flip(tout),xp(:,1:end-1)-x(:,1:end-1))
-title('Noisy States For Methods of Adjoints')
-tout = flip(tout);
-legend('x_1','x_2','x_3','x_4','x_5','Location','best');
 
 figure(5)
+plot(flip(tout),xp(:,1:end-1))
+title('Noisy States - Adjoints')
+legend('x_1','x_2','x_3','x_4','x_5','Location','best');
+xlabel('Time (s)')
+ylabel('States')
+
+figure(20)
+plot(tsim,up)
+title('LQR Control Inputs - Adjoints')
+xlabel('Time (s)')
+ylabel('Control')
+legend('u_1','u_2','Location','best') 
+
+figure(6)
+plot(flip(tout),xp(:,1:end-1)-x(:,1:end-1))
+title('States - Delta from Nominal - Adjoints')
+tout = flip(tout);
+legend('x_1','x_2','x_3','x_4','x_5','Location','best');
+
+figure(7)
 plot(tout,yp);
-title('Measurement over Time (Adjoints w/Error)')
+title('Noisy Measurements - Adjoints')
 xlabel('Time (s)')
 ylabel('Measurement (x_3)')
 
-figure(6)
+figure(8)
 plot(tout,yp-y);
-title('Delta in Measurement over Time (Adjoints w/Error)')
+title('Measurements - Delta from nominal - Adjoints')
 xlabel('Time (s)')
 ylabel('Measurement (x_3)')
 
@@ -179,45 +190,45 @@ for i = 1:length(tkout)
     % calculate cost ... 
 end
 
-figure(7)
+figure(9)
 plot(tkout,ystar)
 title('Optimal Time Varying LQR Measurement')
 xlabel('Time (s)')
 ylabel('Measurement (x_3)')
 
-figure(8)
+figure(10)
 plot(tkout,xstar(:,1:end-1))
-title('Optimal Time Varying LQR Controller States a=1, b=1, \gamma=100')
+title('Optimal Time Varying LQR States a=1, b=1, \gamma=100')
 xlabel('Time (s)');
 ylabel('States');
-legend('x1','x2','x3','x4','x5');
+legend('x_1','x_2','x_3','x_4','x_5');
 
-figure(10)
-plot(tsim,uk,'--')
+figure(11)
+plot(tsim,uk)
 title('Optimal Time Varying LQR Control')
 xlabel('Time (s)')
 ylabel('Control')
-legend('u_x','u_y','Location','best')
+legend('u_1','u_2','Location','best')
 
 % part c - compare LQR vs optimal controller
-figure(11)
+figure(12)
 plot(tkout,u-uk)
 title('Difference in Control (LQR - Time Varying LQR)')
 xlabel('Time (s)')
-ylabel('Control')
-legend('u_x','u_y','Location','best')
+ylabel('Control (u)')
+legend('u_1','u_2','Location','best')
 
-figure(12)
+figure(13)
 plot(tkout,y-ystar)
 title('Difference in Measurement (LQR - Time Varying LQR)')
 xlabel('Time (s)')
-ylabel('Measurement')
+ylabel('Measurement (y)')
 
-figure(13)
+figure(14)
 plot(tkout,y,'-',tsim,ystar,'--')
 title('Optimal LQR Measurement over Time')
 xlabel('Time (s)')
-ylabel('Measurement')
+ylabel('Measurement (y)')
 legend('LQR','Optimal','Location','best')
 
 % part d - tracking controller
@@ -250,27 +261,40 @@ for i = 1:length(tkout)
 end
 
 
-figure(14)
-plot(tkout,xt(:,1:end-1))
+figure(15)
+plot(tkout,xt(3,1:end-1),'DisplayName','x_3')
+hold on;
+plot(tkout,sin(tkout*pi/5),'--','DisplayName','Reference')
 title('Optimal LQ Tracking Controller States a=1, b=1, \gamma=100')
 xlabel('Time (s)');
 ylabel('States');
-legend('x1','x2','x3','x4','x5','Location','best');
-ylim([-50 150])
+legend('Location','best')
+%ylim([-50 150])
 
-figure(15)
+figure(16)
 plot(tkout,yt)
 title('Optimal LQ Tracking Measurement')
 xlabel('Time (s)')
-ylabel('Measurement (x_3)')
+ylabel('Measurement (y)')
 
 
-figure(16)
+figure(17)
 plot(tkout,utstar)
 title('Optimal LQ Tracking Control')
 xlabel('Time (s)')
 ylabel('Control')
-legend('u_x','u_y','Location','best')
+legend('u_1','u_2','Location','best')
+
+
+figure(18)
+plot(tkout,xt(:,1:end-1))
+hold on;
+plot(tkout,sin(tkout*pi/5),'--')
+title('Optimal LQ Tracking States a=1, b=1, \gamma=100')
+xlabel('Time (s)');
+ylabel('States');
+legend('x_1','x_2','x_3','x_4','x_5','Reference','Location','best');
+ylim([-50 150])
 
 function dx = dxstm(x,A,B,u)
     dx = A*x + B*u;
@@ -287,7 +311,5 @@ function ds = Sdot(s,t,K,A,B,R,Q,tk)
    k = interp1(tk,K,t);
    s = reshape(s',5,5,[]);
 
-   ds = -(A' - k*B*inv(R)*B')*s + Q*[0; 0; sin(t*pi/5); 0; 0];
-
-    
+   ds = -(A' - k*B*inv(R)*B')*s + Q*[0; 0; sin(t*pi/5); 0; 0];    
 end
