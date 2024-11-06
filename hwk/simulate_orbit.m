@@ -10,7 +10,7 @@ function [positions,velocities]  =  simulate_orbit(mu,r_eci,v_eci,n)
 %   Positon     = > Position[t] is the ECI Position of the satellitecomputed at time t  
 %   Velocities  = > velocities[t] is the ECI velocity of the satellitecomputed at time t  
 
-% Initail values, parameters and variable definitions
+% Initial values, parameters and variable definitions
 init 
 H = cross(r_eci,v_eci);
 p = norm(H)^2/mu;

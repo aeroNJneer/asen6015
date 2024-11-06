@@ -24,16 +24,16 @@ eci_to_lvlh = @(r, v) [r/norm(r), cross(v, r)/norm(cross(v, r)), cross(cross(v, 
 
 % Initialize position and velocity
 r(:,1) = r0';
-v(:,1) = v0'3;
+v(:,1) = v0';
 
 % Linear Tangent Guidance Law with Costate in LVLH frame
-for t = 0:dt:tf
+for i = 1:dt:tf
     % Calculate the current radius
-    r_mag = norm(r);
+    r_mag = norm(r(:,i));
     
     % Transform velocity to LVLH frame
-    T = eci_to_lvlh(r', v');
-    v_LVLH = T * v';
+    T = eci_to_lvlh(r(:,i), v(:,i));
+    v_LVLH = T * v(:,i);
     
     % Calculate the costate lambda_v in LVLH frame
     lambda_v_LVLH = A_LVLH + B_LVLH * t;
@@ -45,11 +45,11 @@ for t = 0:dt:tf
     delta_v_ECI = T' * delta_v_LVLH';
     
     % Update the velocity vector in ECI frame
-    v = v + delta_v_ECI';
+    v(:,i+1) = v(:,i) + delta_v_ECI;
     
     % Predictor step: Estimate new position and velocity
-    r_pred = r + v * dt;
-    v_pred = v; % Assuming constant velocity for simplicity
+    r_pred = r(:,i) + v(:,i+1) * dt;
+    v_pred = v(:,i+1); % Assuming constant velocity for simplicity
     
 %     % Corrector step: Iteratively correct the estimate
 %     for iter = 1:5
@@ -90,7 +90,7 @@ for t = 0:dt:tf
 %     end
     
     % Update position and velocity with corrected values
-    r(:,i+1) = r_pred';
+    r(:,i+1) = r_pred;
     v(:,i+1) = v_pred';
     
     % Store or plot the results as needed
@@ -99,6 +99,8 @@ end
 
 % Final position and velocity
 disp('Final position:');
-disp(r);
+disp(r(:,end));
 disp('Final velocity:');
-disp(v);
+disp(v(:,end));
+figure(1)
+plot(0:1:tf,r(1,:),0:1:tf,r(2,:),0:1)
