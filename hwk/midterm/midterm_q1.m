@@ -18,7 +18,7 @@ set(groot, 'defaultAxesFontSize',12, ...
     'defaultAxesTitleFontSizeMultiplier', 1.2);
 % constants
 mu = 3.986004418e5;
-a = 3728;           % semi-major axis of ISS
+a = 6728;           % semi-major axis of ISS
 n = sqrt(mu/a^3);   %  mean motion of ISS
 dt = 0.01;           % timestep 
 tfinal = 60*20;
@@ -81,25 +81,26 @@ B = [0 0;
     0 0;
     1 0;
     0 1];
-
+options = odeset('RelTol',1e-8,'AbsTol',1e-8);
 % Find STM for dynamic system
 Phi0 = expm(A*dt);  % use matrix exponential A is constant
 Phidot0 = A*Phi0;
 
 % find and plot natural dynamics
-[tout, dynstate] = ode45(@(t,dynstate) cworbit(dynstate,n), 0:dt:tfinal, X0);
+[tout, dynstate] = ode45(@(t,dynstate) cworbit(dynstate,n), 0:dt:tfinal, X0,options);
 % use STM
 
-[toutstm,dynstatestm] = ode45(@(t,dynstatestm) dxstm(dynstatestm,A,B,u0), 0:dt:tfinal,X0)
+[toutstm,dynstatestm] = ode45(@(t,dynstatestm) dxstm(dynstatestm,A,B,u0), 0:dt:tfinal,X0);
 % find closest approach and time
 for i = 1:length(dynstate)
     r(i) = sqrt(dynstate(i,1)^2 + dynstate(i,2)^2);
+    rs(i) = sqrt(dynstatestm(i,1)^2 + dynstatestm(i,2)^2);
 end
 
 figure(11)
 plot(tout,r)
-rmin = min(r)
-tmin = tout(r==rmin)
+[rmin,timin] = min(r)
+[rsmin,tsmin] = min(rs)
 
 % Problem 2
 % optimal control
@@ -336,6 +337,7 @@ function dLambda = costate_dynamics(t, lambda, A)
 end
 
 function dx = dxstm(x,A,B,u)
+    u = [0;0];
     dx = A*x + B*u;
 end
 
