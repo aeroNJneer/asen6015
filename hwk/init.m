@@ -112,6 +112,8 @@ raan_sign = @(lon) sign(dot(lon, y_hat));
 
 % argument of periapasis
 WfromLONe = @(lon,e) acosd(dot(lon,e)/(norm(lon)*norm(e)));
+WfromE = @(e) atan2(e(2),e(1));
+Wtrue = @(e) dot([1; 0; 0],e)/norm(e);  % if inc = 0 and e <> 0
 % w sign check
 w_sign = @(e) sign(dot(e,z_hat));
 

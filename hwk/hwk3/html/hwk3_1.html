@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>hwk3_1</title><meta name="generator" content="MATLAB 9.13"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2024-10-31"><meta name="DC.source" content="hwk3_1.m"><style type="text/css">
+      --><title>hwk3_1</title><meta name="generator" content="MATLAB 9.13"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2024-11-07"><meta name="DC.source" content="hwk3_1.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -87,8 +87,8 @@ set(groot, <span class="string">'defaultAxesFontSize'</span>,12, <span class="ke
     <span class="string">'defaultAxesTitleFontSizeMultiplier'</span>, 1.5, <span class="keyword">...</span>
     <span class="string">'defaultAxesTitleFontSizeMultiplier'</span>, 1.2);
 
-a = 1;              <span class="comment">% lower a results in lower J and better response</span>
-b = 1 ;              <span class="comment">% lower b results in lower J, but lower response</span>
+a = 1.;              <span class="comment">% lower a results in lower J and better response</span>
+b = 1.;              <span class="comment">% lower b results in lower J, but lower response</span>
 q = 100;            <span class="comment">% lower q results in lower J</span>
 x0 = [1 -1 1 -1 1]';
 dt = 0.001;
@@ -150,20 +150,20 @@ ystm = C * xstm';
 figure(1)
 plot(toutstm,xstm)
 hold <span class="string">on</span>
-title(<span class="string">'LQR Controller States a=1, b=1, \gamma=100'</span>)
+title(<span class="string">'LQR Controller States'</span>,<span class="string">'a=1, b=1, \gamma=100'</span>)
 xlabel(<span class="string">'Time (s)'</span>);
 ylabel(<span class="string">'States'</span>);
 legend(<span class="string">'x_1'</span>,<span class="string">'x_2'</span>,<span class="string">'x_3'</span>,<span class="string">'x_4'</span>,<span class="string">'x_5'</span>);
 
 figure(2)
 plot(tsim,y,toutstm,ystm(:,3))
-title(<span class="string">'LQR Controller Measurements a=1, b=1, \gamma=100'</span>)
+title(<span class="string">'LQR Controller Measurements'</span>,<span class="string">' a=1, b=1, \gamma=100'</span>)
 xlabel(<span class="string">'Time (s)'</span>);
 ylabel(<span class="string">'Measurements (y)'</span>);
 
 figure(3)
 plot(tsim,u)
-title(<span class="string">'LQR Controller Input a=1, b=1, \gamma=100'</span>)
+title(<span class="string">'LQR Controller Input'</span>,<span class="string">' a=1, b=1, \gamma=100'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Control (u)'</span>)
 legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
@@ -184,6 +184,7 @@ Ey=zeros(5,1);
 phip = expm(A*dt);
 yt(1) = 1;
 stm = expm(A*dt);
+
 <span class="comment">% integrate forward in time</span>
 <span class="keyword">for</span> i = 1:length(tout)
     wt = randn(5,1).*Rwi;     <span class="comment">% generate random noise</span>
@@ -196,7 +197,7 @@ stm = expm(A*dt);
     up(:,i) = (B)'*(xdotp(:,i)-A*xp(:,i)-L*wt);
 
 <span class="keyword">end</span>
-Ey
+vary = Ey
 
 figure(4)
 plot(tout,pout)
@@ -208,33 +209,33 @@ legend(<span class="string">'p_1'</span>,<span class="string">'p_2'</span>,<span
 
 figure(5)
 plot(flip(tout),xp(:,1:end-1))
-title(<span class="string">'Noisy States - Adjoints'</span>)
+title(<span class="string">'Noisy States'</span>,<span class="string">'Adjoints'</span>)
 legend(<span class="string">'x_1'</span>,<span class="string">'x_2'</span>,<span class="string">'x_3'</span>,<span class="string">'x_4'</span>,<span class="string">'x_5'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>);
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'States'</span>)
 
 figure(20)
 plot(tsim,up)
-title(<span class="string">'LQR Control Inputs - Adjoints'</span>)
+title(<span class="string">'LQR Control Inputs'</span>,<span class="string">'Adjoints'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Control'</span>)
 legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
 
 figure(6)
 plot(flip(tout),xp(:,1:end-1)-x(:,1:end-1))
-title(<span class="string">'States - Delta from Nominal - Adjoints'</span>)
+title(<span class="string">'States - Delta from Nominal'</span>,<span class="string">'Adjoints'</span>)
 tout = flip(tout);
 legend(<span class="string">'x_1'</span>,<span class="string">'x_2'</span>,<span class="string">'x_3'</span>,<span class="string">'x_4'</span>,<span class="string">'x_5'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>);
 
 figure(7)
 plot(tout,yp);
-title(<span class="string">'Noisy Measurements - Adjoints'</span>)
+title(<span class="string">'Noisy Measurements'</span>,<span class="string">'Adjoints'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Measurement (x_3)'</span>)
 
 figure(8)
 plot(tout,yp-y);
-title(<span class="string">'Measurements - Delta from nominal - Adjoints'</span>)
+title(<span class="string">'Measurements - Delta from nominal'</span>,<span class="string">'Adjoints'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Measurement (x_3)'</span>)
 
@@ -251,29 +252,30 @@ tkout = flip(tkout);
 <span class="keyword">for</span> i = 1:length(tkout)
     k = kout(:,:,length(tkout)+1-i);
     ustar = -inv(R)*B'*k;
-    xdotstar(:,i) = A*xstar(:,i) + B*ustar*xstar(:,i);
+    xdotstar(:,i) = (A - B*inv(R)*B'*k)*xstar(:,i);
     xstar(:,i+1) = xstar(:,i) + xdotstar(:,i)*dt;
     ystar(i) = C * xstar(:,i);
     uk(:,i) = ustar * xstar(:,i);
     <span class="comment">% calculate cost ...</span>
 <span class="keyword">end</span>
 
+
 figure(9)
 plot(tkout,ystar)
-title(<span class="string">'Optimal Time Varying LQR Measurement'</span>)
+title(<span class="string">'Optimal Time Varying'</span>,<span class="string">'LQR Measurement'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Measurement (x_3)'</span>)
 
 figure(10)
 plot(tkout,xstar(:,1:end-1))
-title(<span class="string">'Optimal Time Varying LQR States a=1, b=1, \gamma=100'</span>)
+title(<span class="string">'Optimal Time Varying'</span>,<span class="string">' LQR States'</span>)
 xlabel(<span class="string">'Time (s)'</span>);
 ylabel(<span class="string">'States'</span>);
 legend(<span class="string">'x_1'</span>,<span class="string">'x_2'</span>,<span class="string">'x_3'</span>,<span class="string">'x_4'</span>,<span class="string">'x_5'</span>);
 
 figure(11)
 plot(tsim,uk)
-title(<span class="string">'Optimal Time Varying LQR Control'</span>)
+title(<span class="string">'Optimal Time Varying'</span>,<span class="string">' LQR Control'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Control'</span>)
 legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
@@ -281,20 +283,20 @@ legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span
 <span class="comment">% part c - compare LQR vs optimal controller</span>
 figure(12)
 plot(tkout,u-uk)
-title(<span class="string">'Difference in Control (LQR - Time Varying LQR)'</span>)
+title(<span class="string">'Difference in Control'</span>,<span class="string">' (LQR - Time Varying LQR)'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Control (u)'</span>)
 legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
 
 figure(13)
 plot(tkout,y-ystar)
-title(<span class="string">'Difference in Measurement (LQR - Time Varying LQR)'</span>)
+title(<span class="string">'Difference in Measurement'</span>,<span class="string">' (LQR - Time Varying LQR)'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Measurement (y)'</span>)
 
 figure(14)
 plot(tkout,y,<span class="string">'-'</span>,tsim,ystar,<span class="string">'--'</span>)
-title(<span class="string">'Optimal LQR Measurement over Time'</span>)
+title(<span class="string">'Optimal LQR Measurement'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Measurement (y)'</span>)
 legend(<span class="string">'LQR'</span>,<span class="string">'Optimal'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
@@ -333,7 +335,7 @@ figure(15)
 plot(tkout,xt(3,1:end-1),<span class="string">'DisplayName'</span>,<span class="string">'x_3'</span>)
 hold <span class="string">on</span>;
 plot(tkout,sin(tkout*pi/5),<span class="string">'--'</span>,<span class="string">'DisplayName'</span>,<span class="string">'Reference'</span>)
-title(<span class="string">'Optimal LQ Tracking Controller States a=1, b=1, \gamma=100'</span>)
+title(<span class="string">'Optimal LQ Tracking'</span>,<span class="string">' States a=1, b=1, \gamma=100'</span>)
 xlabel(<span class="string">'Time (s)'</span>);
 ylabel(<span class="string">'States'</span>);
 legend(<span class="string">'Location'</span>,<span class="string">'best'</span>)
@@ -341,14 +343,14 @@ legend(<span class="string">'Location'</span>,<span class="string">'best'</span>
 
 figure(16)
 plot(tkout,yt)
-title(<span class="string">'Optimal LQ Tracking Measurement'</span>)
+title(<span class="string">'Optimal LQ Tracking'</span>,<span class="string">'Measurement'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Measurement (y)'</span>)
 
 
 figure(17)
 plot(tkout,utstar)
-title(<span class="string">'Optimal LQ Tracking Control'</span>)
+title(<span class="string">'Optimal LQ Tracking'</span>,<span class="string">' Control'</span>)
 xlabel(<span class="string">'Time (s)'</span>)
 ylabel(<span class="string">'Control'</span>)
 legend(<span class="string">'u_1'</span>,<span class="string">'u_2'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>)
@@ -358,7 +360,7 @@ figure(18)
 plot(tkout,xt(:,1:end-1))
 hold <span class="string">on</span>;
 plot(tkout,sin(tkout*pi/5),<span class="string">'--'</span>)
-title(<span class="string">'Optimal LQ Tracking States a=1, b=1, \gamma=100'</span>)
+title(<span class="string">'Optimal LQ Tracking'</span>,<span class="string">' States'</span>)
 xlabel(<span class="string">'Time (s)'</span>);
 ylabel(<span class="string">'States'</span>);
 legend(<span class="string">'x_1'</span>,<span class="string">'x_2'</span>,<span class="string">'x_3'</span>,<span class="string">'x_4'</span>,<span class="string">'x_5'</span>,<span class="string">'Reference'</span>,<span class="string">'Location'</span>,<span class="string">'best'</span>);
@@ -382,7 +384,7 @@ ylim([-50 150])
    ds = -(A' - k*B*inv(R)*B')*s + Q*[0; 0; sin(t*pi/5); 0; 0];
 <span class="keyword">end</span>
 </pre><pre class="codeoutput">
-Ey =
+vary =
 
     0.0035
    -0.0148
@@ -390,7 +392,7 @@ Ey =
     0.0092
     0.0015
 
-</pre><img vspace="5" hspace="5" src="hwk3_1_01.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_02.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_03.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_04.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_05.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_06.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_07.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_08.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_09.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_10.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_11.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_12.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_13.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_14.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_15.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_16.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_17.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_18.png" alt=""> <img vspace="5" hspace="5" src="hwk3_1_19.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022b</a><br></p></div><!--
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2022b</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 % ASEN-6015 Hwk 3 
 
@@ -412,8 +414,8 @@ set(groot, 'defaultAxesFontSize',12, ...
     'defaultAxesTitleFontSizeMultiplier', 1.5, ...
     'defaultAxesTitleFontSizeMultiplier', 1.2);
 
-a = 1;              % lower a results in lower J and better response
-b = 1 ;              % lower b results in lower J, but lower response
+a = 1.;              % lower a results in lower J and better response
+b = 1.;              % lower b results in lower J, but lower response
 q = 100;            % lower q results in lower J
 x0 = [1 -1 1 -1 1]';
 dt = 0.001;
@@ -475,20 +477,20 @@ ystm = C * xstm';
 figure(1)
 plot(toutstm,xstm)
 hold on
-title('LQR Controller States a=1, b=1, \gamma=100')
+title('LQR Controller States','a=1, b=1, \gamma=100')
 xlabel('Time (s)');
 ylabel('States');
 legend('x_1','x_2','x_3','x_4','x_5');
 
 figure(2)
 plot(tsim,y,toutstm,ystm(:,3))
-title('LQR Controller Measurements a=1, b=1, \gamma=100')
+title('LQR Controller Measurements',' a=1, b=1, \gamma=100')
 xlabel('Time (s)');
 ylabel('Measurements (y)');
 
 figure(3)
 plot(tsim,u)
-title('LQR Controller Input a=1, b=1, \gamma=100')
+title('LQR Controller Input',' a=1, b=1, \gamma=100')
 xlabel('Time (s)')
 ylabel('Control (u)')
 legend('u_1','u_2','Location','best')
@@ -509,6 +511,7 @@ Ey=zeros(5,1);
 phip = expm(A*dt);
 yt(1) = 1;
 stm = expm(A*dt);
+
 % integrate forward in time
 for i = 1:length(tout)
     wt = randn(5,1).*Rwi;     % generate random noise
@@ -521,7 +524,7 @@ for i = 1:length(tout)
     up(:,i) = (B)'*(xdotp(:,i)-A*xp(:,i)-L*wt);
 
 end
-Ey
+vary = Ey
 
 figure(4) 
 plot(tout,pout)
@@ -533,33 +536,33 @@ legend('p_1','p_2','p_3','p_4','p_5','Location','best');
 
 figure(5)
 plot(flip(tout),xp(:,1:end-1))
-title('Noisy States - Adjoints')
+title('Noisy States','Adjoints')
 legend('x_1','x_2','x_3','x_4','x_5','Location','best');
 xlabel('Time (s)')
 ylabel('States')
 
 figure(20)
 plot(tsim,up)
-title('LQR Control Inputs - Adjoints')
+title('LQR Control Inputs','Adjoints')
 xlabel('Time (s)')
 ylabel('Control')
 legend('u_1','u_2','Location','best') 
 
 figure(6)
 plot(flip(tout),xp(:,1:end-1)-x(:,1:end-1))
-title('States - Delta from Nominal - Adjoints')
+title('States - Delta from Nominal','Adjoints')
 tout = flip(tout);
 legend('x_1','x_2','x_3','x_4','x_5','Location','best');
 
 figure(7)
 plot(tout,yp);
-title('Noisy Measurements - Adjoints')
+title('Noisy Measurements','Adjoints')
 xlabel('Time (s)')
 ylabel('Measurement (x_3)')
 
 figure(8)
 plot(tout,yp-y);
-title('Measurements - Delta from nominal - Adjoints')
+title('Measurements - Delta from nominal','Adjoints')
 xlabel('Time (s)')
 ylabel('Measurement (x_3)')
 
@@ -576,29 +579,30 @@ tkout = flip(tkout);
 for i = 1:length(tkout)
     k = kout(:,:,length(tkout)+1-i);
     ustar = -inv(R)*B'*k;
-    xdotstar(:,i) = A*xstar(:,i) + B*ustar*xstar(:,i);
+    xdotstar(:,i) = (A - B*inv(R)*B'*k)*xstar(:,i);
     xstar(:,i+1) = xstar(:,i) + xdotstar(:,i)*dt;
     ystar(i) = C * xstar(:,i);
     uk(:,i) = ustar * xstar(:,i);
     % calculate cost ... 
 end
 
+
 figure(9)
 plot(tkout,ystar)
-title('Optimal Time Varying LQR Measurement')
+title('Optimal Time Varying','LQR Measurement')
 xlabel('Time (s)')
 ylabel('Measurement (x_3)')
 
 figure(10)
 plot(tkout,xstar(:,1:end-1))
-title('Optimal Time Varying LQR States a=1, b=1, \gamma=100')
+title('Optimal Time Varying',' LQR States')
 xlabel('Time (s)');
 ylabel('States');
 legend('x_1','x_2','x_3','x_4','x_5');
 
 figure(11)
 plot(tsim,uk)
-title('Optimal Time Varying LQR Control')
+title('Optimal Time Varying',' LQR Control')
 xlabel('Time (s)')
 ylabel('Control')
 legend('u_1','u_2','Location','best')
@@ -606,20 +610,20 @@ legend('u_1','u_2','Location','best')
 % part c - compare LQR vs optimal controller
 figure(12)
 plot(tkout,u-uk)
-title('Difference in Control (LQR - Time Varying LQR)')
+title('Difference in Control',' (LQR - Time Varying LQR)')
 xlabel('Time (s)')
 ylabel('Control (u)')
 legend('u_1','u_2','Location','best')
 
 figure(13)
 plot(tkout,y-ystar)
-title('Difference in Measurement (LQR - Time Varying LQR)')
+title('Difference in Measurement',' (LQR - Time Varying LQR)')
 xlabel('Time (s)')
 ylabel('Measurement (y)')
 
 figure(14)
 plot(tkout,y,'-',tsim,ystar,'REPLACE_WITH_DASH_DASH')
-title('Optimal LQR Measurement over Time')
+title('Optimal LQR Measurement')
 xlabel('Time (s)')
 ylabel('Measurement (y)')
 legend('LQR','Optimal','Location','best')
@@ -658,7 +662,7 @@ figure(15)
 plot(tkout,xt(3,1:end-1),'DisplayName','x_3')
 hold on;
 plot(tkout,sin(tkout*pi/5),'REPLACE_WITH_DASH_DASH','DisplayName','Reference')
-title('Optimal LQ Tracking Controller States a=1, b=1, \gamma=100')
+title('Optimal LQ Tracking',' States a=1, b=1, \gamma=100')
 xlabel('Time (s)');
 ylabel('States');
 legend('Location','best')
@@ -666,14 +670,14 @@ legend('Location','best')
 
 figure(16)
 plot(tkout,yt)
-title('Optimal LQ Tracking Measurement')
+title('Optimal LQ Tracking','Measurement')
 xlabel('Time (s)')
 ylabel('Measurement (y)')
 
 
 figure(17)
 plot(tkout,utstar)
-title('Optimal LQ Tracking Control')
+title('Optimal LQ Tracking',' Control')
 xlabel('Time (s)')
 ylabel('Control')
 legend('u_1','u_2','Location','best')
@@ -683,7 +687,7 @@ figure(18)
 plot(tkout,xt(:,1:end-1))
 hold on;
 plot(tkout,sin(tkout*pi/5),'REPLACE_WITH_DASH_DASH')
-title('Optimal LQ Tracking States a=1, b=1, \gamma=100')
+title('Optimal LQ Tracking',' States')
 xlabel('Time (s)');
 ylabel('States');
 legend('x_1','x_2','x_3','x_4','x_5','Reference','Location','best');

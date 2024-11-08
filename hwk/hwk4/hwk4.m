@@ -42,6 +42,12 @@ incf = 0;
 eccf = 0.0001;
 wf = deg2rad(35);
 hf = HfromAe(mu,af,eccf);
+% raanf = RaanfromLON(LONfromH)
+% 
+% 
+% LONfromH = @(h) cross(z_hat, h);
+% RaanfromLON = @(lon) acosd(lon(1)/norm(lon));
+% raan_sign = @(lon) sign(dot(lon, y_hat));
 
 athrust = 0.03; %   km/s^2
 tfguess =  23;
@@ -65,13 +71,15 @@ rp_delta = rperf - rperi;
 r = r0;
 v = v0;
 delu = 0.1;
-ts = linspace(0,tfguess,24);
-for i = 1:length(ts)
-    A_eci = lvlh2eci(zhat(r), yhat(r,v), xhat(yhat(r,v),zhat(r)))  * A0;
-    lamba_v = A_eci + B_eci*t;
-    
-end
+ts = linspace(0,tfguess,100);
+% for i = 1:length(ts)
+%     A_eci = lvlh2eci(zhat(r), yhat(r,v), xhat(yhat(r,v),zhat(r)))  * A0;
+%     lamba_v = A_eci + B_eci*t;
+%     
+% end
 
+% Solve the ODE
+[t, state] = ode45(@(t, y) satellite_dynamics(t, y, athrust, mu), ts, X0);
 
 
 
@@ -81,4 +89,15 @@ function r = finitediff(E,u,delu)
     
     dE = (E(u+delu) - E(u))/delu;
 
+end
+
+
+% Function to compute satellite dynamics
+function dydt = satellite_dynamics(t, y, burn_acceleration, mu)
+    r = y(1:3);
+    v = y(4:6);
+    r_norm = norm(r);
+    a_gravity = -mu / r_norm^3 * r;
+    a_burn = burn_acceleration * v / norm(v);
+    dydt = [v; a_gravity + a_burn];
 end
