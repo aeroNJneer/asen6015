@@ -38,15 +38,17 @@ w_target = 35; % Argument of perigee in degrees
 h_target = HfromAe(mu,a_target,e_target);
 Raan_target = 0;
 rp_target = Rp(a_target,e_target);
-C = DCM(Raan_target,i_target,w_target);
+C = DCM(Raan_target,i_target,w_target);     % DCM
 Rp_target = C * [rp_target; 0; 0];
 Vp_target = C * [0; VfromRA(mu,rp_target,a_target); 0];
+
 % Initial guesses for guidance parameters
 A = [1; 0; 0];
 B = [0; 0; 0];
-flamba = @(t)[A-B*t; B];
+lambda_r = -B;
+flamba_v = @(t) A+B*t;
 
-X0 = [x0; flamba(0)]
+X0 = [x0; lambda_r; flamba_v(0)];
 
 % plot initial and final orbits
 orbit_init = plot_orbit(a_init,e_init,i_init,Raan_init,w_init,TA_init);
@@ -70,10 +72,10 @@ orbit_target = plot_orbit(a_target,e_target,i_target,Raan_target,w_target,0);
 
 % Simulate the burn without correction
 % [r, v, t] = simulate_burn(r0, v0, A, B, thrust_acc, tf, mu);
-[r, v, t, lambda_r, lambda_v] = propagate_with_costate_LVLH_ECI(X0,A,B,thrust_acc,tf,mu);
+[r, v, t, lambda_r, lambda_v] = propagate_with_costate_LVLH_ECI(X0,A,B,C,thrust_acc,tf,mu);
 % coasting
 Xc = [r(end,:)'; v(end,:)'; lambda_r(end,:)'; lambda_v(end,:)'];
-[rc, vc, tc, lambda_rc, lambda_vc] = propagate_with_costate_LVLH_ECI(Xc,A,B,0,60*45,mu);
+[rc, vc, tc, lambda_rc, lambda_vc] = propagate_with_costate_LVLH_ECI(Xc,A,B,C,0,60*45,mu);
 
 % Plot the resulting trajectory
     figure(2);
@@ -215,29 +217,23 @@ function orbit_3D = plot_orbit(a, e, i, RAAN, w, theta)
     end
 end
 
-function dlambda = costate_dynamics(lambda)
-    dlamda = B;
+function dlambda = costate_dynamics(lambdav)
+    dlamdav = B;
+    dlambdar = lambdav
 
 
 end
 
 
-function [r, v, t, lambda_r, lambda_v] = propagate_with_costate_LVLH_ECI(x0, A, B, thrust_acc, tf, mu)
+function [r, v, t, lambda_r, lambda_v] = propagate_with_costate_LVLH_ECI(x0, A, B, C, thrust_acc, tf, mu)
     % Time span for integration
     tspan = [0 tf];
-    
-    % Initial state vector
-%     r0 = x0(1:3);
-%     v0 = x0(4:6);
-%     lamba_r = x0(7:9);
-%     lambda_v = x0(10:12);
- %   y0 = [r0; v0; zeros(3, 1); zeros(3, 1)]; % Include costate variables
     
     % Options for ODE solver
     options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
     
     % Integrate the equations of motion and costate equations
-    [t, y] = ode45(@(t, y) equations_of_motion_LVLH_ECI(t, y, A, B, thrust_acc, mu), tspan, x0, options);
+    [t, y] = ode45(@(t, y) equations_of_motion_LVLH_ECI(t, y, A, B, C, thrust_acc, mu), tspan, x0, options);
     
     % Extract position, velocity, and costate vectors
     r = y(:, 1:3);
@@ -246,7 +242,7 @@ function [r, v, t, lambda_r, lambda_v] = propagate_with_costate_LVLH_ECI(x0, A, 
     lambda_v = y(:, 10:12);
 end
 
-function dydt = equations_of_motion_LVLH_ECI(t, y, A, B, thrust_acc, mu)
+function dydt = equations_of_motion_LVLH_ECI(t, y, A, B, C, thrust_acc, mu)
     % Extract position, velocity, and costate vectors
     r = y(1:3);
     v = y(4:6);
@@ -278,8 +274,8 @@ function dydt = equations_of_motion_LVLH_ECI(t, y, A, B, thrust_acc, mu)
     dvdt = a_gravity + a_thrust;
     
     % Costate equations in ECI frame
-    dlambda_rdt = B;    % lambda_v
-    dlambda_vdt = zeros(3,1);
+    dlambda_rdt = A+B*t;    % lambda_v
+    dlambda_vdt = B;
     
     % Combine derivatives into a single column vector
     dydt = [drdt; dvdt; dlambda_rdt; dlambda_vdt];
@@ -295,7 +291,7 @@ function R_LVLH_ECI = calculate_LVLH_to_ECI(r, v)
     x_LVLH = cross(y_LVLH, z_LVLH);
     
     % Transformation matrix from LVLH to ECI
-    R_LVLH_ECI = [x_LVLH'; y_LVLH'; z_LVLH'];
+    R_LVLH_ECI = [z_LVLH'; y_LVLH'; y_LVLH'];
 end
 
 function u = bilinear_tangent_guidance(A, B, t)

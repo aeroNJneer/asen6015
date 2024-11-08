@@ -98,15 +98,17 @@ lambda_v = x(10:12);
 
 tan_theta = (A(3) + B(3)*t) / (A(1) + B(1)*t);
 tan_alpha = (A(2) + B(2)*t) / (A(1) + B(1)*t);
-u = (A + B*t) / norm(A + B*t);
-
-a_grav = -mu * r / norm(r)^3;
+u = (A + B*t) / norm(A + B*t);  % lvlh frame
 a_thrust = thrust_acc * u;
+
+% need DCM here ... LVLH to ECI
+a_grav = -mu * r / norm(r)^3;   % ECI frame
+a_thrust_eci = C * a_thrust_lvlh
 
 dr_dt = v;
 dv_dt = a_grav + a_thrust;
-dlambda_r_dt = -lambda_r.';
-dlambda_v_dt = -lambda_v.' - r / norm(r)^3;
+dlambda_r_dt = A + B*t;
+dlambda_v_dt = B;
 
 dx = [dr_dt; dv_dt; dlambda_r_dt; dlambda_v_dt];
 end
