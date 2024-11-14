@@ -6,7 +6,7 @@ mu = 3.986e14;  % Earth's gravitational parameter (m^3/s^2)
 a_target = 10000e3;  % semi-major axis (m)
 i_target = 0 * pi/180;  % inclination (rad)
 e_target = 0.0001;  % eccentricity
-omega_target = 35 * pi/180;  % argument of periapsis (rad)
+omega_target = deg2rad(35); % argument of periapsis (rad)
 
 % Integrate equations of motion with initial guess
 t_span = linspace(0, t_burn_guess, 100);
