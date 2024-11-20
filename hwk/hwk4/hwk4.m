@@ -1,9 +1,6 @@
-% hwk 4
-
 clear
 clc
 close all
-init;
 set(0,'DefaultAxesXGrid','on', ...
     'DefaultAxesYGrid','on', ...
     'DefaultLineLineWidth',2, ...
@@ -14,90 +11,402 @@ set(groot, 'defaultAxesFontSize',12, ...
     'defaultAxesTitleFontSizeMultiplier', 1.5, ...
     'defaultAxesTitleFontSizeMultiplier', 1.2);
 
-% function 
-theta = @(Ax,Az,Bx,Bz,t) atan2(Az+Bz*t,Ax+Bx*t);
-alpha = @(Ax,Ay,Bx,By,t) atan2(Ay+By*t,Ax+Bx*t);
-uhat = @(A,B,t) (A + B*t)/norm(A+B*t);
-
-% LVLH is aligned with desired orbital plane 
-zhat = @(r) -r/norm(r);                          % ECI to LVLH
-yhat = @(r,v) -cross(r,v)/norm(cross(r,v));      % ECI to LVLH @ tf
-xhat = @(y,z) cross(y,z)/norm(cross(y,z));       % ECI to LVLH
-
-lvlh2eci = @(z,y,x) [x y z];
-
-mu = Gearth;
-% initial conditions
+global target
 A0 = [1;0;0];
 B0 = [0;0;0];
 r0 = [8276; 5612; 5];
 v0 = [-3.142; 4.672; 0];
-X0 = [ r0; v0];
 t0 = 0;
-hi = cross(r0,v0);
+x0 = [r0;v0];  % Initial state
+tf_guess = 23;  % Initial time guess
+acc = 0.03;     % 30 m/s^2 in km/s^2
+dt = 0.1;
+% Target orbit parameters
 
-% final conditions
-af = 10000;
-incf = 0;
-eccf = 0.0001;
-wf = deg2rad(35);
-hf = HfromAe(mu,af,eccf);
-% raanf = RaanfromLON(LONfromH)
+target.a = 10000;  % km
+target.i = 0;      % degrees
+target.e = 0.0001;
+target.w = 35 * pi/180;  % radians
+
+%% Problem #1 Plot trajectory with no correction
+[t1, r, lambda1] = integrateTrajectory(r0, v0, A0, B0, tf_guess, acc, dt);
+[t2, r2, lambda2] = integrateTrajectory(r(1:3,end), r(4:6,end), A0, B0, 60*60, 0, dt);
+
+% Plot the resulting trajectory
+figure(1);
+plot3(r(1,:), r(2,:), r(3,:), DisplayName="Burn time");
+xlabel('X (km)');
+ylabel('Y (km)');
+zlabel('Z (km)');
+title('Trajectory During Burn with no Correcction');
+hold off
+legend('Location','northeast')
+
+% Plot the resulting trajectory
+figure(2);
+plot3(r(1,:), r(2,:), r(3,:), DisplayName="Burn time");
+hold on;
+plot3(r2(1,:), r2(2,:), r2(3,:), DisplayName="Post burn coasting");
+xlabel('X (km)');
+ylabel('Y (km)');
+zlabel('Z (km)');
+title('Trajectory of the Spacecraft with no Correcction');
+hold off
+legend('Location','northeast')
 % 
-% 
-% LONfromH = @(h) cross(z_hat, h);
-% RaanfromLON = @(lon) acosd(lon(1)/norm(lon));
-% raan_sign = @(lon) sign(dot(lon, y_hat));
 
-athrust = 0.03; %   km/s^2
-tfguess =  23;
+A_final = A0;
+B_final = B0;
+%% Problem #2 Determine control law over time
 
-% LONf = LONfromH(hf);
-
-rperf = Rp(af,eccf);                 % radius of periapsis
-vperf = VfromRA(mu,rperf,af);       % velocity at periapsis
-rapo = Ra(af,eccf);
-
-[ai,ecci,inci,Raani,wi,true_anomaly] = ECI2classical(r0,v0,Gearth)
-rperi = Rp(ai,ecci);
-vperi = VfromRA(mu,rperi,ai);
-a_delta = af - ai;
-ecc_delta = eccf - ecci;
-% w_delta = wf - wi;
-h_delta = hf - norm(hi);
-vp_delta = vperf-vperi;
-rp_delta = rperf - rperi;
-
-r = r0;
-v = v0;
-delu = 0.1;
-ts = linspace(0,tfguess,100);
-% for i = 1:length(ts)
-%     A_eci = lvlh2eci(zhat(r), yhat(r,v), xhat(yhat(r,v),zhat(r)))  * A0;
-%     lamba_v = A_eci + B_eci*t;
-%     
-% end
-
-% Solve the ODE
-[t, state] = ode45(@(t, y) satellite_dynamics(t, y, athrust, mu), ts, X0);
-
-
-
-%% functions
-
-function r = finitediff(E,u,delu)
-    
-    dE = (E(u+delu) - E(u))/delu;
-
+for i = 1:tf_guess+2    % start with additional 2 seconds for burn, can update if not enough
+    [tf_final, A_final, B_final] = predictorCorrector(x0, tf_guess, acc);
+    Afinal(:,i) = A_final;
+    Bfinal(:,i) = B_final;
+    % determine trajectory based on steering law values
+    [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt);
+    x0 = x(:,11);
+    r0 = x0(1:3);
+    v0 = x0(4:6);
+    xfinal(:,i) = x0;
 end
 
 
-% Function to compute satellite dynamics
-function dydt = satellite_dynamics(t, y, burn_acceleration, mu)
-    r = y(1:3);
-    v = y(4:6);
-    r_norm = norm(r);
-    a_gravity = -mu / r_norm^3 * r;
-    a_burn = burn_acceleration * v / norm(v);
-    dydt = [v; a_gravity + a_burn];
+[t2, x2, lambda] = integrateTrajectory(xfinal(1:3,end), xfinal(4:6,end), A_final, B_final, 60*60, 0, dt);
+
+% Plot the resulting trajectory
+figure(3);
+plot3(xfinal(1,:), xfinal(2,:), xfinal(3,:), DisplayName="Burn time");
+hold on;
+plot3(x2(1,:), x2(2,:), x2(3,:), DisplayName="Post burn coasting");
+plot3(xfinal(1,1),xfinal(2,1),xfinal(3,1),'o' , DisplayName="Start location")
+plot3(xfinal(1,end),xfinal(2,end),xfinal(3,end), 'o',DisplayName="Final location")
+xlabel('X (km)');
+ylabel('Y (km)');
+zlabel('Z (km)');
+title('Trajectory of the Spacecraft with Correcction');
+hold off
+legend('Location','northeast')
+
+figure(4);
+plot3(x(1,:), x(2,:), x(3,:), DisplayName="Burn time");
+hold on;
+xlabel('X (km)');
+ylabel('Y (km)');
+zlabel('Z (km)');
+plot3(x(1,1),x(2,1),x(3,1),'o' , DisplayName="Start location")
+plot3(x(1,end),x(2,end),x(3,end), 'o',DisplayName="Final location")
+title('Trajectory During Burn with Correcction');
+legend('Location','northeast')
+hold off
+
+function [tf, A_final, B_final] = predictorCorrector(x0, tf_guess, acc)
+    global target
+    % Initial conditions
+    r0 = x0(1:3);
+    v0 = x0(4:6);
+    
+    % Constants
+    mu = 398600.4418; % Earth's gravitational parameter (km^3/s^2)
+    tolerance = 1e-6;  % Convergence tolerance
+    max_iterations = 50;
+    dt = 0.1;  % Integration time step
+    
+    % Initial guess for control parameters
+    A = [1; 0; 0];  % Initial A guess in LVLH
+    B = [0; 0; 0];  % Initial B guess in LVLH
+    tf = tf_guess;
+    
+    
+    % Main predictor-corrector loop
+    for iter = 1:max_iterations
+        % Predict step - Integrate nominal trajectory
+        [t, x, lambda] = integrateTrajectory(r0, v0, A, B, tf, acc, dt);
+        
+        % Calculate error vector
+        E = calculateError(x(:,end), lambda(:,end), tf, target);
+        E0_norm = norm(E);
+        
+        if E0_norm < tolerance
+            break;
+        end
+        
+        % Calculate Jacobian through finite differencing
+        J = calculateJacobian(r0, v0, A, B, tf, acc, dt, E);
+        
+        % Update control parameters using line search
+        alpha = lineSearch(r0, v0, A, B, tf, acc, dt, E, J);
+        
+        % Apply updates with line search parameter
+        delta = -alpha * (J \ E);
+        
+        dB = delta(1:3);
+        dABt = delta(4:6);
+        dtf = delta(7);
+        
+        % Update B directly
+        B = B + dB;
+        
+        % Update A based on changes to A+B*tf and B
+        A = (A + B*tf + dABt) - (B + dB)*(tf + dtf);
+        
+        % Update tf
+        tf = tf + dtf;
+    end
+    
+    A_final = A;
+    B_final = B;
+end
+
+function [t, x, lambda] = integrateTrajectory(r0, v0, A, B, tf, acc, dt)
+    global target
+    % Initialize state and time vectors
+    x0 = [r0; v0];
+    t = 0:dt:tf;
+    N = length(t);
+    x = zeros(6, N);
+    lambda = zeros(7, N);  % Now storing full lambda = [B; A+B*tf; tf]
+    x(:,1) = x0;
+    
+    % Initial lambda
+    lambda(1:3,:) = repmat(B, 1, N);  % B
+    lambda(4:6,:) = repmat(A + B*tf, 1, N);  % A+B*tf
+    lambda(7,:) = tf;  % tf
+    
+    % RK4 integration
+    for i = 1:N-1
+        k1 = dynamics(t(i), x(:,i), A, B, tf, acc);
+        k2 = dynamics(t(i) + dt/2, x(:,i) + dt*k1/2, A, B, tf, acc);
+        k3 = dynamics(t(i) + dt/2, x(:,i) + dt*k2/2, A, B, tf, acc);
+        k4 = dynamics(t(i) + dt, x(:,i) + dt*k3, A, B, tf, acc);
+        
+        x(:,i+1) = x(:,i) + dt*(k1 + 2*k2 + 2*k3 + k4)/6;
+        
+        % Update lambda at each time step
+        lambda(1:3,i) = B;
+        lambda(4:6,i) = A + B*t(i);
+        lambda(7,i) = t(i);
+    end
+    
+    % Final lambda values
+    lambda(1:3,N) = B;
+    lambda(4:6,N) = A + B*tf;
+    lambda(7,N) = tf;
+end
+function dxdt = dynamics(t, state, A, B, tf, acc)
+    % Unpack state
+    r = state(1:3);
+    v = state(4:6);
+    mu = 398600.4418;
+    
+    % Calculate LVLH frame
+    R_eci2lvlh = calculateLVLHFrame(r, v);
+    R_lvlh2eci = R_eci2lvlh';
+    
+    % Current control direction in LVLH
+    u_lvlh = (A + B*t)/norm(A + B*t);
+    
+    % Convert control to ECI
+    u_eci = R_lvlh2eci * u_lvlh;
+    
+    % Gravitational acceleration
+    g_eci = -mu*r/norm(r)^3;
+    
+    % State derivatives
+    dr = v;
+    dv = g_eci + acc*u_eci;
+    
+    dxdt = [dr; dv];
+end
+
+function R_eci2lvlh = calculateLVLHFrame(r, v)
+    % Calculate LVLH frame vectors
+    h = cross(r, v);
+    
+    % Unit vectors
+    r_hat = r / norm(r);
+    h_hat = h / norm(h);
+    t_hat = cross(h_hat, r_hat);
+    
+    % Rotation matrix from ECI to LVLH
+    R_eci2lvlh = [r_hat, t_hat, h_hat]';
+end
+
+function E = calculateError(xf, lambda_f, tf, target)  
+    % Extract components from lambda
+    B_lvlh = lambda_f(1:3);
+    ABtf_lvlh = lambda_f(4:6);
+    tf = lambda_f(7);
+
+   % Calculate LVLH frame for final state
+    R_eci2lvlh = calculateLVLHFrame(xf(1:3), xf(4:6));
+    R_lvlh2eci = R_eci2lvlh';
+
+    % Convert velocity to LVLH for error calculation
+    v_lvlh = R_eci2lvlh * xf(4:6);
+    
+    % Calculate orbital elements from final state
+    [a, e, i, ~, omega, nu] = rv2oe(xf(1:3), xf(4:6));
+    
+    % Calculate target orbit vectors
+    [rp_eci, vp_eci] = getTargetPeriapseVectors(target);
+
+    % Convert target velocity to LVLH
+    vp_lvlh = R_eci2lvlh * vp_eci;
+    
+    % Calculate error vector components
+    mu = 398600.4418;
+    E = zeros(7,1);
+    
+    E(1:3) = vp_lvlh - v_lvlh;  % Velocity error
+    E(4) = norm(xf(1:3)) - target.a*(1-target.e^2)/(1+target.e*cos(nu));  % Radius error
+    E(5) = dot(cross(rp_eci, vp_eci)/norm(cross(rp_eci, vp_eci)), xf(1:3));  % Orbit plane error
+    
+    % Transversality condition using lambda in LVLH
+    g_eci = -mu*xf(1:3)/norm(xf(1:3))^3;
+    g_lvlh = R_eci2lvlh * g_eci;
+    E(6) = dot(ABtf_lvlh, g_lvlh) - dot(B_lvlh, v_lvlh);
+    
+    % Normalization condition for lambda
+    E(7) = norm(ABtf_lvlh) - 1;  % Using A+B*tf part of lambda for normalization
+end
+
+function J = calculateJacobian(r0, v0, A, B, tf, acc, dt, E0)
+    global target
+    % Calculate Jacobian through forward finite differencing for lambda = [B; A+B*tf; tf]
+    epsilonA = 0.1;
+    epsilonB = 0.01;
+    epsilonTf = 0.1;
+    n_params = 7;  % 3 for B, 3 for A+B*tf, 1 for tf
+    J = zeros(length(E0), n_params);
+    
+    % Base lambda calculation
+    lambda_B = B;
+    lambda_ABt = A + B*tf;
+    lambda_t = tf;
+    
+    % Perturb B components (affects both B and A+B*tf terms)
+    for i = 1:3
+        B_perturbed = B;
+        B_perturbed(i) = B(i) + epsilonB;
+        A_adjusted = A; % A needs to be adjusted to maintain A+B*tf when B changes
+        
+        % Calculate new A to maintain A+B*tf when B changes
+        A_adjusted = (lambda_ABt - B_perturbed*tf);
+        
+        [~, xf, lambda_f] = integrateTrajectory(r0, v0, A_adjusted, B_perturbed, tf, acc, dt);
+        E_perturbed = calculateError(xf(:,end), lambda_f(:,end), tf, target);
+        lambda_ABt_perturbed = A + B_perturbed*tf;
+        J(:,i) = (E_perturbed - E0)/epsilonB;
+    end
+    
+    % Perturb A+B*tf components (affects only the A+B*tf term)
+    for i = 1:3
+        ABt_perturbed = lambda_ABt;
+        ABt_perturbed(i) = lambda_ABt(i) + epsilonA;
+        
+        % Calculate new A for perturbed A+B*tf
+        A_perturbed = ABt_perturbed - B*tf;
+        
+        [~, xf, lambda_f] = integrateTrajectory(r0, v0, A_perturbed, B, tf, acc, dt);
+        E_perturbed = calculateError(xf(:,end), lambda_f(:,end), tf, target);
+        lambda_ABt_perturbed = A_perturbed+B*tf;
+        J(:,i+3) = (E_perturbed - E0)/epsilonA;
+    end
+    
+    % Perturb tf (affects both A+B*tf and tf terms)
+    tf_perturbed = tf + epsilonTf;
+    
+    % When tf changes, we need to adjust A to maintain the desired A+B*tf
+    A_adjusted = lambda_ABt - B*tf_perturbed;
+    
+    [~, xf, lambda_f] = integrateTrajectory(r0, v0, A_adjusted, B, tf_perturbed, acc, dt);
+    E_perturbed = calculateError(xf(:,end), lambda_f(:,end), tf_perturbed, target);
+    lambda_ABt_perturbed = A+B*tf_perturbed;     
+    J(:,7) = (E_perturbed - E0)/epsilonTf;
+end
+
+function alpha = lineSearch(r0, v0, A, B, tf, acc, dt, E0, J)
+    global target
+    % Line search to find step size that reduces error
+    alpha = 1.0;
+    alpha_min = 1e-6;
+    rho = 0.5;  % Reduction factor
+    c = 0.1;    % Sufficient decrease parameter
+    
+    E0_norm = norm(E0);
+    delta = -(J \ E0);
+    
+    while alpha > alpha_min
+        % Try update with current alpha
+        A_new = A - alpha*delta(1:3);
+        B_new = B - alpha*delta(4:6);
+        tf_new = tf - alpha*delta(7);
+        
+        % Check new error
+        [~, xf, lambda_f] = integrateTrajectory(r0, v0, A_new, B_new, tf_new, acc, dt);
+        E_new = calculateError(xf(:,end), lambda_f(:,end), tf_new,target);
+        
+        if norm(E_new) < (1 - c*alpha)*E0_norm
+            break;
+        end
+        
+        alpha = rho*alpha;
+    end
+    
+    if alpha <= alpha_min
+        alpha = alpha_min;
+    end
+end
+
+function [a, e, i, Omega, omega, nu] = rv2oe(r, v)
+    % Convert state vectors to orbital elements
+    mu = 398600.4418;
+    h = cross(r, v);
+    n = cross([0; 0; 1], h);
+    e_vec = cross(v, h)/mu - r/norm(r);
+    e = norm(e_vec);
+    a = 1/(2/norm(r) - dot(v,v)/mu);
+    
+    i = acos(h(3)/norm(h));
+    Omega = acos(n(1)/norm(n));
+    if n(2) < 0
+        Omega = 2*pi - Omega;
+    end
+    
+    omega = acos(dot(n,e_vec)/(norm(n)*e));
+    if e_vec(3) < 0
+        omega = 2*pi - omega;
+    end
+    
+    nu = acos(dot(e_vec,r)/(e*norm(r)));
+    if dot(r,v) < 0
+        nu = 2*pi - nu;
+    end
+end
+
+function [rp, vp] = getTargetPeriapseVectors(target)
+    % Calculate periapse position and velocity vectors for target orbit
+    mu = 398600.4418;
+    target.p = target.a*(1-target.e^2);
+    target.rp_mag = target.p/(1+target.e);
+    target.vp_mag = sqrt(mu*(2/target.rp_mag - 1/target.a));
+    
+    % Calculate in perifocal frame
+    rp_pqw = target.rp_mag*[1; 0; 0];
+    vp_pqw = target.vp_mag*[0; 1; 0];
+    omega = target.w;
+    i = target.i;
+    % Rotation matrices
+    R3_omega = [cos(omega) -sin(omega) 0;
+                sin(omega) cos(omega)  0;
+                0         0          1];
+    R1_i = [1  0        0;
+            0  cos(i)  -sin(i);
+            0  sin(i)   cos(i)];
+    
+    % Transform to ECI
+    R_pqw2eci = R3_omega*R1_i;
+    rp = R_pqw2eci*rp_pqw;
+    vp = R_pqw2eci*vp_pqw;
 end

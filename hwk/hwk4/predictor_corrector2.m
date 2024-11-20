@@ -1,4 +1,36 @@
-function [A, B, t_burn, nu, state_history, lambda_r, lambda_v] = predictor_corrector2(x0, lambda_r0, lambda_v0, A, B, thrust_acc, t_burn_guess)
+init;
+
+global mu 
+mu = Gearth;
+% initial conditions
+A0 = [1;0;0];
+B0 = [0;0;0];
+r0 = [8276; 5612; 5];
+v0 = [-3.142; 4.672; 0];
+X0 = [ r0; v0];
+t0 = 0;
+hi = cross(r0,v0);
+
+% final conditions
+af = 10000;
+incf = 0;
+eccf = 0.0001;
+wf = deg2rad(35);
+hf = HfromAe(mu,af,eccf);
+
+athrust = 0.03; %   km/s^2
+tfguess =  23;
+
+x0 = [r0;v0];
+lambda_r0 = [-B0];
+lambda_v0 = [A0 + B0*tfguess];
+thrust_acc = 0.03;
+
+
+[A, B, t_burn, nu, state_history, lambda_r, lambda_v] = predictor_corrector(x0, lambda_r0, lambda_v0, A0, B0, thrust_acc, tfguess)
+
+
+function [A, B, t_burn, nu, state_history, lambda_r, lambda_v] = predictor_corrector(x0, lambda_r0, lambda_v0, A, B, thrust_acc, t_burn_guess)
 % Constants
 mu = 3.986e14;  % Earth's gravitational parameter (m^3/s^2)
 
@@ -91,6 +123,7 @@ state_history = [t, state];
 end
 
 function dx = two_body_ode(t, x, A, B, lambda_r, lambda_v, thrust_acc)
+global mu
 r = x(1:3);
 v = x(4:6);
 lambda_r = x(7:9);
