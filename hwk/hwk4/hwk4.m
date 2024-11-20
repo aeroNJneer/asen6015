@@ -28,9 +28,13 @@ target.i = 0;      % degrees
 target.e = 0.0001;
 target.w = 35 * pi/180;  % radians
 
+% Initial guess for control parameters
+A = A0;  % Initial A guess in LVLH
+B = B0;  % Initial B guess in LVLH
+
 %% Problem #1 Plot trajectory with no correction
-[t1, r, lambda1] = integrateTrajectory(r0, v0, A0, B0, tf_guess, acc, dt);
-[t2, r2, lambda2] = integrateTrajectory(r(1:3,end), r(4:6,end), A0, B0, 60*60, 0, dt);
+[t1, r, lambda1] = integrateTrajectory(r0, v0, A, B, tf_guess, acc, dt);
+[t2, r2, lambda2] = integrateTrajectory(r(1:3,end), r(4:6,end), A, B, 60*60, 0, dt);
 
 % Plot the resulting trajectory
 figure(1);
@@ -58,17 +62,54 @@ legend('Location','northeast')
 A_final = A0;
 B_final = B0;
 %% Problem #2 Determine control law over time
-
-for i = 1:tf_guess+2    % start with additional 2 seconds for burn, can update if not enough
-    [tf_final, A_final, B_final] = predictorCorrector(x0, tf_guess, acc);
+  
+% will need to shorten time interval near end of burn
+terminal_phase_start = 0.85; % Start terminal phase at 85% of trajectory
+min_timestep = 0.05; % Minimum update interval for terminal phase
+max_iterations = tf_guess;
+dt_guid = 1;
+dt_guid_current = dt_guid;
+for i =  1: tf_guess  
+    time_remaining = tf_guess(end) - (i-1)*dt_guid;
+    
+    % Determine if we're in terminal phase
+    in_terminal_phase = (i / max_iterations) > terminal_phase_start;
+    if in_terminal_phase
+        dt_guid_current = max(min_timestep,dt_guid/2);
+           [tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess(end), acc, dt_guid_current*dt);
+    else
+           [tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess(end), acc, dt);
+    end
+   
     Afinal(:,i) = A_final;
+    A = A_final;
     Bfinal(:,i) = B_final;
-    % determine trajectory based on steering law values
-    [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt);
-    x0 = x(:,11);
+    B = B_final;
+   if in_terminal_phase
+       % determine trajectory based on steering law values
+        [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt_guid_current*dt);
+   else
+        [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt);
+   end
+
+    % Update initial conditions for next iteration using state at t = dt
+        % Find index corresponding to first time step
+        dt_index = ceil(dt_guid/dt_guid_current);  % Account for variable time step
+        x0 = x(:,dt_index);  % Take state after one dt
+        xfinal(:,i) = x0;
+
+    % x0 = x(:,end);
     r0 = x0(1:3);
     v0 = x0(4:6);
-    xfinal(:,i) = x0;
+    % xfinal(:,i) = x0;
+
+  % Update time-to-go estimate with damping in terminal phase
+    if in_terminal_phase
+        damping_factor = 0.7;
+        tf_guess(i) = tf_final - dt_guid * damping_factor;
+    else
+        tf_guess(i) = tf_final - dt_guid;
+    end
 end
 
 
@@ -89,18 +130,18 @@ hold off
 legend('Location','northeast')
 
 figure(4);
-plot3(x(1,:), x(2,:), x(3,:), DisplayName="Burn time");
+plot3(xfinal(1,:), xfinal(2,:), xfinal(3,:), DisplayName="Burn time");
 hold on;
 xlabel('X (km)');
 ylabel('Y (km)');
 zlabel('Z (km)');
-plot3(x(1,1),x(2,1),x(3,1),'o' , DisplayName="Start location")
-plot3(x(1,end),x(2,end),x(3,end), 'o',DisplayName="Final location")
+plot3(xfinal(1,1),xfinal(2,1),xfinal(3,1),'o' , DisplayName="Start location")
+plot3(xfinal(1,end),xfinal(2,end),xfinal(3,end), 'o',DisplayName="Final location")
 title('Trajectory During Burn with Correcction');
 legend('Location','northeast')
 hold off
 
-function [tf, A_final, B_final] = predictorCorrector(x0, tf_guess, acc)
+function [tf, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt)
     global target
     % Initial conditions
     r0 = x0(1:3);
@@ -110,14 +151,10 @@ function [tf, A_final, B_final] = predictorCorrector(x0, tf_guess, acc)
     mu = 398600.4418; % Earth's gravitational parameter (km^3/s^2)
     tolerance = 1e-6;  % Convergence tolerance
     max_iterations = 50;
-    dt = 0.1;  % Integration time step
-    
-    % Initial guess for control parameters
-    A = [1; 0; 0];  % Initial A guess in LVLH
-    B = [0; 0; 0];  % Initial B guess in LVLH
     tf = tf_guess;
+
     
-    
+    E_previous = 0;
     % Main predictor-corrector loop
     for iter = 1:max_iterations
         % Predict step - Integrate nominal trajectory
@@ -127,7 +164,7 @@ function [tf, A_final, B_final] = predictorCorrector(x0, tf_guess, acc)
         E = calculateError(x(:,end), lambda(:,end), tf, target);
         E0_norm = norm(E);
         
-        if E0_norm < tolerance
+        if E0_norm < tolerance || norm(E - E_previous) < tolerance
             break;
         end
         
@@ -138,7 +175,7 @@ function [tf, A_final, B_final] = predictorCorrector(x0, tf_guess, acc)
         alpha = lineSearch(r0, v0, A, B, tf, acc, dt, E, J);
         
         % Apply updates with line search parameter
-        delta = -alpha * (J \ E);
+        delta = -alpha * (pinv(J) *  E);
         
         dB = delta(1:3);
         dABt = delta(4:6);
@@ -152,6 +189,7 @@ function [tf, A_final, B_final] = predictorCorrector(x0, tf_guess, acc)
         
         % Update tf
         tf = tf + dtf;
+        E_previous = E;
     end
     
     A_final = A;
@@ -162,10 +200,10 @@ function [t, x, lambda] = integrateTrajectory(r0, v0, A, B, tf, acc, dt)
     global target
     % Initialize state and time vectors
     x0 = [r0; v0];
-    t = 0:dt:tf;
+    t = 0:dt:tf(end);
     N = length(t);
     x = zeros(6, N);
-    lambda = zeros(7, N);  % Now storing full lambda = [B; A+B*tf; tf]
+  %  lambda = zeros(7, N);  % Now storing full lambda = [B; A+B*tf; tf]
     x(:,1) = x0;
     
     % Initial lambda
@@ -335,7 +373,7 @@ function alpha = lineSearch(r0, v0, A, B, tf, acc, dt, E0, J)
     c = 0.1;    % Sufficient decrease parameter
     
     E0_norm = norm(E0);
-    delta = -(J \ E0);
+    delta = -(pinv(J) * E0);
     
     while alpha > alpha_min
         % Try update with current alpha
