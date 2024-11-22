@@ -253,12 +253,12 @@ function R_eci2lvlh = calculateLVLHFrame(r, v)
     h = cross(r, v);
     
     % Unit vectors
-    r_hat = r / norm(r);
-    h_hat = h / norm(h);
-    t_hat = cross(h_hat, r_hat);
+    r_hat = r / norm(r); % z
+    h_hat = h / norm(h); % y
+    v_hat = cross(h_hat, r_hat); % x
     
     % Rotation matrix from ECI to LVLH
-    R_eci2lvlh = [r_hat, t_hat, h_hat]';
+    R_eci2lvlh = [v_hat, h_hat, r_hat];
 end
 
 function E = calculateError(xf, lambda_f, tf, target)  

@@ -71,7 +71,7 @@ i = 1;
 %% Problem #2 Determine control law over time
 dt_guidance = 1; % 1 second update
 while i < tf_guess(end) 
-    remaining_time = tf_guess(end) - (i-1)*dt_guidance;
+ %   remaining_time = tf_guess(end) - (i-1)*dt_guidance;
     % predictor/corrector
     [tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess(end), acc, dt);
   %  tthrust total should be ~ 30 sec
@@ -181,46 +181,45 @@ end
 function [t, y, lambda] = integrateTrajectory(r0, v0, A, B, tf, acc, dt)
     global target
     % Options for ODE solver
-    options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
-    
-    % Integrate the equations of motion
-    [t, y] = ode45(@(t, y) dynamics(t, y, A, B, tf, acc), [0 tf], [r0;v0], options);
-    lambda = [B;A+B*tf;tf];
-    y = y';
-%     % Initialize state and time vectors
-%     x0 = [r0; v0];
-%     t = 0:dt:tf(end);
-%     N = length(t);
-%     x = zeros(6, N);
-%     lambda = zeros(7, N);  % Now storing full lambda = [B; A+B*tf; tf]
-%     x(:,1) = x0;
-% 
-%     % Initial lambda
-%     % lambda(1:3,:) = repmat(B, 1, N);  % B
-%     % lambda(4:6,:) = repmat(A + B*tf, 1, N);  % A+B*tf
-%     % lambda(7,:) = tf;  % tf
-% 
-%     % RK4 integration
-%     for i = 1:N-1
-%         k1 = dynamics(t(i), x(:,i), A, B, tf, acc);
-%         k2 = dynamics(t(i) + dt/2, x(:,i) + dt*k1/2, A, B, tf, acc);
-%         k3 = dynamics(t(i) + dt/2, x(:,i) + dt*k2/2, A, B, tf, acc);
-%         k4 = dynamics(t(i) + dt, x(:,i) + dt*k3, A, B, tf, acc);
-% 
-%         x(:,i+1) = x(:,i) + dt*(k1 + 2*k2 + 2*k3 + k4)/6;
-% 
-%         % Update lambda at each time step
-%         lambda(1:3,i) = B;
-%         lambda(4:6,i) = A + B*t(i);
-%         lambda(7,i) = t(i);
-%     end
-% 
-%     % Final lambda values
-%     lambda(1:3,N) = B;
-%     lambda(4:6,N) = A + B*tf;
-%     lambda(7,N) = tf;
-end
+    % options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
+    % 
+    % % Integrate the equations of motion
+    % [t, y] = ode45(@(t, y) dynamics(t, y, A, B, tf, acc), [0 tf], [r0;v0], options);
+    % lambda = [B;A+B*tf;tf];
+    % y = y';
+    % Initialize state and time vectors
+    x0 = [r0; v0];
+    t = 0:dt:tf(end);
+    N = length(t);
+    x = zeros(6, N);
+    lambda = zeros(7, N);  % Now storing full lambda = [B; A+B*tf; tf]
+    x(:,1) = x0;
 
+    % Initial lambda
+    % lambda(1:3,:) = repmat(B, 1, N);  % B
+    % lambda(4:6,:) = repmat(A + B*tf, 1, N);  % A+B*tf
+    % lambda(7,:) = tf;  % tf
+
+    % RK4 integration
+    for i = 1:N-1
+        k1 = dynamics(t(i), x(:,i), A, B, tf, acc);
+        k2 = dynamics(t(i) + dt/2, x(:,i) + dt*k1/2, A, B, tf, acc);
+        k3 = dynamics(t(i) + dt/2, x(:,i) + dt*k2/2, A, B, tf, acc);
+        k4 = dynamics(t(i) + dt, x(:,i) + dt*k3, A, B, tf, acc);
+
+        x(:,i+1) = x(:,i) + dt*(k1 + 2*k2 + 2*k3 + k4)/6;
+
+        % Update lambda at each time step
+        lambda(1:3,i) = B;
+        lambda(4:6,i) = A + B*t(i);
+        lambda(7,i) = t(i);
+    end
+
+    % Final lambda values
+    lambda(1:3,N) = B;
+    lambda(4:6,N) = A + B*tf;
+    lambda(7,N) = tf;
+end
 
 function dxdt = dynamics(t, state, A, B, tf, acc)
     global mu
@@ -255,10 +254,10 @@ function R_eci2lvlh = calculateLVLHFrame(r, v)
     % Unit vectors
     r_hat = r / norm(r);
     h_hat = h / norm(h);
-    t_hat = cross(h_hat, r_hat);
+    v_hat = cross(h_hat, r_hat);
     
     % Rotation matrix from ECI to LVLH
-    R_eci2lvlh = [r_hat, t_hat, h_hat]';
+    R_eci2lvlh = [v_hat, h_hat, r_hat]';
 end
 
 function E = calculateError(xf, lambda_f, tf, target)  

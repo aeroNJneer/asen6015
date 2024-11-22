@@ -39,8 +39,8 @@ A = A0;  % Initial A guess in LVLH
 B = B0;  % Initial B guess in LVLH
 
 %% Problem #1 Plot trajectory with no correction
-[t1, r, lambda1] = integrateTrajectory(r0, v0, A, B, tf_guess, acc, dt);
-[t2, r2, lambda2] = integrateTrajectory(r(1:3,end), r(4:6,end), A, B, 60*60, 0, dt);
+[t1, r] = integrateTrajectory(r0, v0, A, B, tf_guess, acc, dt);
+[t2, r2] = integrateTrajectory(r(1:3,end), r(4:6,end), A, B, 60*60, 0, dt);
 
 % Plot the resulting trajectory
 figure(1);
@@ -178,41 +178,50 @@ function [tf, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt
     B_final = B;
 end
 
-function [t, x, lambda] = integrateTrajectory(r0, v0, A, B, tf, acc, dt)
+function [t, y, lambda] = integrateTrajectory(r0, v0, A, B, tf, acc, dt)
     global target
-    % Initialize state and time vectors
-    x0 = [r0; v0];
-    t = 0:dt:tf(end);
-    N = length(t);
-    x = zeros(6, N);
-    lambda = zeros(7, N);  % Now storing full lambda = [B; A+B*tf; tf]
-    x(:,1) = x0;
+    % Options for ODE solver
+    options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
     
-    % Initial lambda
-    lambda(1:3,:) = repmat(B, 1, N);  % B
-    lambda(4:6,:) = repmat(A + B*tf, 1, N);  % A+B*tf
-    lambda(7,:) = tf;  % tf
-    
-    % RK4 integration
-    for i = 1:N-1
-        k1 = dynamics(t(i), x(:,i), A, B, tf, acc);
-        k2 = dynamics(t(i) + dt/2, x(:,i) + dt*k1/2, A, B, tf, acc);
-        k3 = dynamics(t(i) + dt/2, x(:,i) + dt*k2/2, A, B, tf, acc);
-        k4 = dynamics(t(i) + dt, x(:,i) + dt*k3, A, B, tf, acc);
-        
-        x(:,i+1) = x(:,i) + dt*(k1 + 2*k2 + 2*k3 + k4)/6;
-        
-        % Update lambda at each time step
-        lambda(1:3,i) = B;
-        lambda(4:6,i) = A + B*t(i);
-        lambda(7,i) = t(i);
-    end
-    
-    % Final lambda values
-    lambda(1:3,N) = B;
-    lambda(4:6,N) = A + B*tf;
-    lambda(7,N) = tf;
+    % Integrate the equations of motion
+    [t, y] = ode45(@(t, y) dynamics(t, y, A, B, tf, acc), [0 tf], [r0;v0], options);
+    lambda = [B;A+B*tf;tf];
+    y = y';
+%     % Initialize state and time vectors
+%     x0 = [r0; v0];
+%     t = 0:dt:tf(end);
+%     N = length(t);
+%     x = zeros(6, N);
+%     lambda = zeros(7, N);  % Now storing full lambda = [B; A+B*tf; tf]
+%     x(:,1) = x0;
+% 
+%     % Initial lambda
+%     % lambda(1:3,:) = repmat(B, 1, N);  % B
+%     % lambda(4:6,:) = repmat(A + B*tf, 1, N);  % A+B*tf
+%     % lambda(7,:) = tf;  % tf
+% 
+%     % RK4 integration
+%     for i = 1:N-1
+%         k1 = dynamics(t(i), x(:,i), A, B, tf, acc);
+%         k2 = dynamics(t(i) + dt/2, x(:,i) + dt*k1/2, A, B, tf, acc);
+%         k3 = dynamics(t(i) + dt/2, x(:,i) + dt*k2/2, A, B, tf, acc);
+%         k4 = dynamics(t(i) + dt, x(:,i) + dt*k3, A, B, tf, acc);
+% 
+%         x(:,i+1) = x(:,i) + dt*(k1 + 2*k2 + 2*k3 + k4)/6;
+% 
+%         % Update lambda at each time step
+%         lambda(1:3,i) = B;
+%         lambda(4:6,i) = A + B*t(i);
+%         lambda(7,i) = t(i);
+%     end
+% 
+%     % Final lambda values
+%     lambda(1:3,N) = B;
+%     lambda(4:6,N) = A + B*tf;
+%     lambda(7,N) = tf;
 end
+
+
 function dxdt = dynamics(t, state, A, B, tf, acc)
     global mu
     % Unpack state
@@ -244,12 +253,12 @@ function R_eci2lvlh = calculateLVLHFrame(r, v)
     h = cross(r, v);
     
     % Unit vectors
-    r_hat = r / norm(r);
-    h_hat = h / norm(h);
-    t_hat = cross(h_hat, r_hat);
+    r_hat = r / norm(r); % z
+    h_hat = h / norm(h); % y
+    v_hat = cross(h_hat, r_hat); % x
     
     % Rotation matrix from ECI to LVLH
-    R_eci2lvlh = [r_hat, t_hat, h_hat]';
+    R_eci2lvlh = [v_hat, h_hat, r_hat]';
 end
 
 function E = calculateError(xf, lambda_f, tf, target)  
@@ -274,14 +283,14 @@ global mu
     [a, e, i, ~, omega, nu] = rv2oe(xf(1:3), xf(4:6),target);
     
     % Calculate required position and velocity at nu
-    r_req = target.p/(1+e*)
+    r_req = target.p/(1+target.e*cos(nu));
     v_req = -sqrt(mu/target.p)*sin(nu)*target.rp_eci/norm(target.rp_eci) + (1- norm(target.rp_eci)*(1-cos(nu))/target.p)*target.vp_eci; 
     % Calculate error vector components
 
     E = zeros(7,1);
     
     E(1:3) = v_req - xf(4:6);  % Velocity error in ECI frame
-    E(4) = norm(xf(1:3)) - target.a*(1-target.e^2)/(1+target.e*cos(nu));  % Radius error
+    E(4) = r_req - norm(xf(1:3))   % Radius error
     E(5) = dot(cross(target.rp_eci, target.vp_eci)/norm(cross(target.rp_eci, target.vp_eci)), xf(1:3));  % Orbit plane error
     
     % Transversality condition using lambda in LVLH
@@ -290,7 +299,7 @@ global mu
     E(6) = dot(ABtf_lvlh, g_lvlh) - dot(B_lvlh, v_lvlh);
     
     % Normalization condition for lambda
-    E(7) = norm(ABtf_lvlh) - 1;  % Using A+B*tf part of lambda for normalization
+    E(7) = norm(ABtf_lvlh)-1;  % Using A+B*tf part of lambda for normalization
 end
 
 function J = calculateJacobian(r0, v0, A, B, tf, acc, dt, E0)
@@ -347,9 +356,9 @@ function alpha = lineSearch(r0, v0, A, B, tf, acc, dt, E0, J)
     
     while alpha > alpha_min
         % Try update with current alpha
-        A_new = A - alpha*delta(1:3);
-        B_new = B - alpha*delta(4:6);
-        tf_new = tf - alpha*delta(7);
+        A_new = A + alpha*delta(1:3);
+        B_new = B + alpha*delta(4:6);
+        tf_new = tf + alpha*delta(7);
         
         % Check new error
         [~, xf, lambda_f] = integrateTrajectory(r0, v0, A_new, B_new, tf_new, acc, dt);
@@ -387,10 +396,6 @@ function [a, e, i, Omega, omega, nu] = rv2oe(r, v, target)
         omega = 2*pi - omega;
     end
     
-    % nu = acos(dot(e_vec,r)/(e*norm(r)));  % this is TA of the thrusting orbit
-    % if dot(r,v) < 0
-    %     nu = 2*pi - nu;
-    % end
     % project x onto orbit ellipse to find nu
     vp_eci = norm(target.vp_eci);
     rp_eci = norm(target.rp_eci);
