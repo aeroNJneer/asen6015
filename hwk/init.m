@@ -218,6 +218,14 @@ rendezvous_vv = @(n,t) [cos(n*t) 2*sin(n*t) 0;
     -2*sin(n*t) 4*cos(n*t)-3 0;
     0 0 cos(n*t)];
 
+% ASEN 6015 Guidance
+
+zhat = @(r) -r/norm(r);                          % ECI to LVLH
+yhat = @(r,v) -cross(r,v)/norm(cross(r,v));      % ECI to LVLH @ tf
+xhat = @(y,z) cross(y,z)/norm(cross(y,z));       % ECI to LVLH
+
+lvlh2eci = @(z,y,x) [z y x];
+
 
 function [a,e,i,Raan,argument_of_periapsis,true_anomaly] = ECI2classical(position,velocity,mu)
 %this function converts position and velocity in ECI coordinate to for a
@@ -246,6 +254,8 @@ i = acos(u_H(3));
 % line of nodes
 n = cross([0 0 1],H);
 n = n/norm(n);
+
+
 
 if dot(position,velocity) > 0
     true_anomaly = acos(dot(u_e,position/norm(position)));
