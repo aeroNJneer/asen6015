@@ -68,33 +68,20 @@ tf = tf_guess;
 A_final = A0;
 B_final = B0;
 i = 1;
-%% Problem #2 Determine control law over time
-dt_guidance = 1; % 1 second update
-while i < tf_guess(end) 
-    remaining_time = tf_guess(end) - (i-1)*dt_guidance;
-    % predictor/corrector
-    [tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess(end), acc, dt);
-  %  tthrust total should be ~ 30 sec
-    Afinal(:,i) = A_final;
-    A = A_final;
-    Bfinal(:,i) = B_final;
-    B = B_final;
-        
-    % truth simulator - integrate over time of guidance (1 sec)
-    [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, dt_guidance, acc, dt); 
-    
-    x0 = x(:,end);
-    r0 = x0(1:3);
-    v0 = x0(4:6);
-    xfinal(:,i) = x0; 
 
-    tf_guess(i) = tf_final;
-    tf_final
-    i= i+1
+%% Problem #2 Determine control law over time
+
+% find optimal A,B using predictor/corrector
+[tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt);
+% integrate over optimal found above
+[tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt); 
+% does this land on the new orbit? 
+if abs(norm(x(4:6,end))-norm(target.vp_eci)) < 1e-8  % is velocity correct
+    if 
+        % extend simulation
+        [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
+    end
 end
-[tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_guess(end)-i, acc, dt); % integrate for remaining time
-xfinal(:,i) = x(:,end); 
-[t2, x2, lambda] = integrateTrajectory(xfinal(1:3,end), xfinal(4:6,end), A_final, B_final, 10*60, 0, dt);
 
 % Plot the resulting trajectory
 figure(3);
@@ -129,7 +116,7 @@ function [tf, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt
     v0 = x0(4:6);
     
     % Constants
-    tolerance = 1e-6;  % Convergence tolerance  -- Jens converges to 1e-10 in 12 r/n iterations
+    tolerance = 1e-6;  % Convergence toleranc
     max_iterations = 50;
     tf = tf_guess;
     
@@ -144,7 +131,6 @@ function [tf, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt
         E0_norm = norm(E);
         
         if E0_norm < tolerance || norm(E - E_previous) < tolerance
-            E0_norm
             break;
         end
         
@@ -158,20 +144,18 @@ function [tf, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt
         delta = -alpha * (pinv(J) *  E);
         
         dB = delta(1:3);
-        dABt = delta(4:6);
+        dA = delta(4:6);
         dtf = delta(7);
         
         % Update B directly
         B = B + dB;
         
         % Update A based on changes to A+B*tf and B
-        A = (A + B*tf + dABt) - (B + dB)*(tf + dtf);
+        A = A + dA;
         
         % Update tf
         tf = tf + dtf;
         E_previous = E;
-        iter
-        E0_norm
     end
     
     A_final = A;
@@ -353,11 +337,11 @@ function alpha = lineSearch(r0, v0, A, B, tf, acc, dt, E0, J)
     
     E0_norm = norm(E0);
     delta = -(pinv(J) * E0);
-    
+
     while alpha > alpha_min
         % Try update with current alpha
-        A_new = A + alpha*delta(1:3);
-        B_new = B + alpha*delta(4:6);
+        A_new = A + alpha*delta(4:6);
+        B_new = B + alpha*delta(1:3);
         tf_new = tf + alpha*delta(7);
         
         % Check new error
@@ -412,15 +396,15 @@ function [rp, vp] = getTargetPeriapseVectors(target)
     % Calculate in perifocal frame
     rp_pqw = target.rp_mag*[1; 0; 0];
     vp_pqw = target.vp_mag*[0; 1; 0];
-    omega = target.w;
-    i = target.i;
+    omega = -target.w;
+    i = -target.i;
     % Rotation matrices
-    R3_omega = [cos(omega) -sin(omega) 0;
-                sin(omega) cos(omega)  0;
+    R3_omega = [cos(omega) sin(omega) 0;
+                -sin(omega) cos(omega)  0;
                 0         0          1];
     R1_i = [1  0        0;
-            0  cos(i)  -sin(i);
-            0  sin(i)   cos(i)];
+            0  cos(i)  sin(i);
+            0  -sin(i)   cos(i)];
     
     % Transform to ECI
     R_pqw2eci = R3_omega*R1_i; % DCM

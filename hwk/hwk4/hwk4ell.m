@@ -92,9 +92,9 @@ while i < tf_guess(end)
     tf_final
     i= i+1
 end
-[tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_guess(end)-i, acc, dt); % integrate for remaining time
-xfinal(:,i) = x(:,end); 
-[t2, x2, lambda] = integrateTrajectory(xfinal(1:3,end), xfinal(4:6,end), A_final, B_final, 10*60, 0, dt);
+%[tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_guess(end)-i, acc, dt); % integrate for remaining time
+%xfinal(:,i) = x(:,end); 
+%[t2, x2, lambda] = integrateTrajectory(xfinal(1:3,end), xfinal(4:6,end), A_final, B_final, 10*60, 0, dt);
 
 % Plot the resulting trajectory
 figure(3);
@@ -178,7 +178,7 @@ function [tf, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt
     B_final = B;
 end
 
-function [t, y, lambda] = integrateTrajectory(r0, v0, A, B, tf, acc, dt)
+function [t, x, lambda] = integrateTrajectory(r0, v0, A, B, tf, acc, dt)
     global target
     % Options for ODE solver
     % options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
@@ -327,7 +327,7 @@ function J = calculateJacobian(r0, v0, A, B, tf, acc, dt, E0)
         A_perturbed = A;
         A_perturbed(i) = A(i) + epsilonA;
         
-        [~, xf, lambda_f] = integrateTrajectory(r0, v0, A_perturbed, B, tf, acc, dt);
+        [~, xf, 2] = integrateTrajectory(r0, v0, A_perturbed, B, tf, acc, dt);
         E_perturbed = calculateError(xf(:,end), lambda_f(:,end), tf, target);
 
         J(:,i+3) = (E_perturbed - E0)/epsilonA;
@@ -348,22 +348,22 @@ function alpha = lineSearch(r0, v0, A, B, tf, acc, dt, E0, J)
     alpha = 1.0;
     alpha_min = 1e-6;
     rho = 0.5;  % Reduction factor
-    c = 0.1;    % Sufficient decrease parameter
+    c = 1.;    % Sufficient decrease parameter
     
     E0_norm = norm(E0);
     delta = -(pinv(J) * E0);
     
     while alpha > alpha_min
         % Try update with current alpha
-        A_new = A + alpha*delta(1:3);
-        B_new = B + alpha*delta(4:6);
+        A_new = A + alpha*delta(4:6);
+        B_new = B + alpha*delta(1:3);
         tf_new = tf + alpha*delta(7);
         
         % Check new error
         [~, xf, lambda_f] = integrateTrajectory(r0, v0, A_new, B_new, tf_new, acc, dt);
         E_new = calculateError(xf(:,end), lambda_f(:,end), tf_new,target);
         
-        if norm(E_new) < (1 - c*alpha)*E0_norm
+        if norm(E_new) < alpha*E0_norm
             break;
         end
         
@@ -403,6 +403,7 @@ end
 
 function [rp, vp] = getTargetPeriapseVectors(target)
     % Calculate periapse position and velocity vectors for target orbit
+    init;
     global mu
     target.p = target.a*(1-target.e^2);
     target.rp_mag = target.p/(1+target.e);
@@ -413,6 +414,7 @@ function [rp, vp] = getTargetPeriapseVectors(target)
     vp_pqw = target.vp_mag*[0; 1; 0];
     omega = target.w;
     i = target.i;
+    raan = 0;
     % Rotation matrices
     R3_omega = [cos(omega) -sin(omega) 0;
                 sin(omega) cos(omega)  0;
@@ -422,7 +424,8 @@ function [rp, vp] = getTargetPeriapseVectors(target)
             0  sin(i)   cos(i)];
     
     % Transform to ECI
-    R_pqw2eci = R3_omega*R1_i; % DCM
+    %R_pqw2eci = R3_omega*R1_i; % DCM
+    R_pqw2eci = M3(-rad2deg(raan))*M1(-rad2deg(i))*M3(-rad2deg(omega));
     rp = R_pqw2eci*rp_pqw;
     vp = R_pqw2eci*vp_pqw;
 end
