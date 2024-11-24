@@ -82,7 +82,7 @@ i = 1;
 % does this land on the new orbit? 
 [af, ef, incf, raanf, wf, nuf] = rv2oe(x(1:3,end), x(4:6,end), target);
 if abs(norm(x(4:6,end))-norm(target.vp_eci)) < 1e-8  % is velocity correct
-   if abs(af-target.a) < 1e-4 && abs(ef-target.e) < 1e-8 %&& abs((raanf-wf)-target.lop)
+   if abs(af-target.a) < 1e-4 && abs(ef-target.e) < 1e-8 && abs((raanf-wf)-target.lop) <1e-2
         % extend simulation
         [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
    end
@@ -440,7 +440,7 @@ end
 
 % Function to analyze Monte Carlo results
 function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all)
-    global oef 
+    global oef target
     num_sims = size(xfinal_all, 2);
     
     % Calculate statistics
@@ -448,12 +448,31 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all)
     std_final_state = std(xfinal_all, 0, 2);
     mean_tf = mean(tf_final_all);
     std_tf = std(tf_final_all);
+
+    % analyze all orbital elements
     mean_final_oe = mean(oe_final_all,2);
-    errors_final_oe = oe_final_all - oef;
-    std_final_oe = std(oe_final_all,0,2);
+    errors_final_a = oe_final_all(1,:) - target.a;
+    std_final_a = std(oe_final_all(1,:));
+    errors_final_e = oe_final_all(2,:) - target.e;
+    std_final_e = std(oe_final_all(2,:));
+    
+    errors_final_i = oe_final_all(3,:) - target.i;
+    std_final_i = std(oe_final_all(3,:));
+
+    final_lop = (oe_final_all(4,:)+oe_final_all(5,:))-2*pi;
+    for i =1:length(final_lop )
+        if final_lop(i) > pi
+         final_lop(i) = final_lop(i)-pi;
+        end
+    end
+    mean_final_lop = mean(final_lop,2);
+    std_final_lop = std(final_lop);
+    errors_final_lop = final_lop - target.lop;
+    errors_final_nu = oe_final_all(6,:) - oef(6);
+    std_final_nu = std(oe_final_all(6,:));
     final_pos = xfinal_all(1:3,:);
     
-    errors_final_lop = errors_final_oe(4,:)-errors_final_oe(5,:);
+ %   errors_final_lop = errors_final_oe(4,:)-errors_final_oe(5,:);
     % Plot results
     figure;
     
@@ -472,7 +491,7 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all)
     ylabel('Count');
     
     subplot(2,1,2)
-    histogram(rad2deg(errors_final_oe(5,:)),50);
+    histogram(rad2deg(errors_final_nu),50);
     title('Insertion Error');
     xlabel('Tru anomaly (\nu) (deg)');
     ylabel('Count');
@@ -480,19 +499,19 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all)
 
     figure
     subplot(2,2,1)
-    histogram(errors_final_oe(1,:),50);
+    histogram(errors_final_a,50);
     title('Semi-major Axis Error');
     xlabel('SMA (\ita) Error (km)');
     ylabel('Count');
     grid on;
     subplot(2,2,2)
-    histogram(errors_final_oe(2,:), 50);
+    histogram(errors_final_e, 50);
     title('Eccentricity Error');
     xlabel('Eccentricity (\ite) Error');
     ylabel('Count');
     grid on;
     subplot(2,2,3)
-    histogram(rad2deg(errors_final_oe(3,:)),50);
+    histogram(rad2deg(errors_final_i),50);
     title('Inclination Error');
     xlabel('Inclination (\iti) Error (deg)');
     ylabel('Count');
@@ -513,10 +532,10 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all)
     fprintf('  Y: %.4f km\n', std_final_state(2,end));
     fprintf('  Z: %.4f km\n', std_final_state(3,end));
     fprintf('Target orbital elements dispersion (1σ):\n');
-    fprintf('  a: %.4f km\n', std_final_oe(1,end));
-    fprintf('  e: %.6f \n', std_final_oe(2,end));
-    fprintf('  i: %.4f deg\n', rad2deg(std_final_oe(3,end)));
-    fprintf('  LoP: %.4f deg\n', rad2deg(std_final_oe(4,end)));
-    fprintf('  TA: %.4f deg\n', rad2deg(std_final_oe(5,end)));
+    fprintf('  a: %.4f km\n', std_final_a);
+    fprintf('  e: %.6f \n', std_final_e);
+    fprintf('  i: %.4f deg\n', rad2deg(std_final_i));
+    fprintf('  LoP: %.4f deg\n', rad2deg(std_final_lop));
+    fprintf('  TA: %.4f deg\n', rad2deg(std_final_nu));
     
 end
