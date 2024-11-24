@@ -28,12 +28,17 @@ dt = 0.1;
 target.a = 10000;  % km
 target.i = 0;      % degrees
 target.e = 0.0001;
-target.w = 35 * pi/180;  % radians
+target.raan = 0;     % for equitorial orbits 
+target.w = 35 * pi/180;  % radians 
+target.lop = target.w + target.raan;
 % Calculate target orbit vectors
 [rp_eci, vp_eci] = getTargetPeriapseVectors(target);
 target.rp_eci = rp_eci;
 target.vp_eci = vp_eci;
 target.p = target.a*(1-target.e^2);
+
+
+
 % Initial guess for control parameters
 A = A0;  % Initial A guess in LVLH
 B = B0;  % Initial B guess in LVLH
@@ -70,20 +75,19 @@ B_final = B0;
 i = 1;
 
 %% Problem #2 Determine control law over time
-
-% find optimal A,B using predictor/corrector
+% find optimal A,B using predictor/correc-tor
 [tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt);
 % integrate over optimal found above
 [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt); 
 % does this land on the new orbit? 
-[af, ef, incf, ~, wf, nuf] = rv2oe(x(1:3,end), x(4:6,end), target);
+[af, ef, incf, raanf, wf, nuf] = rv2oe(x(1:3,end), x(4:6,end), target);
 if abs(norm(x(4:6,end))-norm(target.vp_eci)) < 1e-8  % is velocity correct
-   if abs(af-target.a) < 1e-4 && abs(ef-target.e) < 1e-8
+   if abs(af-target.a) < 1e-4 && abs(ef-target.e) < 1e-8 %&& abs((raanf-wf)-target.lop)
         % extend simulation
         [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
    end
 end
-oef = [af; ef; incf; wf; nuf];
+oef = [af; ef; incf; raanf; wf; nuf];
 
 % Plot the resulting trajectory
 figure(3);
@@ -117,7 +121,7 @@ hold off
 % plot with histograms 
 sigma_3 = 0.05;
 sigma_1 = sigma_3/3;
-num_runs = 50;
+num_runs = 100;
 guidance_update = 1;
 
 [xfinal_all, tf_final_all, oe] = runMonteCarlo(num_runs, x0, A_final, B_final, acc, sigma_1, tf_final,guidance_update);
@@ -133,7 +137,7 @@ function [tf, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt
     v0 = x0(4:6);
     
     % Constants
-    tolerance = 1e-6;  % Convergence toleranc
+    tolerance = 1e-10;  % Convergence toleranc
     max_iterations = 50;
     tf = tf_guess;
     
@@ -248,7 +252,7 @@ global mu
     target.vp_lvlh = R_eci2lvlh * target.vp_eci;
 
     % Calculate orbital elements from final state
-    [a, e, i, ~, omega, nu] = rv2oe(xf(1:3), xf(4:6),target);
+    [a, e, i, raan, omega, nu] = rv2oe(xf(1:3), xf(4:6),target);
     
     % Calculate required position and velocity at nu
     r_req = target.p/(1+target.e*cos(nu));
@@ -315,7 +319,7 @@ function alpha = lineSearch(r0, v0, A, B, tf, acc, dt, E0, J)
     global target
     % Line search to find step size that reduces error
     alpha = 1.0;
-    alpha_min = 1e-6;
+    alpha_min = 1e-8;
     rho = 0.5;  % Reduction factor
     c = 0.1;    % Sufficient decrease parameter
     
@@ -363,7 +367,6 @@ function [a, e, i, Omega, omega, nu] = rv2oe(r, v, target)
     if e_vec(3) < 0
         omega = 2*pi - omega;
     end
-    
     % project x onto orbit ellipse to find nu
     vp_eci = norm(target.vp_eci);
     rp_eci = norm(target.rp_eci);
@@ -426,13 +429,13 @@ function [xfinal_all, tf_final_all,oe] = runMonteCarlo(num_sims, x0, A, B, nomin
         % Store results for this Monte Carlo run
         xfinal_all(:,sim) = x(:,end);
         tf_final_all(sim) = tf_guess;
-        [a(sim), e(sim), i(sim), ~, w(sim), nu(sim)] = rv2oe(x(1:3,end), x(4:6,end), target);
+        [a(sim), e(sim), i(sim), raan(sim), w(sim), nu(sim)] = rv2oe(x(1:3,end), x(4:6,end), target);
         % Display progress
         if mod(sim,10) == 0
             fprintf('Completed Monte Carlo run %d of %d\n', sim, num_sims);
         end
     end
-    oe = [a; e ;i ;w; nu];
+    oe = [a; e ;i ;raan; w; nu];
 end
 
 % Function to analyze Monte Carlo results
@@ -445,12 +448,12 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all)
     std_final_state = std(xfinal_all, 0, 2);
     mean_tf = mean(tf_final_all);
     std_tf = std(tf_final_all);
+    mean_final_oe = mean(oe_final_all,2);
     errors_final_oe = oe_final_all - oef;
-    mean_final_oe = mean(oe_final_all,1);
     std_final_oe = std(oe_final_all,0,2);
-
     final_pos = xfinal_all(1:3,:);
     
+    errors_final_lop = errors_final_oe(4,:)-errors_final_oe(5,:);
     % Plot results
     figure;
     
@@ -461,42 +464,59 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all)
     grid on;
     
     figure;
+    subplot(2,1,1)
     % Time-to-go histogram
-    histogram(tf_final_all);
-    title('Final Time Distribution');
-    xlabel('Time (s)');
+    histogram(tf_final_all,50);
+    title('Thrust Cutoff Time Distribution');
+    xlabel('Thrust cutoff Time (s)')
     ylabel('Count');
     
+    subplot(2,1,2)
+    histogram(rad2deg(errors_final_oe(5,:)),50);
+    title('Insertion Error');
+    xlabel('Tru anomaly (\nu) (deg)');
+    ylabel('Count');
+    grid on;
+
     figure
     subplot(2,2,1)
-    histogram(errors_final_oe(1,:));
+    histogram(errors_final_oe(1,:),50);
     title('Semi-major Axis Error');
-    xlabel('SMA Error (km)');
+    xlabel('SMA (\ita) Error (km)');
     ylabel('Count');
     grid on;
     subplot(2,2,2)
-    histogram(errors_final_oe(2,:));
+    histogram(errors_final_oe(2,:), 50);
     title('Eccentricity Error');
-    xlabel('Eccentricity Error');
+    xlabel('Eccentricity (\ite) Error');
     ylabel('Count');
     grid on;
     subplot(2,2,3)
-    histogram(errors_final_oe(3,:));
+    histogram(rad2deg(errors_final_oe(3,:)),50);
     title('Inclination Error');
-    xlabel('Inclination Error (km)');
+    xlabel('Inclination (\iti) Error (deg)');
     ylabel('Count');
     grid on;
     subplot(2,2,4)
-    histogram(rad2deg(errors_final_oe(4,:)));
-    title('Arg of Periapsis Error');
-    xlabel('\omega (deg)');
+    histogram(rad2deg(errors_final_lop),50);
+    title('Longitude of Periapsis Error');
+    xlabel('LoP ($\bar{\omega}$) (deg)', Interpreter='latex');
     ylabel('Count');
     grid on;
+
+
     % Print summary statistics
     fprintf('\nMonte Carlo Results Summary (%d runs):\n', num_sims);
-    fprintf('Mean final time: %.2f s (σ = %.2f s)\n', mean_tf, std_tf);
+    fprintf('Mean final time: %.4f s (σ = %.4f s)\n', mean_tf, std_tf);
     fprintf('Final position dispersion (1σ):\n');
-    fprintf('  X: %.2f m\n', std_final_state(1,end));
-    fprintf('  Y: %.2f m\n', std_final_state(2,end));
-    fprintf('  Z: %.2f m\n', std_final_state(3,end));
+    fprintf('  X: %.4f km\n', std_final_state(1,end));
+    fprintf('  Y: %.4f km\n', std_final_state(2,end));
+    fprintf('  Z: %.4f km\n', std_final_state(3,end));
+    fprintf('Target orbital elements dispersion (1σ):\n');
+    fprintf('  a: %.4f km\n', std_final_oe(1,end));
+    fprintf('  e: %.6f \n', std_final_oe(2,end));
+    fprintf('  i: %.4f deg\n', rad2deg(std_final_oe(3,end)));
+    fprintf('  LoP: %.4f deg\n', rad2deg(std_final_oe(4,end)));
+    fprintf('  TA: %.4f deg\n', rad2deg(std_final_oe(5,end)));
+    
 end
