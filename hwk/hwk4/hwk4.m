@@ -78,34 +78,41 @@ i = 1;
 [tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt);
 
 % integrate over optimal found above
-[tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt); 
+dt_guidance = 1;
 
-% does this land on the new orbit? 
-E = calculateFinalErrors(x, target);
+for i = 1:floor(tf_final)-4
+    [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, dt_guidance, acc, dt_guidance/20); 
+    r0 = x(1:3,end);
+    v0 = x(4:6,end);
+    Eg(i) = calculateFinalErrors(x(:,end), target);
+end
 
+% are we close to the target orbit
 if (abs(E.vp) < 1e-8)  && (abs(E.a) < 1e-8) && (abs(E.e) < 1e-8) && (abs(E.lop) <1e-2)
     % extend simulation
     [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
 end
 
 % now do a step by step guidance loop
+% 
+% dt_guidance = 1;
+% 
+% while i < tf_guess(1) -4
+%     [tf_final, A_final, B_final] = predictorCorrector(x0, A(:,end), B(:,end), tf_guess(end), acc, dt);
+%     A(:,i) = A_final;
+%     B(:,i) = B_final;
+%     tf_guess(i) = tf_final;
+%     [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, dt_guidance, acc, dt); 
+%     Ei(i) = calculateFinalErrors(x,target);
+%     tfi(i) = tf_final;    
+%     x0 = x(:,end);
+%     r0 = x0(1:3);
+%     v0 = x0(4:6);
+%     i = i+1
+% end
+%     [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
 
 
-dt_guidance = 1;
-
-while i < tf_guess(end) - 2
-    [tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt);
-    A = A_final;
-    B = B_final;
-    tf_guess = tf_final;
-    [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt); 
-    i = i+1;
-    Ei(i) = calculateFinalErrors(x,target);
-    tfi(i) = tf_final;
-end
-    [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
-
-Eg = calculateFinalErrors(x, target);
 % Plot the resulting trajectory
 figure(3);
 plot3(x(1,:), x(2,:), x(3,:), DisplayName="Burn time");
