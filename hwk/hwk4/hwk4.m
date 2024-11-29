@@ -1,5 +1,5 @@
 clear
-%clc
+clc
 close all
 init;
 set(0,'DefaultAxesXGrid','on', ...
@@ -12,7 +12,7 @@ set(groot, 'defaultAxesFontSize',12, ...
     'defaultAxesTitleFontSizeMultiplier', 1.5, ...
     'defaultAxesTitleFontSizeMultiplier', 1.2);
 
-global target mu A0 B0 oef E
+global target mu A0 B0 nuf E
 
 mu = Gearth;
 A0 = [1;0;0];
@@ -79,16 +79,11 @@ i = 1;
 [tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt);
 
 % integrate over optimal found above
-dt_guidance = 1;
-
-for i = 1:floor(tf_final)-4
-    [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, dt_guidance, acc, dt_guidance/20); 
-    r0 = x(1:3,end);
-    v0 = x(4:6,end);
+    [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt); 
     Eg(i) = calculateFinalErrors(x(:,end), target);
-end
-
-% are we close to the target orbit
+%end
+[~,~,~,~,~,nuf] = rv2oe(x(1:3,end),x(4:6,end),target)
+% are we close to the target orbit?
 if (abs(E.vp) < 1e-8)  && (abs(E.a) < 1e-8) && (abs(E.e) < 1e-8) && (abs(E.lop) <1e-2)
     % extend simulation
     [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
@@ -468,7 +463,7 @@ end
 
 % Function to analyze Monte Carlo results
 function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all, errors)
-    global oef target
+    global nuf target
     num_sims = size(xfinal_all, 2);
     
     % Calculate statistics
@@ -479,13 +474,13 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all, errors)
 
     % analyze all orbital elements
     mean_final_oe = mean(oe_final_all,2);
-    mean_final_a = mean([errors.a]);
-    errors_final_a = oe_final_all(1,:) - target.a;
+    mean_final_a = mean(oe_final_all(1,:));
+    errors_final_a = [errors.a];
     std_final_a = std(oe_final_all(1,:));
-    errors_final_e = oe_final_all(2,:) - target.e;
+    errors_final_e = [errors.e];
     std_final_e = std(oe_final_all(2,:));
     
-    errors_final_i = oe_final_all(3,:) - target.i;
+    errors_final_i = [errors.i];
     std_final_i = std(oe_final_all(3,:));
 
     final_lop = (oe_final_all(4,:)+oe_final_all(5,:))-2*pi;
@@ -497,7 +492,7 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all, errors)
     mean_final_lop = mean(final_lop,2);
     std_final_lop = std(final_lop);
     errors_final_lop = final_lop - target.lop;
-    errors_final_nu = oe_final_all(6,:) - oef(6);
+    errors_final_nu = oe_final_all(6,:) - nuf;
     std_final_nu = std(oe_final_all(6,:));
     final_pos = xfinal_all(1:3,:);
     
@@ -552,7 +547,6 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all, errors)
     ylabel('Count');
     grid on;
 
-
     % Print summary statistics
     fprintf('\nMonte Carlo Results Summary (%d runs):\n', num_sims);
     fprintf('Mean final time: %.4f s (σ = %.4f s)\n', mean_tf, std_tf);
@@ -566,7 +560,6 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all, errors)
     fprintf('  i: %.4f deg\n', rad2deg(std_final_i));
     fprintf('  LoP: %.4f deg\n', rad2deg(std_final_lop));
     fprintf('  TA: %.4f deg\n', rad2deg(std_final_nu));
-    
 end
 
 function E = calculateFinalErrors(x, target)
