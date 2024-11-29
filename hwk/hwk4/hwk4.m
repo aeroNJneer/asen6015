@@ -38,7 +38,6 @@ target.vp_eci = vp_eci;
 target.p = target.a*(1-target.e^2);
 
 
-
 % Initial guess for control parameters
 A = A0;  % Initial A guess in LVLH
 B = B0;  % Initial B guess in LVLH
@@ -46,6 +45,7 @@ B = B0;  % Initial B guess in LVLH
 %% Problem #1 Plot trajectory with no correction
 [t1, r] = integrateTrajectory(r0, v0, A, B, tf_guess, acc, dt);
 [t2, r2] = integrateTrajectory(r(1:3,end), r(4:6,end), A, B, 60*60, 0, dt);
+[ai, ei, ii, raani, wi, ~] = rv2oe(r(1:3,end), r(4:6,end), target)
 
 % Plot the resulting trajectory
 figure(1);
@@ -88,6 +88,8 @@ if abs(norm(x(4:6,end))-norm(target.vp_eci)) < 1e-8  % is velocity correct
    end
 end
 oef = [af; ef; incf; raanf; wf; nuf];
+
+% Calculate final errors
 
 % Plot the resulting trajectory
 figure(3);
