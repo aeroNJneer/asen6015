@@ -57,9 +57,7 @@ title('Trajectory During Burn with no Correction');
 hold off
 legend('Location','best')
 
-% Plot the 
-% 
-% resulting trajectory
+% Plot the resulting trajectory
 figure;
 plot3(r(1,:), r(2,:), r(3,:), DisplayName="Burn time");
 hold on;
