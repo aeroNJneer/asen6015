@@ -45,7 +45,7 @@ B = B0;  % Initial B guess in LVLH
 %% Problem #1 Plot trajectory with no correction
 [t1, r] = integrateTrajectory(r0, v0, A, B, tf_guess, acc, dt);
 [t2, r2] = integrateTrajectory(r(1:3,end), r(4:6,end), A, B, 60*60, 0, dt);
-[ai, ei, ii, raani, wi, ~] = rv2oe(r(1:3,end), r(4:6,end), target)
+[ai, ei, ii, raani, wi, ~] = rv2oe(r(1:3,end), r(4:6,end), target);
 
 % Plot the resulting trajectory
 figure;
@@ -82,7 +82,7 @@ i = 1;
     [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt); 
     Eg(i) = calculateFinalErrors(x(:,end), target);
 %end
-[~,~,~,~,~,nuf] = rv2oe(x(1:3,end),x(4:6,end),target)
+[~,~,~,~,~,nuf] = rv2oe(x(1:3,end),x(4:6,end),target);
 % are we close to the target orbit?
 if (abs(Eg.vp) < 1e-8)  && (abs(Eg.a) < 1e-8) && (abs(Eg.e) < 1e-8) && (abs(Eg.lop) <1e-2)
     % extend simulation
@@ -508,7 +508,6 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all, errors)
     
     errors_final_i = [errors.i];
     std_final_i = std(oe_final_all(3,:));
-
     final_lop = (oe_final_all(4,:)+oe_final_all(5,:))-2*pi;
     for i =1:length(final_lop )
         if final_lop(i) > pi
@@ -522,7 +521,6 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all, errors)
     std_final_nu = std(oe_final_all(6,:));
     final_pos = xfinal_all(1:3,:);
     
- %   errors_final_lop = errors_final_oe(4,:)-errors_final_oe(5,:);
     % Plot results
     figure;
     
@@ -579,7 +577,15 @@ function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all, errors)
     fprintf('Final position standard deviation:\n');
     fprintf('  X: %.4f km\n', std_final_state(1,end));
     fprintf('  Y: %.4f km\n', std_final_state(2,end));
-    fprintf('  Z: %.4f km\n', std_final_state(3,end));
+    fprintf('  Z: %.4f km\n', std_final_state(3,end));    
+    
+    fprintf('Target orbital elements mean error values:\n');
+    fprintf('  a: %.4f km\n', mean([errors.a]));
+    fprintf('  e: %.6f \n', mean([errors.e]));
+    fprintf('  i: %.4f deg\n', rad2deg(mean([errors.i])));
+    fprintf('  LoP: %.4f deg\n', rad2deg(mean([errors.lop])));
+    fprintf('  TA: %.4f deg\n', rad2deg(mean(errors_final_nu)));
+
     fprintf('Target orbital elements standard deviation:\n');
     fprintf('  a: %.4f km\n', std_final_a);
     fprintf('  e: %.6f \n', std_final_e);

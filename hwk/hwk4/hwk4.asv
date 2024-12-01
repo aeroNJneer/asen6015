@@ -1,0 +1,607 @@
+clear
+clc
+close all
+init;
+set(0,'DefaultAxesXGrid','on', ...
+    'DefaultAxesYGrid','on', ...
+    'DefaultLineLineWidth',2, ...
+    'DefaultAxesLineWidth',1.5);
+set(groot, 'defaultAxesFontSize',12, ...
+    'defaultTextFontSize',12, ...
+    'defaultLegendFontSize',14, ...
+    'defaultAxesTitleFontSizeMultiplier', 1.5, ...
+    'defaultAxesTitleFontSizeMultiplier', 1.2);
+
+global target mu A0 B0 nuf E
+
+mu = Gearth;
+A0 = [1;0;0];
+B0 = [0;0;0];
+r0 = [8276; 5612; 5];
+v0 = [-3.142; 4.672; 0];
+t0 = 0;
+x0 = [r0;v0];  % Initial state
+tf_guess = 23;  % Initial time guess
+acc = 0.03;     % 30 m/s^2 in km/s^2
+dt = 0.1;
+% Target orbit parameters
+
+target.a = 10000;  % km
+target.i = 0;      % degrees
+target.e = 0.0001;
+target.raan = 0;     % for equitorial orbits 
+target.w = 35 * pi/180;  % radians 
+target.lop = target.w + target.raan;
+% Calculate target orbit vectors
+[rp_eci, vp_eci] = getTargetPeriapseVectors(target);
+target.rp_eci = rp_eci;
+target.vp_eci = vp_eci;
+target.p = target.a*(1-target.e^2);
+
+% Initial guess for control parameters
+A = A0;  % Initial A guess in LVLH
+B = B0;  % Initial B guess in LVLH
+
+%% Problem #1 Plot trajectory with no correction
+[t1, r] = integrateTrajectory(r0, v0, A, B, tf_guess, acc, dt);
+[t2, r2] = integrateTrajectory(r(1:3,end), r(4:6,end), A, B, 60*60, 0, dt);
+[ai, ei, ii, raani, wi, ~] = rv2oe(r(1:3,end), r(4:6,end), target);
+
+% Plot the resulting trajectory
+figure;
+plot3(r(1,:), r(2,:), r(3,:), DisplayName="Burn time");
+xlabel('X (km)');
+ylabel('Y (km)');
+zlabel('Z (km)');
+title('Trajectory During Burn with no Correction');
+hold off
+legend('Location','best')
+
+% Plot the resulting trajectory
+figure;
+plot3(r(1,:), r(2,:), r(3,:), DisplayName="Burn time");
+hold on;
+plot3(r2(1,:), r2(2,:), r2(3,:), DisplayName="Post burn coasting");
+xlabel('X (km)');
+ylabel('Y (km)');
+zlabel('Z (km)');
+title('Trajectory of the Spacecraft with no Correction');
+hold off
+legend('Location','best')
+% 
+tf = tf_guess;
+A_final = A0;
+B_final = B0;
+i = 1;
+
+%% Problem #2 Determine control law over time
+% find optimal A,B using predictor/correc-tor
+[tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt);
+
+% integrate over optimal found above
+    [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc, dt); 
+    Eg(i) = calculateFinalErrors(x(:,end), target);
+%end
+[~,~,~,~,~,nuf] = rv2oe(x(1:3,end),x(4:6,end),target);
+% are we close to the target orbit?
+if (abs(Eg.vp) < 1e-8)  && (abs(Eg.a) < 1e-8) && (abs(Eg.e) < 1e-8) && (abs(Eg.lop) <1e-2)
+    % extend simulation
+    [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
+end
+
+% now do a step by step guidance loop
+% 
+% dt_guidance = 1;
+% 
+% while i < tf_guess(1) -4
+%     [tf_final, A_final, B_final] = predictorCorrector(x0, A(:,end), B(:,end), tf_guess(end), acc, dt);
+%     A(:,i) = A_final;
+%     B(:,i) = B_final;
+%     tf_guess(i) = tf_final;
+%     [tf, x, lambda] = integrateTrajectory(r0, v0, A_final, B_final, dt_guidance, acc, dt); 
+%     Ei(i) = calculateFinalErrors(x,target);
+%     tfi(i) = tf_final;    
+%     x0 = x(:,end);
+%     r0 = x0(1:3);
+%     v0 = x0(4:6);
+%     i = i+1
+% end
+%     [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
+% 
+% Calculate final errors
+figure;
+for i = 1:length(x)
+   Ef(i) = calculateFinalErrors(x(:,i),target);
+   yyaxis  left;
+   ylabel('Semi-major Axis (km)')
+
+   plot(tf(i),Ef(i).a,'b.')
+   yyaxis right
+   ylabel('Latitude of Periapse (rad)')
+   plot( tf(i),Ef(i).lop,'g.')
+   hold on;
+end
+   title('SMA and Longitude of Periapse Error through Burn')
+   xlabel('Time (s)')
+   legend('Semi-major Axis', 'Longitude of Periapse', 'Location','best')
+hold off;
+
+figure;
+for i = 1:length(x)
+   plot(tf(i), Ef(i).e,'b.', tf(i), Ef(i).nu,'r.', tf(i),Ef(i).i,'k.');
+   hold on;
+end
+   title('Eccentricity, Inclination Errors and True Anomaly');
+   xlabel('Time (s)');
+   ylabel('Orbital Elements')
+    ylim([-0.05 0.3]);
+    legend('Eccentricity Error','Inclination Error', 'True Anomaly', 'Location','best');
+
+% Plot the resulting trajectory
+figure;
+plot3(x(1,:), x(2,:), x(3,:), DisplayName="Burn time");
+hold on;
+plot3(x2(1,:), x2(2,:), x2(3,:), DisplayName="Post burn coasting");
+plot3(x(1,1),x(2,1),x(3,1),'o' , DisplayName="Start of burn")
+plot3(x(1,end),x(2,end),x(3,end), 'o',DisplayName="End of burn")
+xlabel('X (km)');
+ylabel('Y (km)');
+zlabel('Z (km)');
+title('Trajectory of the Spacecraft with Correction');
+hold off
+legend('Location','best')
+
+figure;
+plot3(x(1,:), x(2,:), x(3,:), DisplayName="Burn time");
+hold on;
+xlabel('X (km)');
+ylabel('Y (km)');
+zlabel('Z (km)');
+plot3(x(1,1),x(2,1),x(3,1),'o' , DisplayName="Start of burn")
+plot3(x(1,end),x(2,end),x(3,end), 'o',DisplayName="End of burn")
+title('Trajectory During Burn with Correction');
+legend('Location','best')
+hold off
+
+%% Problem #3  Add thrust dispersion to the state
+% find mean and std of errors in the targeted orbital elements
+% and the injection true anomaly and burn time
+% plot with histograms 
+sigma_3 = 0.05;
+sigma_1 = sigma_3/3;
+num_runs = 100;
+guidance_update = 1;
+
+[xfinal_all, tf_final_all, oe, errors_all] = runMonteCarlo(num_runs, x0, A_final, B_final, acc, sigma_1, tf_final,guidance_update);
+
+% Analyze results
+analyzeMonteCarlo(xfinal_all, tf_final_all, oe, errors_all);
+  
+
+function [tf, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess, acc, dt)
+    global target mu
+    % Initial conditions
+    r0 = x0(1:3);
+    v0 = x0(4:6);
+    
+    % Constants
+    tolerance = 1e-10;  % Convergence toleranc
+    max_iterations = 50;
+    tf = tf_guess;
+    
+    E_previous = 0;
+    % Main predictor-corrector loop
+    for iter = 1:max_iterations
+        % Predict step - Integrate nominal trajectory
+        [t, x, lambda] = integrateTrajectory(r0, v0, A, B, tf, acc, dt);
+        
+        % Calculate error vector
+        E = calculateError(x(:,end), lambda(:,end), tf, target);
+        E0_norm = norm(E);
+        
+        if E0_norm < tolerance || norm(E - E_previous) < tolerance
+            break;
+        end
+        
+        % Calculate Jacobian through finite differencing
+        J = calculateJacobian(r0, v0, A, B, tf, acc, dt, E);
+        
+        % Update control parameters using line search
+        alpha = lineSearch(r0, v0, A, B, tf, acc, dt, E, J);
+        
+        % Apply updates with line search parameter
+        delta = -alpha * (pinv(J) *  E);
+        
+        dB = delta(1:3);
+        dA = delta(4:6);
+        dtf = delta(7);
+        
+        % Update B directly
+        B = B + dB;
+        
+        % Update A based on changes to A+B*tf and B
+        A = A + dA;
+        
+        % Update tf
+        tf = tf + dtf;
+        E_previous = E;
+    end
+    
+    A_final = A;
+    B_final = B;
+end
+
+function [t, y, lambda] = integrateTrajectory(r0, v0, A, B, tf, acc, dt)
+    global target
+    % Options for ODE solver
+    options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
+    
+    % Integrate the equations of motion
+    [t, y] = ode45(@(t, y) dynamics(t, y, A, B, tf, acc), [0 tf], [r0;v0], options);
+    lambda = [B;A+B*tf;tf];
+    y = y';
+end
+
+function dxdt = dynamics(t, state, A, B, tf, acc)
+    global mu
+    % Unpack state
+    r = state(1:3);
+    v = state(4:6);
+    
+    % Calculate LVLH frame
+    R_eci2lvlh = calculateLVLHFrame(r, v);
+    R_lvlh2eci = R_eci2lvlh';
+    
+    % Current control direction in LVLH
+    u_lvlh = (A + B*t)/norm(A + B*t);
+    
+    % Convert control to ECI
+    u_eci = R_lvlh2eci * u_lvlh;
+    
+    % Gravitational acceleration
+    g_eci = -mu*r/norm(r)^3;
+    
+    % State derivatives
+    dr = v;
+    dv = g_eci + acc*u_eci;
+    
+    dxdt = [dr; dv];
+end
+
+function R_eci2lvlh = calculateLVLHFrame(r, v)
+    % Calculate LVLH frame vectors
+    h = cross(r, v);
+    
+    % Unit vectors
+    r_hat = r / norm(r); % z
+    h_hat = h / norm(h); % y
+    v_hat = cross(h_hat, r_hat); % x
+    
+    % Rotation matrix from ECI to LVLH
+    R_eci2lvlh = [v_hat, h_hat, r_hat];
+end
+
+function E = calculateError(xf, lambda_f, tf, target)  
+global mu    
+% Extract components from lambda
+    B_lvlh = lambda_f(1:3);
+    ABtf_lvlh = lambda_f(4:6);
+    tf = lambda_f(7);
+
+   % Calculate LVLH frame for final state
+    R_eci2lvlh = calculateLVLHFrame(xf(1:3), xf(4:6));
+    R_lvlh2eci = R_eci2lvlh';
+
+    % Convert velocity to LVLH for error calculation
+    v_lvlh = R_eci2lvlh * xf(4:6);
+    
+    % Convert target velocity to LVLH
+    target.rp_lvlh = R_eci2lvlh * target.rp_eci;
+    target.vp_lvlh = R_eci2lvlh * target.vp_eci;
+
+    % Calculate orbital elements from final state
+    [a, e, i, raan, omega, nu] = rv2oe(xf(1:3), xf(4:6),target);
+    
+    % Calculate required position and velocity at nu
+    r_req = target.p/(1+target.e*cos(nu));
+    v_req = -sqrt(mu/target.p)*sin(nu)*target.rp_eci/norm(target.rp_eci) + (1- norm(target.rp_eci)*(1-cos(nu))/target.p)*target.vp_eci; 
+    % Calculate error vector components
+
+    E = zeros(7,1);
+    
+    E(1:3) = v_req - xf(4:6);  % Velocity error in ECI frame
+    E(4) = r_req - norm(xf(1:3)) ;  % Radius error
+    E(5) = dot(cross(target.rp_eci, target.vp_eci)/norm(cross(target.rp_eci, target.vp_eci)), xf(1:3));  % Orbit plane error
+    
+    % Transversality condition using lambda in LVLH
+    g_eci = -mu*xf(1:3)/norm(xf(1:3))^3;
+    g_lvlh = R_eci2lvlh * g_eci;
+    E(6) = dot(ABtf_lvlh, g_lvlh) - dot(B_lvlh, v_lvlh);
+    
+    % Normalization condition for lambda
+    E(7) = norm(ABtf_lvlh)-1;  % Using A+B*tf part of lambda for normalization
+end
+
+function J = calculateJacobian(r0, v0, A, B, tf, acc, dt, E0)
+    global target
+    % Calculate Jacobian through forward finite differencing for lambda = [B; A+B*tf; tf]
+    epsilonA = 0.1;
+    epsilonB = 0.01;
+    epsilonTf = 0.1;
+    n_params = 7;  % 3 for B, 3 for A+B*tf, 1 for tf
+    J = zeros(length(E0), n_params);
+    
+    % Perturb B components 
+    for i = 1:3
+        B_perturbed = B;
+        B_perturbed(i) = B(i) + epsilonB;
+        
+        [~, xf, lambda_f] = integrateTrajectory(r0, v0, A, B_perturbed, tf, acc, dt);
+        E_perturbed = calculateError(xf(:,end), lambda_f(:,end), tf, target);
+
+        J(:,i) = (E_perturbed - E0)/epsilonB;
+    end
+    
+    % Perturb A components 
+    for i = 1:3
+        % Calculate new A for perturbed A+B*tf
+        A_perturbed = A;
+        A_perturbed(i) = A(i) + epsilonA;
+        
+        [~, xf, lambda_f] = integrateTrajectory(r0, v0, A_perturbed, B, tf, acc, dt);
+        E_perturbed = calculateError(xf(:,end), lambda_f(:,end), tf, target);
+
+        J(:,i+3) = (E_perturbed - E0)/epsilonA;
+    end
+    
+    % Perturb tf 
+    tf_perturbed = tf + epsilonTf;
+    
+    [~, xf, lambda_f] = integrateTrajectory(r0, v0, A, B, tf_perturbed, acc, dt);
+    E_perturbed = calculateError(xf(:,end), lambda_f(:,end), tf_perturbed, target);
+     
+    J(:,7) = (E_perturbed - E0)/epsilonTf;
+end
+
+function alpha = lineSearch(r0, v0, A, B, tf, acc, dt, E0, J)
+    global target
+    % Line search to find step size that reduces error
+    alpha = 1.0;
+    alpha_min = 1e-8;
+    rho = 0.5;  % Reduction factor
+    c = 0.1;    % Sufficient decrease parameter
+    
+    E0_norm = norm(E0);
+    delta = -(pinv(J) * E0);
+
+    while alpha > alpha_min
+        % Try update with current alpha
+        A_new = A + alpha*delta(4:6);
+        B_new = B + alpha*delta(1:3);
+        tf_new = tf + alpha*delta(7);
+        
+        % Check new error
+        [~, xf, lambda_f] = integrateTrajectory(r0, v0, A_new, B_new, tf_new, acc, dt);
+        E_new = calculateError(xf(:,end), lambda_f(:,end), tf_new,target);
+        
+        if norm(E_new) < (1 - c*alpha)*E0_norm
+            break;
+        end
+        
+        alpha = rho*alpha;
+    end
+    
+    if alpha <= alpha_min
+        alpha = alpha_min;
+    end
+end
+
+function [a, e, i, Omega, omega, nu] = rv2oe(r, v, target)
+    % Convert state vectors to orbital elements
+    global mu 
+    h = cross(r, v);
+    n = cross([0; 0; 1], h);
+    e_vec = cross(v, h)/mu - r/norm(r);
+    e = norm(e_vec);
+    a = 1/(2/norm(r) - dot(v,v)/mu);
+    
+    i = acos(h(3)/norm(h));
+    Omega = acos(n(1)/norm(n));
+    if n(2) < 0
+        Omega = 2*pi - Omega;
+    end
+    
+    omega = acos(dot(n,e_vec)/(norm(n)*e));
+    if e_vec(3) < 0
+        omega = 2*pi - omega;
+    end
+    % project x onto orbit ellipse to find nu
+    vp_eci = norm(target.vp_eci);
+    rp_eci = norm(target.rp_eci);
+    nu = atan2(dot(r,(target.vp_eci/vp_eci)),dot(r,(target.rp_eci/rp_eci)));
+end
+
+function [rp, vp] = getTargetPeriapseVectors(target)
+    % Calculate periapse position and velocity vectors for target orbit
+    global mu
+    target.p = target.a*(1-target.e^2);
+    target.rp_mag = target.p/(1+target.e);
+    target.vp_mag = sqrt(mu*(2/target.rp_mag - 1/target.a));
+    
+    % Calculate in perifocal frame
+    rp_pqw = target.rp_mag*[1; 0; 0];
+    vp_pqw = target.vp_mag*[0; 1; 0];
+    omega = -target.w;
+    i = -target.i;
+    % Rotation matrices
+    R3_omega = [cos(omega) sin(omega) 0;
+                -sin(omega) cos(omega)  0;
+                0         0          1];
+    R1_i = [1  0        0;
+            0  cos(i)  sin(i);
+            0  -sin(i)   cos(i)];
+    
+    % Transform to ECI
+    R_pqw2eci = R3_omega*R1_i; % DCM
+    rp = R_pqw2eci*rp_pqw;
+    vp = R_pqw2eci*vp_pqw;
+end
+
+function [xfinal_all, tf_final_all, oe, Es] = runMonteCarlo(num_sims, x0, A, B, nominal_acc, thrust_1sigma, tf_initial_guess, guidance_dt)
+    global target mu 
+    max_iterations = 100;
+    r0 = x0(1:3);
+    v0 = x0(4:6);
+    dt = 0.1;
+
+    % Run Monte Carlo simulations
+    for sim = 1:num_sims
+        % Generate random thrust scaling for this simulation
+        thrust_scale = 1 + randn * thrust_1sigma;
+        acc_dispersed = nominal_acc * thrust_scale;
+        
+        % Initialize variables for this run
+        tf_guess = tf_initial_guess;
+            
+        % Predictor/corrector with remaining time
+        % Note: predictor uses nominal thrust for planning
+        [tf_final, A_final, B_final] = predictorCorrector(x0, A, B, tf_guess(end), nominal_acc, dt);
+                
+        % Truth simulator with dispersed thrust
+        [tf, x, ~] = integrateTrajectory(r0, v0, A_final, B_final, tf_final, acc_dispersed, dt);
+        
+        % Update state
+        r0 = x0(1:3);
+        v0 = x0(4:6);
+        
+        % Store results for this Monte Carlo run
+        xfinal_all(:,sim) = x(:,end);
+        tf_final_all(sim) = tf_guess;
+        [a(sim), e(sim), i(sim), raan(sim), w(sim), nu(sim)] = rv2oe(x(1:3,end), x(4:6,end), target);
+        Es(sim) = calculateFinalErrors(x,target);
+        % Display progress
+        if mod(sim,10) == 0
+            fprintf('Completed Monte Carlo run %d of %d\n', sim, num_sims);
+        end
+    end
+    oe = [a; e ;i ;raan; w; nu];
+end
+
+% Function to analyze Monte Carlo results
+function analyzeMonteCarlo(xfinal_all, tf_final_all, oe_final_all, errors)
+    global nuf target
+    num_sims = size(xfinal_all, 2);
+    
+    % Calculate statistics
+    mean_final_state = mean(xfinal_all, 2);
+    std_final_state = std(xfinal_all, 0, 2);
+    mean_tf = mean(tf_final_all);
+    std_tf = std(tf_final_all);
+
+    % analyze all orbital elements
+    mean_final_oe = mean(oe_final_all,2);
+    mean_final_a = mean(oe_final_all(1,:));
+    errors_final_a = [errors.a];
+    std_final_a = std(oe_final_all(1,:));
+    errors_final_e = [errors.e];
+    std_final_e = std(oe_final_all(2,:));
+    
+    errors_final_i = [errors.i];
+    std_final_i = std(oe_final_all(3,:));
+    final_lop = (oe_final_all(4,:)+oe_final_all(5,:))-2*pi;
+    for i =1:length(final_lop )
+        if final_lop(i) > pi
+         final_lop(i) = final_lop(i)-pi;
+        end
+    end
+    mean_final_lop = mean(final_lop,2);
+    std_final_lop = std(final_lop);
+    errors_final_lop = final_lop - target.lop;
+    errors_final_nu = oe_final_all(6,:) - nuf;
+    std_final_nu = std(oe_final_all(6,:));
+    final_pos = xfinal_all(1:3,:);
+    
+    % Plot results
+    figure;
+    
+    % Position dispersion plot
+    plot3(final_pos(1,:), final_pos(2,:), final_pos(3,:), 'b.');
+    title('Final Position Dispersions');
+    xlabel('X (m)'); ylabel('Y (m)'); zlabel('Z (m)');
+    grid on;
+    
+    figure;
+    subplot(2,1,1)
+    % Time-to-go histogram
+    histogram(tf_final_all,num_sims);
+    title('Thrust Cutoff Time Distribution');
+    xlabel('Thrust cutoff Time (s)')
+    ylabel('Count');
+    
+    subplot(2,1,2)
+    histogram(rad2deg(errors_final_nu),num_sims/2);
+    title('Insertion Error');
+    xlabel('Tru anomaly (\nu) (deg)');
+    ylabel('Count');
+    grid on;
+
+    figure
+    subplot(2,2,1)
+    histogram(errors_final_a,num_sims/2);
+    title('Semi-major Axis Error');
+    xlabel('SMA (\ita) Error (km)');
+    ylabel('Count');
+    grid on;
+    subplot(2,2,2)
+    histogram(errors_final_e, num_sims/2);
+    title('Eccentricity Error');
+    xlabel('Eccentricity (\ite) Error');
+    ylabel('Count');
+    grid on;
+    subplot(2,2,3)
+    histogram(rad2deg(errors_final_i),num_sims/2);
+    title('Inclination Error');
+    xlabel('Inclination (\iti) Error (deg)');
+    ylabel('Count');
+    grid on;
+    subplot(2,2,4)
+    histogram(rad2deg(errors_final_lop),num_sims);
+    title('Longitude of Periapsis Error');
+    xlabel('LoP ($\bar{\omega}$) (deg)', Interpreter='latex');
+    ylabel('Count');
+    grid on;
+
+    % Print summary statistics
+    fprintf('\nMonte Carlo Results Summary (%d runs):\n', num_sims);
+    fprintf('Mean final time: %.4f s (σ = %.4f s)\n', mean_tf, std_tf);
+    fprintf('Final position standard deviation:\n');
+    fprintf('  X: %.4f km\n', std_final_state(1,end));
+    fprintf('  Y: %.4f km\n', std_final_state(2,end));
+    fprintf('  Z: %.4f km\n', std_final_state(3,end));    
+    
+    fprintf('Target orbital elements mean error values:\n');
+    fprintf('  a: %.4f km\n', mean([errors.a]));
+    fprintf('  e: %.6f \n', mean([errors.e]));
+    fprintf('  i: %.4f deg\n', rad2deg(mean([errors.i])));
+    fprintf('  LoP: %.4f deg\n', rad2deg(mean(errors_final_lop)));
+    fprintf('  TA: %.4f deg\n', rad2deg(mean(errors_final_nu)));
+
+    fprintf('Target orbital elements standard deviation:\n');
+    fprintf('  a: %.4f km\n', std_final_a);
+    fprintf('  e: %.6f \n', std_final_e);
+    fprintf('  i: %.4f deg\n', rad2deg(std_final_i));
+    fprintf('  LoP: %.4f deg\n', rad2deg(std_final_lop));
+    fprintf('  TA: %.4f deg\n', rad2deg(std_final_nu));
+end
+
+function E = calculateFinalErrors(x, target)
+    % calculate final COEs
+    [af, ef, incf, raanf, wf, nuf] = rv2oe(x(1:3,end), x(4:6,end), target);
+    % calculate errors
+    E.a = af-target.a;
+    E.e = ef-target.e;
+    E.lop = (raanf-wf)-target.lop;
+    E.vp = norm(x(4:6,end))-norm(target.vp_eci);
+    E.i = norm(incf-target.i);
+    E.nu = nuf;
+end
