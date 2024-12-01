@@ -121,9 +121,9 @@ for i = 1:length(x)
    plot( tf(i),Ef(i).lop,'g.')
    hold on;
 end
-   title('SMA and Latitude of Periapse Error through Burn')
+   title('SMA and Longitude of Periapse Error through Burn')
    xlabel('Time (s)')
-   legend('Semi-major Axis', 'Latitude of Periapse', 'Location','best')
+   legend('Semi-major Axis', 'Longitude of Periapse', 'Location','best')
 hold off;
 
 figure;
