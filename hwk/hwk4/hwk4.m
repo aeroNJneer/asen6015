@@ -84,7 +84,7 @@ i = 1;
 %end
 [~,~,~,~,~,nuf] = rv2oe(x(1:3,end),x(4:6,end),target)
 % are we close to the target orbit?
-if (abs(E.vp) < 1e-8)  && (abs(E.a) < 1e-8) && (abs(E.e) < 1e-8) && (abs(E.lop) <1e-2)
+if (abs(Eg.vp) < 1e-8)  && (abs(Eg.a) < 1e-8) && (abs(Eg.e) < 1e-8) && (abs(Eg.lop) <1e-2)
     % extend simulation
     [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
 end
@@ -110,6 +110,12 @@ end
 
 
 % Calculate final errors
+for i = 1:length(x)
+
+end
+figure;
+plot(tf,norm(Ef,2));
+
 
 % Plot the resulting trajectory
 figure(3);
