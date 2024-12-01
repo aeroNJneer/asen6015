@@ -48,7 +48,7 @@ B = B0;  % Initial B guess in LVLH
 [ai, ei, ii, raani, wi, ~] = rv2oe(r(1:3,end), r(4:6,end), target)
 
 % Plot the resulting trajectory
-figure(1);
+figure;
 plot3(r(1,:), r(2,:), r(3,:), DisplayName="Burn time");
 xlabel('X (km)');
 ylabel('Y (km)');
@@ -57,8 +57,10 @@ title('Trajectory During Burn with no Correction');
 hold off
 legend('Location','best')
 
-% Plot the resulting trajectory
-figure(2);
+% Plot the 
+% 
+% resulting trajectory
+figure;
 plot3(r(1,:), r(2,:), r(3,:), DisplayName="Burn time");
 hold on;
 plot3(r2(1,:), r2(2,:), r2(3,:), DisplayName="Post burn coasting");
@@ -107,18 +109,39 @@ end
 %     i = i+1
 % end
 %     [tf2, x2, lambda] = integrateTrajectory(x(1:3,end), x(4:6,end), A_final, B_final, 60*60, 0, dt); 
-
-
+% 
 % Calculate final errors
-for i = 1:length(x)
-
-end
 figure;
-plot(tf,norm(Ef,2));
+for i = 1:length(x)
+   Ef(i) = calculateFinalErrors(x(:,i),target);
+   yyaxis  left;
+   ylabel('Semi-major Axis (km)')
 
+   plot(tf(i),Ef(i).a,'b.')
+   yyaxis right
+   
+   plot( tf(i),Ef(i).lop,'g.')
+   hold on;
+end
+   title('SMA and Altitude of Periapse Error through Burn')
+   xlabel('Time (s)')
+hold off;
 
+figure;
+for i = 1:length(x)
+   plot(tf(i), Ef(i).e,'b.', tf(i), Ef(i).nu,'r.', tf(i),Ef(i).i,'k.');
+   hold on;
+end
+   title('Eccentricity, Inclination Errors and True Anomaly');
+   xlabel('Time (s)');
+   ylabel('Orbital Elements')
+    ylim([-0.05 0.3]);
+    legend('Eccentricity Error','Inclination Error', 'True Anomaly', 'Location','best');
+
+figure;
+ 
 % Plot the resulting trajectory
-figure(3);
+figure;
 plot3(x(1,:), x(2,:), x(3,:), DisplayName="Burn time");
 hold on;
 plot3(x2(1,:), x2(2,:), x2(3,:), DisplayName="Post burn coasting");
@@ -131,7 +154,7 @@ title('Trajectory of the Spacecraft with Correction');
 hold off
 legend('Location','best')
 
-figure(4);
+figure;
 plot3(x(1,:), x(2,:), x(3,:), DisplayName="Burn time");
 hold on;
 xlabel('X (km)');
