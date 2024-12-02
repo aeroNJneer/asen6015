@@ -1,0 +1,152 @@
+
+% MATLAB script for low-thrust orbit transfer from LEO to GEO
+
+% Constants
+mu = 3.986e5; % Earth's gravitational parameter (km^3/s^2)
+P = 10e3; % Input power to the engine (W)
+Isp = 3300; % Specific impulse (s)
+g = 9.81; % Earth's gravitational acceleration (m/s^2)
+eta = 0.65; % Efficiency of the low-thrust engine
+T = 2 * eta * P / (Isp * g); % Thrust (N)
+m0 = 1200; % Initial mass of the spacecraft (kg)
+r0 = 6378 + 550; % Initial radius (km)
+v0 = sqrt(mu / r0); % Initial velocity (km/s)
+a0 = r0; % Initial semi-major axis (km)
+e0 = 0; % Initial eccentricity
+i0 = 28.5; % Initial inclination (degrees)
+aGEO = 42164; % Semi-major axis of GEO (km)
+
+orbit.
+% Time parameters
+dt = 60; % Time step (s)
+t_max = 216.3 * 24 * 3600; % Maximum time (s)
+t = 0:dt:t_max; % Time vector
+
+% Initialize arrays
+a = zeros(size(t));
+e = zeros(size(t));
+i = zeros(size(t));
+m = zeros(size(t));
+a(1) = a0;
+e(1) = e0;
+i(1) = i0;
+m(1) = m0;
+
+% Guidance parameters
+Ke0 = 0;
+Ke1 = -1.5e-3;
+Ke2 = 0;
+Ki0 = -0.33;
+Ki1 = -4.3e-3;
+
+% Simulation loop
+for k = 1:length(t)-1
+    % Compute thrust acceleration
+    aT = T / m(k);
+    
+    % Compute optimal control laws
+    alpha_a = 0;
+    alpha_e = atan2(sin(e(k)), 2 * a(k) * (e(k) + cos(e(k))));
+    beta = (pi/2) * sign(cos(i(k)));
+    
+    % Blend control laws
+    Ga = 1;
+    Ge = Ke0 + Ke1 * t(k) + Ke2 * t(k)^2;
+    Gi = Ki0 + Ki1 * t(k);
+    alpha = atan2(Ga * sin(alpha_a) + Ge * sin(alpha_e), Ga * cos(alpha_a) + Ge * cos(alpha_e));
+    beta = Gi * cos(i(k));
+    
+    % Update orbital elements
+    a(k+1) = a(k) + 2 * a(k)^2 * aT * cos(alpha) * dt / v0;
+    e(k+1) = e(k) + aT * (e(k) + cos(e(k))) * cos(alpha) * dt / v0;
+    i(k+1) = i(k) + aT * cos(i(k)) * sin(beta) * dt / v0;
+    
+    % Update mass
+    m(k+1) = m(k) - T * dt / (Isp * g);
+end
+
+% Plot results
+figure;
+subplot(3,1,1);
+plot(t/3600/24, a);
+xlabel('Time (days)');
+ylabel('Semi-major axis (km)');
+title('Semi-major axis vs Time');
+
+subplot(3,1,2);
+plot(t/3600/24, e);
+xlabel('Time (days)');
+ylabel('Eccentricity');
+title('Eccentricity vs Time');
+
+subplot(3,1,3);
+plot(t/3600/24, i);
+xlabel('Time (days)');
+ylabel('Inclination (degrees)');
+title('Inclination vs Time');
+
+function dxdt = dynamics(t, state, acc)
+    global mu
+    % Unpack state
+    r = state(1:3);
+    v = state(4:6);
+    mdot = -2*eta*P/(g*Isp)^2;
+
+%     1) Compute the unit vectors ca and ce that define the in-plane optimal
+% controls for maximum da=dt and de=dt , respectively. The unit
+% vectors are expressed in a local rotating radial-transverse-normal
+% (RTN) coordinate frame where the R axis is along the radial direction,
+% the T axis is in the orbit plane along the transverse direction,
+% and the N axis is normal to the orbit plane (however, the in-plane
+% steering unit vectors ca and ce will only have R and T components).
+% A general expression for the unit vector in the RTN frame is
+% ck D sin ° C Á¤k ; cos ° C Á¤k ; 0
+% T
+% ; k D a; e (8)
+% where Á¤a and Á¤e are computed using the optimal controls (4) and
+% (5). The angle ° is the  ight-path angle and is measured from the
+% local horizon to the velocity vector.
+   
+
+% Calculate LVLH frame
+    R_eci2lvlh = calculateLVLHFrame(r, v);
+    R_lvlh2eci = R_eci2lvlh';
+    
+    % Current control direction in LVLH
+    u_lvlh = (A + B*t)/norm(A + B*t);
+    
+    % Convert control to ECI
+    u_eci = R_lvlh2eci * u_lvlh;
+    
+    % Gravitational acceleration
+    g_eci = -mu*r/norm(r)^3;
+    
+    % State derivatives
+    dr = v;
+    dv = g_eci + acc*u_eci;
+    
+    dxdt = [dr; dv; mdot];
+end
+
+function R_eci2rtn = calculateRTNFrame(r, v)
+    % Calculate LVLH frame vectors
+    N = cross(r, v);
+    
+    % Unit vectors
+    r_hat = r / norm(r); % z
+    n_hat = N / norm(N); % y
+    t_hat = cross(h_hat, r_hat); % x
+    
+    % Rotation matrix from ECI to LVLH
+    % gamma = fpa
+    c_a = [sin(gamma + phi_star_a); cos(gamma + phi_star_a); 0];
+    c_e = [sin(gamma + phi_star_e); cos(gamma + phi_star_e); 0]
+    R_eci2RTN = [r_hat, t_hat, n_hat];
+end
+
+function [x,y] = computeOptimalControls(orbit,r)
+    theta = orbit.raan + orbit.nu;    
+    phi_star_a = 0;
+    phi_star_e = atan2(r*sin(orbit.nu),2*orbit.a*(orbit.e+cos(orbit.nu));
+    beta_star = pi*cos(theta)/2
+end

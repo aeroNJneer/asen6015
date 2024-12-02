@@ -1,0 +1,193 @@
+% Low-Thrust Orbit Transfer Guidance Scheme
+% Based on the guidance method described by Craig A. Kluever
+% Implements a guidance scheme for solar electric propulsion (SEP) spacecraft
+
+classdef LowThrustTransfer
+    properties
+        % Spacecraft and mission parameters
+        initial_orbit       % Initial orbit parameters [a, e, i]
+        target_orbit        % Target orbit parameters [a, e, i]
+        
+        % Propulsion parameters
+        power               % Input power (W)
+        specific_impulse    % Specific impulse (s)
+        engine_efficiency   % Engine efficiency
+        
+        % Guidance parameters
+        Ke0                 % Eccentricity guidance parameter
+        Ke1                 % Eccentricity guidance parameter
+        Ke2                 % Eccentricity guidance parameter
+        Ki0                 % Inclination guidance parameter
+        Ki1                 % Inclination guidance parameter
+    end
+    
+    methods
+        % Constructor
+        function obj = LowThrustTransfer(initial_orbit, target_orbit, power, Isp, efficiency)
+            obj.initial_orbit = initial_orbit;
+            obj.target_orbit = target_orbit;
+            obj.power = power;
+            obj.specific_impulse = Isp;
+            obj.engine_efficiency = efficiency;
+        end
+        
+        % Compute optimal in-plane thrust steering angle for semimajor axis
+        function angle = compute_semimajor_thrust_angle(obj, state)
+            % Equation (4): Optimal steering for semimajor axis
+            angle = 0;
+        end
+        
+        % Compute optimal in-plane thrust steering angle for eccentricity
+        function angle = compute_eccentricity_thrust_angle(obj, state)
+            % Equation (5): Optimal steering for eccentricity
+            r = norm(state(1:3));
+            v = norm(state(4:6));
+            true_anomaly = compute_true_anomaly(state);
+            a = compute_semimajor_axis(state);
+            e = compute_eccentricity(state);
+            
+            angle = atan2(r * sin(true_anomaly), ...
+                          2*a*(e + cos(true_anomaly)));
+        end
+        
+        % Compute optimal out-of-plane (yaw) steering angle
+        function angle = compute_yaw_steering_angle(obj, state)
+            % Equation (7): Yaw steering law
+            longitude_angle = compute_longitude_angle(state);
+            angle = (pi/2) * cos(longitude_angle);
+        end
+        
+        % Compute guidance weighting functions
+        function [Ge, Gi] = compute_guidance_weights(obj, t, phase)
+            % Equation (12): Quadratic weighting function
+            if phase == 1
+                % First phase parameters (0 ≤ t ≤ 120 days)
+                Ke0 = 0.0;
+                Ke1 = -1.5e-3;
+                Ke2 = 0.0;
+                Ki0 = -0.33;
+                Ki1 = -4.3e-3;
+            else
+                % Second phase parameters (120 < t ≤ transfer time)
+                Ke0 = -0.18;
+                Ke1 = -1.0e-2;
+                Ke2 = 7.0e-5;
+                Ki0 = -0.85;
+                Ki1 = -5.2e-3;
+            end
+            
+            % Compute eccentricity weighting
+            Ge = Ke0 + Ke1*t + Ke2*t^2;
+            
+            % Compute inclination weighting
+            Gi = Ki0 + Ki1*t;
+        end
+        
+        % Compute thrust direction
+        function thrust_direction = compute_thrust_direction(obj, state, t)
+            % Compute thrust direction in RTN frame
+            flight_path_angle = compute_flight_path_angle(state);
+            
+            % Determine mission phase
+            if t<=120
+                phase = 1;
+            else
+                phase = 2;
+            end
+            
+            % Compute guidance weights
+            [Ge, Gi] = obj.compute_guidance_weights(t, phase);
+            
+            % Compute optimal thrust angles
+            angle_semimajor = obj.compute_semimajor_thrust_angle(state);
+            angle_eccentricity = obj.compute_eccentricity_thrust_angle(state);
+            yaw_angle = obj.compute_yaw_steering_angle(state);
+            
+            % Blend in-plane thrust direction vectors
+            ca = [sin(angle_semimajor); cos(angle_semimajor); 0];
+            ce = [sin(angle_eccentricity); cos(angle_eccentricity); 0];
+            
+            c_blended = (Ge*ca + Ge*ce) / norm(Ge*ca + Ge*ce);
+            
+            % Compute pitch and yaw steering angles
+            pitch_angle = atan2(c_blended(1), c_blended(2));
+            
+            % Compute final thrust unit vector
+            thrust_direction = [
+                sin(pitch_angle) * cos(yaw_angle * Gi);
+                cos(pitch_angle) * cos(yaw_angle * Gi);
+                sin(yaw_angle * Gi)
+            ];
+        end
+        
+        % Perform low-thrust orbit transfer simulation
+        function [trajectory, transfer_time] = perform_transfer(obj)
+            % Implement numerical integration of spacecraft trajectory
+            % This is a placeholder for a full numerical integration routine
+            % In practice, this would use Runge-Kutta or another numerical method
+            
+            % Initialization
+            state = initialize_spacecraft_state(obj.initial_orbit);
+            t = 0;
+            max_transfer_time = 300;  % days
+            
+            while ~orbit_transfer_complete(state, obj.target_orbit) && t < max_transfer_time
+                % Compute thrust direction
+                thrust_dir = obj.compute_thrust_direction(state, t);
+                
+                % Update spacecraft state (numerical integration)
+                state = update_spacecraft_state(state, thrust_dir, t);
+                
+                t = t + time_step;
+            end
+            
+            trajectory = state;
+            transfer_time = t;
+        end
+    end
+end
+
+% Helper functions (would need detailed implementation)
+function true_anom = compute_true_anomaly(state)
+    % Compute true anomaly from state vector
+
+
+end
+
+function semimajor_axis = compute_semimajor_axis(state)
+    % Compute semimajor axis from state vector
+
+end
+
+function ecc = compute_eccentricity(state)
+    % Compute orbit eccentricity from state vector
+
+end
+
+function long_angle = compute_longitude_angle(state)
+    % Compute longitude angle from state vector
+
+end
+
+function flight_path = compute_flight_path_angle(state)
+    % Compute flight path angle from state vector
+
+end
+
+function complete = orbit_transfer_complete(state, target_orbit)
+    % Check if orbit transfer is complete based on target orbit parameters
+
+end
+
+function new_state = update_spacecraft_state(state, thrust_dir, t)
+    % Numerical integration of spacecraft dynamics
+    % Implement Runge-Kutta or other numerical integration method
+
+
+end
+
+function initial_state = initialize_spacecraft_state(initial_orbit)
+    % Convert orbital elements to initial state vector
+
+    
+end
