@@ -7,6 +7,7 @@ classdef LowThrustTransfer
         % Spacecraft and mission parameters
         initial_orbit       % Initial orbit parameters [a, e, i]
         target_orbit        % Target orbit parameters [a, e, i]
+        current_orbit       % current orbit parameters [a, e, i, Raan, omega, true anomaly, longtitude]
         
         % Propulsion parameters
         power               % Input power (W)
@@ -26,6 +27,7 @@ classdef LowThrustTransfer
         function obj = LowThrustTransfer(initial_orbit, target_orbit, power, Isp, efficiency)
             obj.initial_orbit = initial_orbit;
             obj.target_orbit = target_orbit;
+            obj.current_orbit = initial_orbit;
             obj.power = power;
             obj.specific_impulse = Isp;
             obj.engine_efficiency = efficiency;
@@ -42,12 +44,13 @@ classdef LowThrustTransfer
             % Equation (5): Optimal steering for eccentricity
             r = norm(state(1:3));
             v = norm(state(4:6));
-            true_anomaly = compute_true_anomaly(state);
+         %   e = compute_eccentricity(state);
+            e = obj.current_orbit(2);
+            true_anomaly = obj.current_orbit(6);
             a = compute_semimajor_axis(state);
-            e = compute_eccentricity(state);
             
             angle = atan2(r * sin(true_anomaly), ...
-                          2*a*(e + cos(true_anomaly)));
+                          2*a*(e + cos(obj.current_orbit.true_anomaly)));
         end
         
         % Compute optimal out-of-plane (yaw) steering angle
@@ -86,7 +89,7 @@ classdef LowThrustTransfer
         % Compute thrust direction
         function thrust_direction = compute_thrust_direction(obj, state, t)
             % Compute thrust direction in RTN frame
-            flight_path_angle = compute_flight_path_angle(state, mu);
+            flight_path_angle = compute_flight_path_angle(state);
             
             % Determine mission phase
             if t<=120
@@ -149,16 +152,25 @@ classdef LowThrustTransfer
     end
 end
 
-% Helper functions (would need detailed implementation)
-function true_anom = compute_true_anomaly(state, mu)
+% Helper functions 
+function true_anom = compute_true_anomaly(state, e, mu)
+    if nargin < 3
+        mu = 3.986004418e5;  % Earth's standard gravitational parameter (km^3/s^2)
+    end
     % Compute true anomaly from state vector
     r = state(1:3);
     v = state(4:6);
     H = cross(r,v);
-    true_anom =  deg2rad(acosd((H^2/(mu*r) -1)/e));
+    % Eccentricity vector
+    e_vec = cross(v, H)/mu - r/norm(r);
+
+    true_anom = acosd(dot(e_vec,r)/(norm(r)*norm(e)));
 end
 
 function semimajor_axis = compute_semimajor_axis(state, mu)
+    if nargin < 2
+        mu = 3.986004418e5;  % Earth's standard gravitational parameter (km^3/s^2)
+    end
     % Compute semimajor axis from state vector
     r = norm(state(1:3));
     v = norm(state(4:6));
@@ -166,6 +178,9 @@ function semimajor_axis = compute_semimajor_axis(state, mu)
 end
 
 function ecc = compute_eccentricity(state, mu)
+    if nargin < 2
+        mu = 3.986004418e5;  % Earth's standard gravitational parameter (km^3/s^2)
+    end
     % Compute orbit eccentricity from state vector
     r = state(1:3);
     v = state(4:6);
@@ -176,19 +191,22 @@ end
 
 function long_angle = compute_longitude_angle(state)
     % Compute longitude angle from state vector
-
+    [~,~,~,~,~,~,long_angle] = state_vector_to_orbital_elements(state);
 end
 
 function flight_path = compute_flight_path_angle(state, mu)
+    if nargin < 2
+        mu = 3.986004418e5;  % Earth's standard gravitational parameter (km^3/s^2)
+    end
     % Compute flight path angle from state vector
     e = compute_eccentricity(state, mu);
-    TA  = compute_true_anomaly(state, mu);
+    TA  = compute_true_anomaly(state, e, mu);
     flight_path = atan2((e*sin(TA)),(1+(e*cos(TA))));
 end
 
 function complete = orbit_transfer_complete(state, target_orbit)
     % Check if orbit transfer is complete based on target orbit parameters
-
+   complete = false;
 end
 
 function [t, new_state] = update_spacecraft_state(t, state, thrust_dir)
@@ -213,10 +231,10 @@ function [t, new_state] = update_spacecraft_state(t, state, thrust_dir)
 % where Á¤a and Á¤e are computed using the optimal controls (4) and
 % (5). The angle ° is the  ight-path angle and is measured from the
 % local horizon to the velocity vector.
-
+    DCM = compute_RTN_to_ECI_matrix(r,v);
     % Gravitational acceleration
     g_eci = -mu*r/norm(r)^3;
-    
+    thrust_dir = DCM * thrust_dir;
     % State derivatives
     dr = v;
     dv = g_eci + acc*thrust_dir;
@@ -226,8 +244,14 @@ end
 
 function initial_state = initialize_spacecraft_state(initial_orbit)
     % Convert orbital elements to initial state vector
-    [r, v] = oe2rv()
-    
+    a = initial_orbit(1);
+    e = initial_orbit(2);
+    i = initial_orbit(3);
+    Raan = 0;
+    nu = 0;
+    w = 0;
+    [r, v] = orbital_elements_to_state_vector(a,e,i,Raan,w,nu)
+    initial_state = [r;v];
 end
 
 function [a, e, i, Omega, omega, nu] = rv2oe(r, v, target)
@@ -255,14 +279,14 @@ function [a, e, i, Omega, omega, nu] = rv2oe(r, v, target)
     nu = atan2(dot(r,(target.vp_eci/vp_eci)),dot(r,(target.rp_eci/rp_eci)));
 end
 
-function [r, v] = orbital_elements_to_state_vector(a, e, i, RAAN, omega, nu, mu)
+function [r, v] = orbital_elements_to_state_vector(a, e, i, Raan, omega, nu, mu)
     % Convert orbital elements to state vector
     % 
     % Inputs:
     %   a       - semimajor axis (km)
     %   e       - eccentricity (dimensionless)
     %   i       - inclination (radians)
-    %   RAAN    - Right Ascension of Ascending Node (radians)
+    %   Raan    - Right Ascension of Ascending Node (radians)
     %   omega   - Argument of periapsis (radians)
     %   nu      - True anomaly (radians)
     %   mu      - Gravitational parameter (km^3/s^2), default is Earth's if not provided
@@ -289,20 +313,22 @@ function [r, v] = orbital_elements_to_state_vector(a, e, i, RAAN, omega, nu, mu)
         sqrt(mu/p) * (e + cos(nu));
         0];
 
-    DCM = compute_Euler313(i, RAAN, omega, nu);
+    DCM = compute_Euler313(i, Raan, omega, nu);
 
     % Transform position and velocity to ECI frame
     r = DCM * r_pqw;
     v = DCM * v_pqw;
 end
 
-function [a, e, i, RAAN, omega, nu] = state_vector_to_orbital_elements(r, v, mu)
+function current_orbit = state_vector_to_orbital_elements(state, mu)
     % Convert state vector to orbital elements
     
     % Default to Earth's gravitational parameter if not specified
-    if nargin < 3
+    if nargin < 2
         mu = 3.986004418e5;  % Earth's standard gravitational parameter (km^3/s^2)
     end
+    r = state(1:3);
+    v = state(4:6);
 
     % Angular momentum vector
     h = cross(r, v);
@@ -326,12 +352,12 @@ function [a, e, i, RAAN, omega, nu] = state_vector_to_orbital_elements(r, v, mu)
 
     % Right Ascension of Ascending Node
     if norm(n) ~= 0
-        RAAN = atan2(n(2), n(1));
-        if RAAN < 0
-            RAAN = RAAN + 2*pi;
+        Raan = atan2(n(2), n(1));
+        if Raan < 0
+            Raan = Raan + 2*pi;
         end
     else
-        RAAN = 0;
+        Raan = 0;
     end
 
     % Argument of periapsis
@@ -349,17 +375,22 @@ function [a, e, i, RAAN, omega, nu] = state_vector_to_orbital_elements(r, v, mu)
     if nu < 0
         nu = nu + 2*pi;
     end
+
+    % Calculate true longitude
+    true_longitude = Raan + omega + nu;
+    % build current_orbit object
+    current_orbit = [a, e, i, Raan, omega, nu, true_longitude];
 end
 
 
-function DCM_COE_to_ECI = compute_Euler313(i, RAAN, w, nu)
+function DCM_COE_to_ECI = compute_Euler313(i, Raan, w, nu)
     % use Euler 3-1-3 rotation matrix to find state vector
     % rotation matrices
     M1 = @(a) [1 0 0; 0 cosd(a) sind(a); 0 -sind(a) cosd(a)];
     M3 = @(a) [cosd(a) sind(a) 0; -sind(a) cosd(a) 0; 0 0 1];
     
     % DCM  rth to xyz *** theta = trueAnom + arg of periapsis 
-    DCM = @(Raan, i, theta) M3(-Raan) * M1(-i) * M3(-(nu+w));
+    DCM_COE_to_ECI = M3(-Raan) * M1(-i) * M3(-(nu+w));
 end
 
 

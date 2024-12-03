@@ -1,0 +1,22 @@
+% Constants
+mu = 3.986e5; % Earth's gravitational parameter (km^3/s^2)
+P = 10e3; % Input power to the engine (W)
+Isp = 3300; % Specific impulse (s)
+g = 9.81; % Earth's gravitational acceleration (m/s^2)-- convert
+eta = 0.65; % Efficiency of the low-thrust engine
+T = 2 * eta * P / (Isp * g); % Thrust (N)
+m0 = 1200; % Initial mass of the spacecraft (kg)
+r0 = 6378 + 550; % Initial radius (km)
+v0 = sqrt(mu / r0); % Initial velocity (km/s)
+a0 = r0; % Initial semi-major axis (km)
+e0 = 0; % Initial eccentricity
+i0 = deg2rad(28.5); % Initial inclination (degrees)
+aGEO = 42164; % Semi-major axis of GEO (km)
+
+mdot = -2*eta*P/(g*Isp)^2;
+% create transfer object
+transfer = LowThrustTransfer([a0, e0, i0], [aGEO, 0, 0], P, Isp, eta);
+
+transfer.perform_transfer
+
+
