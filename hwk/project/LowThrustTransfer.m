@@ -5,7 +5,8 @@ classdef LowThrustTransfer
     properties (Constant)
         % Physical constants
         mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
-        g0 = 9.81;             % Gravitational acceleration (m/s^2)
+        g0 = 9.81;             % Gravitational acceleration (m/s^2)'
+        tgo = 10;               % simulation days
     end
     
     methods (Static)
@@ -82,11 +83,11 @@ classdef LowThrustTransfer
         
         % Compute out-of-plane thrust steering
         function yaw = computeYawSteering(longitude_angle, Gi)
-            if (abs(longitude_angle) < deg2rad(95) && abs(longitude_angle) > deg2rad(85))
+            % if (abs(longitude_angle) < deg2rad(95) && abs(longitude_angle) > deg2rad(85))
                 yaw = (pi/2) * cos(longitude_angle);
-            else
-                yaw = Gi * cos(longitude_angle);
-            end
+            % else
+            %     yaw = Gi * cos(longitude_angle);
+            % end
         end
         
         % Blended thrust direction computation in RTN frame
@@ -99,7 +100,8 @@ classdef LowThrustTransfer
             pitch_angle = atan2(c_blended(1), c_blended(2));
             
             % Compute thrust direction in RTN frame with yaw
-            yaw = LowThrustTransfer.computeYawSteering(longitude_angle, Gi);  
+            yaw = LowThrustTransfer.computeYawSteering(longitude_angle, Gi); 
+            yaw = Gi*yaw;
             thrust_unit_RTN = [
                 sin(pitch_angle) * cos(yaw);
                 cos(pitch_angle) * cos(yaw);
@@ -177,7 +179,7 @@ classdef LowThrustTransfer
             r_initial = r_earth + initial_altitude;
             v_circular = sqrt(LowThrustTransfer.mu / r_initial);
             
-            % Initial state
+            % Initial state - assume simulation starts at RAAN
             r0 = [r_initial; 0; 0];
             v0 = [0; v_circular * cos(initial_inclination); v_circular * sin(initial_inclination)];
             
@@ -209,7 +211,7 @@ classdef LowThrustTransfer
             
             % Simulation setup
             options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
-            tspan = 0:60:216.3*24*3600;  % Transfer time in seconds
+            tspan = 0:60:LowThrustTransfer.tgo *24*3600;  % Transfer time in seconds
             
             % Solve ODE
             [t, state] = ode45(@(t,y) LowThrustTransfer.spacecraft_dynamics(t, y, thrust_params, guidance_params), ...
@@ -220,8 +222,11 @@ classdef LowThrustTransfer
             results.state = state;
             
             for i = 1:length(state)
-                [a(i), e(i), inc(i), ~, ~, ~] = LowThrustTransfer.compute_orbital_elements(state(i,1:3), state(i,4:6));
+                [a(i), ecc(i), inc(i), ~, ~, ~] = LowThrustTransfer.compute_orbital_elements(state(i,1:3), state(i,4:6));
             end
+            results.a = a;
+            results.ecc = ecc;
+            results.inc = inc;
 
             % Plot results
             figure;
@@ -248,6 +253,45 @@ classdef LowThrustTransfer
             hold on
             plot(a, inc, 'DisplayName','Inclination')
             title('Orbit Eccentricty and Inclination')
+        end
+  
+        function [r, v] = orbitalElementsToStateVectors(a, e, i, RAAN, w, TA, mu)
+            % a    - semi-major axis (km)
+            % e    - eccentricity
+            % i    - inclination (degrees)
+            % RAAN - right ascension of the ascending node (degrees)
+            % w    - argument of periapsis (degrees)
+            % TA   - true anomaly (degrees)
+            % mu   - standard gravitational parameter (km^3/s^2)
+        
+            % Convert angles from degrees to radians
+            i = deg2rad(i);
+            RAAN = deg2rad(RAAN);
+            w = deg2rad(w);
+            TA = deg2rad(TA);
+        
+            % Compute the distance (r) and speed (v) in the orbital plane
+            p = a * (1 - e^2);
+            r_orbital = p / (1 + e * cos(TA));
+            v_orbital = sqrt(mu * (2/r_orbital - 1/a));
+        
+            % Position in the orbital plane
+            r_orbital_plane = [r_orbital * cos(TA); r_orbital * sin(TA); 0];
+        
+            % Velocity in the orbital plane
+            v_orbital_plane = [-sin(TA); e + cos(TA); 0] * (sqrt(mu/p));
+        
+            % Rotation matrices
+            R3_W = [cos(w), -sin(w), 0; sin(w), cos(w), 0; 0, 0, 1];
+            R1_i = [1, 0, 0; 0, cos(i), -sin(i); 0, sin(i), cos(i)];
+            R3_RAAN = [cos(RAAN), -sin(RAAN), 0; sin(RAAN), cos(RAAN), 0; 0, 0, 1];
+        
+            % Combined rotation matrix
+            Q = R3_RAAN * R1_i * R3_W;
+        
+            % Position and velocity in the inertial frame
+            r = Q * r_orbital_plane;
+            v = Q * v_orbital_plane;
         end
     end
 end
