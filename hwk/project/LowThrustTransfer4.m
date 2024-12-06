@@ -45,7 +45,7 @@ classdef LowThrustTransfer4
             v = state(4:6);
             
             % Compute orbital elements
-            [a, e, i, ~, ~, mu] = LowThrustTransfer.orbitalElementsFromState(state);
+            [a, e, i, ~, ~, mu] = orbitalElementsFromState(state);
             
             % Flight path angle
             r_mag = norm(r);
@@ -53,15 +53,15 @@ classdef LowThrustTransfer4
             flightPathAngle = asin(r(3) / r_mag);
             
             % Compute orbital plane and local horizontal frame
-            R_RTN_to_ECI = LowThrustTransfer.computeRotationMatrix(r, v);
+            R_RTN_to_ECI = LowThrustTransfer4.computeRotationMatrix(r, v);
             
             % Compute optimal in-plane and out-of-plane steering angles
             [optimalInPlaneSteer, optimalOutOfPlaneSteering] = ...
-                LowThrustTransfer.computeOptimalSteering(a, e, i, mu, v_mag, flightPathAngle);
+                LowThrustTransfer4.computeOptimalSteering(a, e, i, mu, v_mag, flightPathAngle);
             
             % Blend guidance parameters
             [inPlaneSteering, outOfPlaneSteering] = ...
-                LowThrustTransfer.blendGuidanceControls(t, optimalInPlaneSteer, optimalOutOfPlaneSteering, params);
+                LowThrustTransfer4.blendGuidanceControls(t, optimalInPlaneSteer, optimalOutOfPlaneSteering, params);
             
             % Compute thrust direction unit vector in RTN frame
             QU_RTN = [sin(inPlaneSteering) * cos(outOfPlaneSteering);
@@ -101,7 +101,7 @@ classdef LowThrustTransfer4
             mass = x(7);
             
             % Compute thrust direction
-            [u_thrust] = LowThrustTransfer.computeThrustDirection(t, state, params);
+            [u_thrust] = LowThrustTransfer4.computeThrustDirection(t, state, params);
             
             % Thrust acceleration
             thrust_mag = params.POWER * params.EFFICIENCY / ...
@@ -214,7 +214,7 @@ function [a, e, i, omega, OMEGA, mu] = orbitalElementsFromState(state)
     
     % Placeholder calculations - would need more rigorous implementation
     a = norm(r);
-    e = norm(v)^2/mu - 1/norm(r);
+    e = norm(v)^2/LowThrustTransfer4.MU - 1/norm(r);
     i = 0;
     omega = 0;
     OMEGA = 0;
