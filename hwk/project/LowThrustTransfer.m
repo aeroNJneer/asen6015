@@ -6,7 +6,7 @@ classdef LowThrustTransfer
         % Physical constants
         mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
         g0 = 9.81;             % Gravitational acceleration (m/s^2)
-        tgo = 1;                % time to go (simulation time)
+        tgo = 10;                % time to go (simulation time)
     end
     
     methods (Static)
@@ -93,7 +93,7 @@ classdef LowThrustTransfer
         end
         
         % Blended thrust direction computation in RTN frame
-        function [thrust_unit_RTN, pitch_angle] = computeThrustDirection(c_a, c_e, Ge, Gi, flight_path_angle, longitude_angle)
+        function [thrust_unit_RTN, pitch_angle, yaw] = computeThrustDirection(c_a, c_e, Ge, Gi, flight_path_angle, longitude_angle)
             % Normalize and blend control vectors
             c_blended = Ge * c_e + c_a;
             c_blended = c_blended / norm(c_blended);
@@ -120,7 +120,7 @@ classdef LowThrustTransfer
         end
         
         % Spacecraft dynamics
-        function [state_dot] = spacecraft_dynamics(t, state, thrust_params, guidance_params)
+        function [state_dot, angles] = spacecraft_dynamics(t, state, thrust_params, guidance_params)
             % State vector: [x, y, z, vx, vy, vz, mass]
             r = state(1:3);
             v = state(4:6);
@@ -131,7 +131,7 @@ classdef LowThrustTransfer
             [a, e, ~, ~, ~, true_anomaly] = LowThrustTransfer.compute_orbital_elements(r, v);
             
             % Determine current phase and guidance parameters
-            if t <= 160 * 24 * 3600
+            if t <= 120 * 24 * 3600
                 phase_params = guidance_params.phase1;
             else
                 phase_params = guidance_params.phase2;
@@ -145,7 +145,7 @@ classdef LowThrustTransfer
             c_e = LowThrustTransfer.computeEccentricityControlVector(a, e, norm(r), true_anomaly, flight_path_angle);
             
             % Compute thrust direction in RTN frame
-            [thrust_unit_RTN, ~] = LowThrustTransfer.computeThrustDirection(c_a, c_e, Ge, Gi, flight_path_angle, longitude_angle);
+            [thrust_unit_RTN, pitch_angle, yaw] = LowThrustTransfer.computeThrustDirection(c_a, c_e, Ge, Gi, flight_path_angle, longitude_angle);
             
             % Transform thrust direction to ECI frame
             R_RTN2ECI = LowThrustTransfer.compute_RTN_to_ECI_matrix(r, v);
@@ -197,8 +197,8 @@ classdef LowThrustTransfer
             thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(LowThrustTransfer.g0*thrust_params.Isp)^2; 
             
             % Phase 1 and 2 guidance parameters
-            guidance_params.phase1.Ke0 = 0.0;
-            guidance_params.phase1.Ke1 = -1.5e-3;
+            guidance_params.phase1.Ke0 = 0;
+            guidance_params.phase1.Ke1 = -1.5e3;
             guidance_params.phase1.Ke2 = 0.0;
             guidance_params.phase1.Ki0 = -0.33;
             guidance_params.phase1.Ki1 = -4.3e-3;
@@ -211,7 +211,7 @@ classdef LowThrustTransfer
             
             % Simulation setup
             options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
-            tspan = 0:60:LowThrustTransfer.tgo *24*3600;  % Transfer time in seconds
+            tspan = 0:900:LowThrustTransfer.tgo *24*3600;  % Transfer time in seconds
             
             % Solve ODE
             [t, state] = ode45(@(t,y) LowThrustTransfer.spacecraft_dynamics(t, y, thrust_params, guidance_params), ...
@@ -229,6 +229,7 @@ classdef LowThrustTransfer
             results.ecc = ecc;
             results.inc = inc;
             results.true_anomaly = nu;
+
             % Plot results
             figure;
             subplot(2,1,1);
