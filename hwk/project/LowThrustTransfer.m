@@ -5,8 +5,8 @@ classdef LowThrustTransfer
     properties (Constant)
         % Physical constants
         mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
-        g0 = 9.81;             % Gravitational acceleration (m/s^2)'
-        tgo = 10;               % simulation days
+        g0 = 9.81;             % Gravitational acceleration (m/s^2)
+        tgo = 1;                % time to go (simulation time)
     end
     
     methods (Static)
@@ -56,6 +56,12 @@ classdef LowThrustTransfer
             
             % True anomaly
             true_anomaly = atan2(dot(cross(h, r), v), dot(h, r));
+%             nu = acos(dot(e_vec, r) / (e * r));
+%             if v_r < 0
+%                 nu = 2 * pi - nu;
+%             end
+
+
         end
         
         % Compute flight path and longitude angles
@@ -82,12 +88,8 @@ classdef LowThrustTransfer
         end
         
         % Compute out-of-plane thrust steering
-        function yaw = computeYawSteering(longitude_angle, Gi)
-            % if (abs(longitude_angle) < deg2rad(95) && abs(longitude_angle) > deg2rad(85))
-                yaw = (pi/2) * cos(longitude_angle);
-            % else
-            %     yaw = Gi * cos(longitude_angle);
-            % end
+        function yaw = computeYawSteering(longitude_angle)
+            yaw = (pi/2) * cos(longitude_angle);
         end
         
         % Blended thrust direction computation in RTN frame
@@ -100,8 +102,7 @@ classdef LowThrustTransfer
             pitch_angle = atan2(c_blended(1), c_blended(2));
             
             % Compute thrust direction in RTN frame with yaw
-            yaw = LowThrustTransfer.computeYawSteering(longitude_angle, Gi); 
-            yaw = Gi*yaw;
+            yaw = Gi*LowThrustTransfer.computeYawSteering(longitude_angle); 
             thrust_unit_RTN = [
                 sin(pitch_angle) * cos(yaw);
                 cos(pitch_angle) * cos(yaw);
@@ -130,7 +131,7 @@ classdef LowThrustTransfer
             [a, e, ~, ~, ~, true_anomaly] = LowThrustTransfer.compute_orbital_elements(r, v);
             
             % Determine current phase and guidance parameters
-            if t <= 120 * 24 * 3600
+            if t <= 160 * 24 * 3600
                 phase_params = guidance_params.phase1;
             else
                 phase_params = guidance_params.phase2;
@@ -191,7 +192,6 @@ classdef LowThrustTransfer
             thrust_params.Isp = 3300;             % Specific impulse
             thrust_params.efficiency = 0.65;      % Engine efficiency
             thrust_params.initial_mass = 1200;    % kg
-            thrust_params.initial_thrust = 3.4e-5 * thrust_params.initial_mass;   % thrust to weight ratio = 3.4x10-5 
             thrust_params.mu = LowThrustTransfer.mu;
             thrust_params.thrust_acceleration = 2*thrust_params.power * thrust_params.efficiency / (thrust_params.Isp * LowThrustTransfer.g0);
             thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(LowThrustTransfer.g0*thrust_params.Isp)^2; 
@@ -220,14 +220,15 @@ classdef LowThrustTransfer
             % Process and return results
             results.time = t;
             results.state = state;
+
             
             for i = 1:length(state)
-                [a(i), ecc(i), inc(i), ~, ~, ~] = LowThrustTransfer.compute_orbital_elements(state(i,1:3), state(i,4:6));
+                [a(i), ecc(i), inc(i), ~,  ~, nu(i)] = LowThrustTransfer.compute_orbital_elements(state(i,1:3), state(i,4:6));
             end
             results.a = a;
             results.ecc = ecc;
             results.inc = inc;
-
+            results.true_anomaly = nu;
             % Plot results
             figure;
             subplot(2,1,1);
@@ -237,7 +238,7 @@ classdef LowThrustTransfer
             ylabel('Altitude (m)');
             
             subplot(2,1,2);
-            plot(t , state(:,7), 'r-');
+            plot(t/24/3600 , state(:,7), 'r-');
             title('Spacecraft Mass vs Time');
             xlabel('Time (days)');
             ylabel('Mass (kg)');
@@ -249,10 +250,16 @@ classdef LowThrustTransfer
             zlabel('Z')
             
             figure;
-            plot(a,e,'DisplayName','Eccentricity')
+            plot(t/24/3600,ecc,'DisplayName','Eccentricity')
+            yyaxis left
+            ylabel('Eccentricity')
             hold on
-            plot(a, inc, 'DisplayName','Inclination')
+            plot(t/24/3600, inc,'--', 'DisplayName','Inclination')
+            yyaxis right
+            ylabel('Inclination')
             title('Orbit Eccentricty and Inclination')
+            xlabel('Semi-Major Axis (km)')
+            legend('Location','best')
         end
   
         function [r, v] = orbitalElementsToStateVectors(a, e, i, RAAN, w, TA, mu)
