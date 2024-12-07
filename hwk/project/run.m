@@ -19,7 +19,7 @@ thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(
 
 % Phase 1 and 2 guidance parameters
 guidance_params.phase1.Ke0 = 0;
-guidance_params.phase1.Ke1 = -1.5e3;
+guidance_params.phase1.Ke1 = -1.5e-3;
 guidance_params.phase1.Ke2 = 0.0;
 guidance_params.phase1.Ki0 = -0.33;
 guidance_params.phase1.Ki1 = -4.3e-3;

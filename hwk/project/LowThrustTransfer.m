@@ -6,7 +6,7 @@ classdef LowThrustTransfer
         % Physical constants
         mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
         g0 = 9.81;             % Gravitational acceleration (m/s^2)
-        tgo = 10;                % time to go (simulation time)
+        tgo = 100;                % time to go (simulation time)
     end
     
     methods (Static)
@@ -25,7 +25,7 @@ classdef LowThrustTransfer
             t_unit = cross(n_unit, r_unit);
             
             % Transformation matrix from RTN to ECI
-            R_RTN2ECI = [r_unit, t_unit, n_unit]';
+            R_RTN2ECI = [r_unit, t_unit, n_unit];
         end
         
         % Compute orbital elements
@@ -150,48 +150,11 @@ classdef LowThrustTransfer
         
         % Main transfer simulation
         function results = simulate_transfer(r0, v0, target_semi_major_axis, thrust_params, guidance_params)
-            % % Initial conditions (matching paper's scenario)
-            % initial_altitude = 550e3;  % 550 km
-            % initial_inclination = 28.5 * pi/180;
-            % 
-            % % Compute initial position and velocity
-            % r_earth = 6378e3;  % Earth radius
-            % r_initial = r_earth + initial_altitude;
-            % v_circular = sqrt(LowThrustTransfer.mu / r_initial);
-            % 
-            % % Initial state - assume simulation starts at RAAN
-            % r0 = [r_initial; 0; 0];
-            % v0 = [v_circular * cos(initial_inclination); v_circular * sin(initial_inclination) 0];
-            % 
-            % % Target GEO conditions
-            % target_semimajor_axis = 42164e3;
-            % %  WATT = kg m^2/s^3  Isp = sec  
-            % % Simulation parameters
-            % thrust_params.power = 10e3;           % 10 kW
-            % thrust_params.Isp = 3300;             % Specific impulse
-            % thrust_params.efficiency = 0.65;      % Engine efficiency
-            % thrust_params.initial_mass = 1200;    % kg
-            % thrust_params.mu = LowThrustTransfer.mu;
-            % thrust_params.initial_tw = 3.4e-5;
-            % thrust_params.thrust_acceleration = thrust_params.initial_tw * LowThrustTransfer.g0 * thrust_params.initial_mass;
-            % thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(LowThrustTransfer.g0*thrust_params.Isp)^2; 
-            % 
-            % % Phase 1 and 2 guidance parameters
-            % guidance_params.phase1.Ke0 = 0;
-            % guidance_params.phase1.Ke1 = -1.5e3;
-            % guidance_params.phase1.Ke2 = 0.0;
-            % guidance_params.phase1.Ki0 = -0.33;
-            % guidance_params.phase1.Ki1 = -4.3e-3;
-            % 
-            % guidance_params.phase2.Ke0 = -0.18;
-            % guidance_params.phase2.Ke1 = -1.0e-2;
-            % guidance_params.phase2.Ke2 = 7e-5;
-            % guidance_params.phase2.Ki0 = -0.85;
-            % guidance_params.phase2.Ki1 = -5.2e-3;
-            
             % Simulation setup
             options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
-            tspan = 0:900:LowThrustTransfer.tgo *24*3600;  % Transfer time in seconds
+            dt = 2*24*3600;
+            tspan = 0:dt:LowThrustTransfer.tgo*24*3600;  % Transfer time in seconds
+           % tspan = 0:dt:Tof
             
             % Solve ODE
             [t, state] = ode45(@(t,y) LowThrustTransfer.spacecraft_dynamics(t, y, thrust_params, guidance_params), ...
@@ -204,10 +167,10 @@ classdef LowThrustTransfer
             for i = 1:length(state)
                 coes(i) = eci2orb1(LowThrustTransfer.mu,state(i,1:3), state(i,4:6));
             end
-            results.a = coes.a;
-            results.ecc = coes.e;
-            results.inc = coes.inc;
-            results.true_anomaly = coes.true_anomaly;
+            results.a = [coes.a];
+            results.ecc = [coes.e];
+            results.inc = [coes.inc];
+            results.true_anomaly = [coes.true_anomaly];
 
             % Plot results
             figure;

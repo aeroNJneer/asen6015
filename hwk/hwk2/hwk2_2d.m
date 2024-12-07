@@ -4,8 +4,13 @@
 close all
 clear
 clc
-init;
+
 dt = 10;
+Tof = 37864;
+tspan = 0:dt:Tof;
+
+init;
+
 mu = Gearth;
 g = 0.00908665;        % accel due to gravity
 
