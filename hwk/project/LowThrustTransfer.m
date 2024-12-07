@@ -29,50 +29,7 @@ classdef LowThrustTransfer
         end
         
         % Compute orbital elements
-        function [a, e, i, RAAN, omega, true_anomaly] = eci2orb(r, v)
-            % Compute specific angular momentum
-            h = cross(r, v);
-            
-            % Eccentricity vector
-            e_vec = cross(v, h) / LowThrustTransfer.mu - r / norm(r);
-            
-            % Semimajor axis
-            r_mag = norm(r);
-            v_mag = norm(v);
-            a = 1 / (2/r_mag - v_mag^2 / LowThrustTransfer.mu);
-            
-            % Eccentricity
-            e = norm(e_vec);
-            
-            % Inclination
-            i = acos(h(3) / norm(h));
-            
-            % Right ascension of ascending node
-            n = cross([0; 0; 1], h);
-            RAAN = atan2(n(2), n(1));
-            
-            % Argument of periapsis
-            omega = atan2(dot(e_vec, cross(n, h)/norm(h)), dot(n, e_vec));
-            
-            % Calculate the true anomaly
-            cos_nu = dot(e_vec, r) / (e*r_mag);
-            sin_nu = dot(cross(h, r), v) / (norm(h)*r_mag*v_mag);
-            true_anomaly = atan2(sin_nu, cos_nu);
-            if(isnan(true_anomaly))
-                true_anomaly = 0;
-            end
-            % Argument of latitude
-            arg_latitude = acos(dot(n,r)/(r_mag*norm(n)));
-            if ~isreal(arg_latitude)
-                arg_latitude = 0;
-            end
-%             nu = acos(dot(e_vec, r) / (e * r));
-%             if v_r < 0
-%                 nu = 2 * pi - nu;
-%             end
-
-
-        end
+        coes = eci2orb1(mu, r, v);
         
         % Compute flight path and longitude angles
         function [flight_path_angle, longitude_angle] = compute_path_angles(r, v)
@@ -80,8 +37,8 @@ classdef LowThrustTransfer
             flight_path_angle = atan2(v(1),v(2));
             
             % Compute longitude angle
-            [~, ~, ~, ~, omega, true_anomaly, ~] = LowThrustTransfer.compute_orbital_elements(r, v);
-            longitude_angle = omega + true_anomaly;
+            coes = eci2orb1(LowThrustTransfer.mu,r,v);
+            longitude_angle = coes.omega + coes.true_anomaly;
         end
         
         % Compute optimal in-plane thrust vector for semimajor axis
@@ -144,7 +101,7 @@ classdef LowThrustTransfer
             
             % Compute current orbital state
             [flight_path_angle, longitude_angle] = LowThrustTransfer.compute_path_angles(r, v);
-            [a, e, ~, ~, ~, true_anomaly, arg_latitude] = LowThrustTransfer.compute_orbital_elements(r, v);
+            coes = eci2orb1(LowThrustTransfer.mu,r, v);
             
             % Determine current phase and guidance parameters
             if t <= 120 * 24 * 3600
@@ -159,13 +116,13 @@ classdef LowThrustTransfer
             % Compute control vectors
             c_a = LowThrustTransfer.computeAxialControlVector(flight_path_angle);
 
-            if e < 1e-3
-                c_e = LowThrustTransfer.computeEccentricityControlVector(a, e, norm(r), arg_latitude, 0, flight_path_angle);
-            else
-                c_e = LowThrustTransfer.computeEccentricityControlVector(a,e,norm(r),true_anomaly, true_anomaly, flight_path_angle)
-            end
-                if ~isreal(c_e)
-                end
+            % if e < 1e-3
+            %     c_e = LowThrustTransfer.computeEccentricityControlVector(coes.a, coes.e, norm(r), arg_latitude, 0, flight_path_angle);
+            % else
+                c_e = LowThrustTransfer.computeEccentricityControlVector(coes.a,coes.e,norm(r),coes.true_anomaly, coes.true_anomaly, flight_path_angle);
+            % end
+            %     if ~isreal(c_e)
+            %     end
             % Compute thrust direction in RTN frame
             [thrust_unit_RTN, pitch_angle, yaw] = LowThrustTransfer.computeThrustDirection(c_a, c_e, Ge, Gi, flight_path_angle, longitude_angle);
             
@@ -245,12 +202,12 @@ classdef LowThrustTransfer
             results.state = state;
             
             for i = 1:length(state)
-                [a(i), ecc(i), inc(i), ~,  ~, nu(i)] = LowThrustTransfer.compute_orbital_elements(state(i,1:3), state(i,4:6));
+                coes(i) = eci2orb1(LowThrustTransfer.mu,state(i,1:3), state(i,4:6));
             end
-            results.a = a;
-            results.ecc = ecc;
-            results.inc = inc;
-            results.true_anomaly = nu;
+            results.a = coes.a;
+            results.ecc = coes.e;
+            results.inc = coes.inc;
+            results.true_anomaly = coes.true_anomaly;
 
             % Plot results
             figure;
@@ -273,16 +230,16 @@ classdef LowThrustTransfer
             zlabel('Z')
             
             figure;
-            plot(t/24/3600,ecc,'DisplayName','Eccentricity')
+            plot(t/24/3600,results.ecc,'DisplayName','Eccentricity')
             yyaxis left
             ylabel('Eccentricity')
             hold on
-            plot(t/24/3600, inc,'--', 'DisplayName','Inclination')
+            plot(t/24/3600, results.inc,'--', 'DisplayName','Inclination')
             yyaxis right
             ylabel('Inclination')
             title('Orbit Eccentricty and Inclination')
             xlabel('Semi-Major Axis (km)')
-            legend('Location','best')
+       %     legend('Location','best')
         end
   
         function [r, v] = orbitalElementsToStateVectors(a, e, i, RAAN, w, TA, mu)
