@@ -29,7 +29,7 @@ classdef LowThrustTransfer
         end
         
         % Compute orbital elements
-        function [a, e, i, RAAN, omega, true_anomaly] = compute_orbital_elements(r, v)
+        function [a, e, i, RAAN, omega, true_anomaly] = eci2orb(r, v)
             % Compute specific angular momentum
             h = cross(r, v);
             
@@ -54,8 +54,18 @@ classdef LowThrustTransfer
             % Argument of periapsis
             omega = atan2(dot(e_vec, cross(n, h)/norm(h)), dot(n, e_vec));
             
-            % True anomaly
-            true_anomaly = atan2(dot(cross(h, r), v), dot(h, r));
+            % Calculate the true anomaly
+            cos_nu = dot(e_vec, r) / (e*r_mag);
+            sin_nu = dot(cross(h, r), v) / (norm(h)*r_mag*v_mag);
+            true_anomaly = atan2(sin_nu, cos_nu);
+            if(isnan(true_anomaly))
+                true_anomaly = 0;
+            end
+            % Argument of latitude
+            arg_latitude = acos(dot(n,r)/(r_mag*norm(n)));
+            if ~isreal(arg_latitude)
+                arg_latitude = 0;
+            end
 %             nu = acos(dot(e_vec, r) / (e * r));
 %             if v_r < 0
 %                 nu = 2 * pi - nu;
@@ -67,10 +77,10 @@ classdef LowThrustTransfer
         % Compute flight path and longitude angles
         function [flight_path_angle, longitude_angle] = compute_path_angles(r, v)
             % Flight path angle
-            flight_path_angle = asin(dot(r, v) / (norm(r) * norm(v)));
+            flight_path_angle = atan2(v(1),v(2));
             
             % Compute longitude angle
-            [~, ~, ~, ~, omega, true_anomaly] = LowThrustTransfer.compute_orbital_elements(r, v);
+            [~, ~, ~, ~, omega, true_anomaly, ~] = LowThrustTransfer.compute_orbital_elements(r, v);
             longitude_angle = omega + true_anomaly;
         end
         
@@ -80,11 +90,17 @@ classdef LowThrustTransfer
         end
         
         % Compute optimal in-plane thrust vector for eccentricity
-        function c_e = computeEccentricityControlVector(a, e, r, true_anomaly, flight_path_angle)
-            phi_e = atan(r * sin(true_anomaly) / (2 * a * (e + cos(true_anomaly))));
+        function c_e = computeEccentricityControlVector(a, e, r, angle, true_anomaly, flight_path_angle)
+            % if e ~0 then true_anomaly passed in will be 0 and angle used
+            % will be argument of latitude, otherwise true anomaly will be
+            % passed in for both angle and true_anomaly
+            phi_e = atan(r * sin(angle) / (2 * a * (e + cos(true_anomaly))));
             c_e = [sin(flight_path_angle + phi_e); 
                    cos(flight_path_angle + phi_e); 
                    0];
+            if ~isreal(c_e)
+                c_e;
+            end
         end
         
         % Compute out-of-plane thrust steering
@@ -128,7 +144,7 @@ classdef LowThrustTransfer
             
             % Compute current orbital state
             [flight_path_angle, longitude_angle] = LowThrustTransfer.compute_path_angles(r, v);
-            [a, e, ~, ~, ~, true_anomaly] = LowThrustTransfer.compute_orbital_elements(r, v);
+            [a, e, ~, ~, ~, true_anomaly, arg_latitude] = LowThrustTransfer.compute_orbital_elements(r, v);
             
             % Determine current phase and guidance parameters
             if t <= 120 * 24 * 3600
@@ -142,8 +158,14 @@ classdef LowThrustTransfer
             
             % Compute control vectors
             c_a = LowThrustTransfer.computeAxialControlVector(flight_path_angle);
-            c_e = LowThrustTransfer.computeEccentricityControlVector(a, e, norm(r), true_anomaly, flight_path_angle);
-            
+
+            if e < 1e-3
+                c_e = LowThrustTransfer.computeEccentricityControlVector(a, e, norm(r), arg_latitude, 0, flight_path_angle);
+            else
+                c_e = LowThrustTransfer.computeEccentricityControlVector(a,e,norm(r),true_anomaly, true_anomaly, flight_path_angle)
+            end
+                if ~isreal(c_e)
+                end
             % Compute thrust direction in RTN frame
             [thrust_unit_RTN, pitch_angle, yaw] = LowThrustTransfer.computeThrustDirection(c_a, c_e, Ge, Gi, flight_path_angle, longitude_angle);
             
@@ -170,44 +192,45 @@ classdef LowThrustTransfer
         end
         
         % Main transfer simulation
-        function results = simulate_transfer()
-            % Initial conditions (matching paper's scenario)
-            initial_altitude = 550e3;  % 550 km
-            initial_inclination = 28.5 * pi/180;
-            
-            % Compute initial position and velocity
-            r_earth = 6378e3;  % Earth radius
-            r_initial = r_earth + initial_altitude;
-            v_circular = sqrt(LowThrustTransfer.mu / r_initial);
-            
-            % Initial state - assume simulation starts at RAAN
-            r0 = [r_initial; 0; 0];
-            v0 = [0; v_circular * cos(initial_inclination); v_circular * sin(initial_inclination)];
-            
-            % Target GEO conditions
-            target_semimajor_axis = 42164e3;
-            %  WATT = kg m^2/s^3  Isp = sec  
-            % Simulation parameters
-            thrust_params.power = 10e3;           % 10 kW
-            thrust_params.Isp = 3300;             % Specific impulse
-            thrust_params.efficiency = 0.65;      % Engine efficiency
-            thrust_params.initial_mass = 1200;    % kg
-            thrust_params.mu = LowThrustTransfer.mu;
-            thrust_params.thrust_acceleration = 2*thrust_params.power * thrust_params.efficiency / (thrust_params.Isp * LowThrustTransfer.g0);
-            thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(LowThrustTransfer.g0*thrust_params.Isp)^2; 
-            
-            % Phase 1 and 2 guidance parameters
-            guidance_params.phase1.Ke0 = 0;
-            guidance_params.phase1.Ke1 = -1.5e3;
-            guidance_params.phase1.Ke2 = 0.0;
-            guidance_params.phase1.Ki0 = -0.33;
-            guidance_params.phase1.Ki1 = -4.3e-3;
-            
-            guidance_params.phase2.Ke0 = -0.18;
-            guidance_params.phase2.Ke1 = -1.0e-2;
-            guidance_params.phase2.Ke2 = 7e-5;
-            guidance_params.phase2.Ki0 = -0.85;
-            guidance_params.phase2.Ki1 = -5.2e-3;
+        function results = simulate_transfer(r0, v0, target_semi_major_axis, thrust_params, guidance_params)
+            % % Initial conditions (matching paper's scenario)
+            % initial_altitude = 550e3;  % 550 km
+            % initial_inclination = 28.5 * pi/180;
+            % 
+            % % Compute initial position and velocity
+            % r_earth = 6378e3;  % Earth radius
+            % r_initial = r_earth + initial_altitude;
+            % v_circular = sqrt(LowThrustTransfer.mu / r_initial);
+            % 
+            % % Initial state - assume simulation starts at RAAN
+            % r0 = [r_initial; 0; 0];
+            % v0 = [v_circular * cos(initial_inclination); v_circular * sin(initial_inclination) 0];
+            % 
+            % % Target GEO conditions
+            % target_semimajor_axis = 42164e3;
+            % %  WATT = kg m^2/s^3  Isp = sec  
+            % % Simulation parameters
+            % thrust_params.power = 10e3;           % 10 kW
+            % thrust_params.Isp = 3300;             % Specific impulse
+            % thrust_params.efficiency = 0.65;      % Engine efficiency
+            % thrust_params.initial_mass = 1200;    % kg
+            % thrust_params.mu = LowThrustTransfer.mu;
+            % thrust_params.initial_tw = 3.4e-5;
+            % thrust_params.thrust_acceleration = thrust_params.initial_tw * LowThrustTransfer.g0 * thrust_params.initial_mass;
+            % thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(LowThrustTransfer.g0*thrust_params.Isp)^2; 
+            % 
+            % % Phase 1 and 2 guidance parameters
+            % guidance_params.phase1.Ke0 = 0;
+            % guidance_params.phase1.Ke1 = -1.5e3;
+            % guidance_params.phase1.Ke2 = 0.0;
+            % guidance_params.phase1.Ki0 = -0.33;
+            % guidance_params.phase1.Ki1 = -4.3e-3;
+            % 
+            % guidance_params.phase2.Ke0 = -0.18;
+            % guidance_params.phase2.Ke1 = -1.0e-2;
+            % guidance_params.phase2.Ke2 = 7e-5;
+            % guidance_params.phase2.Ki0 = -0.85;
+            % guidance_params.phase2.Ki1 = -5.2e-3;
             
             % Simulation setup
             options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
@@ -220,7 +243,6 @@ classdef LowThrustTransfer
             % Process and return results
             results.time = t;
             results.state = state;
-
             
             for i = 1:length(state)
                 [a(i), ecc(i), inc(i), ~,  ~, nu(i)] = LowThrustTransfer.compute_orbital_elements(state(i,1:3), state(i,4:6));
