@@ -81,7 +81,7 @@ v2 = sqrt(mu / r2);
 
 % initial yaw angle
 
-beta0 = atan3(sin(0.5 * pi * dinct), (v1/v2) - cos(0.5 * pi * dinct));
+beta0 = atan2(sin(0.5 * pi * dinct), (v1/v2) - cos(0.5 * pi * dinct));
 
 % delta-v
 

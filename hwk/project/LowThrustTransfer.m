@@ -6,7 +6,8 @@ classdef LowThrustTransfer
         % Physical constants
         mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
         g0 = 9.81;             % Gravitational acceleration (m/s^2)
-        tgo = 100;                % time to go (simulation time)
+        tgo = 10;                % time to go (simulation time)
+        dt = 24*3600;           % time between iterations 
     end
     
     methods (Static)
@@ -76,6 +77,11 @@ classdef LowThrustTransfer
             
             % Compute thrust direction in RTN frame with yaw
             yaw = Gi*LowThrustTransfer.computeYawSteering(longitude_angle); 
+            if yaw >2*pi
+                yaw = 2*pi - yaw;
+            elseif yaw < -2*pi
+                yaw = 2*pi + yaw;
+            end
             thrust_unit_RTN = [
                 sin(pitch_angle) * cos(yaw);
                 cos(pitch_angle) * cos(yaw);
@@ -115,19 +121,14 @@ classdef LowThrustTransfer
             
             % Compute control vectors
             c_a = LowThrustTransfer.computeAxialControlVector(flight_path_angle);
+            c_e = LowThrustTransfer.computeEccentricityControlVector(coes.a,coes.e,norm(r),coes.true_anomaly, coes.true_anomaly, flight_path_angle);
 
-            % if e < 1e-3
-            %     c_e = LowThrustTransfer.computeEccentricityControlVector(coes.a, coes.e, norm(r), arg_latitude, 0, flight_path_angle);
-            % else
-                c_e = LowThrustTransfer.computeEccentricityControlVector(coes.a,coes.e,norm(r),coes.true_anomaly, coes.true_anomaly, flight_path_angle);
-            % end
-            %     if ~isreal(c_e)
-            %     end
             % Compute thrust direction in RTN frame
             [thrust_unit_RTN, pitch_angle, yaw] = LowThrustTransfer.computeThrustDirection(c_a, c_e, Ge, Gi, flight_path_angle, longitude_angle);
             
             % Transform thrust direction to ECI frame
             R_RTN2ECI = LowThrustTransfer.compute_RTN_to_ECI_matrix(r, v);
+            a_rtn2eci = Euler313(coes.raan, coes.inc, coes.omega, coes.true_anomaly);
             thrust_unit_ECI = R_RTN2ECI' * thrust_unit_RTN;
             
             % Gravitational acceleration
@@ -152,8 +153,9 @@ classdef LowThrustTransfer
         function results = simulate_transfer(r0, v0, target_semi_major_axis, thrust_params, guidance_params)
             % Simulation setup
             options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
-            dt = 2*24*3600;
-            tspan = 0:dt:LowThrustTransfer.tgo*24*3600;  % Transfer time in seconds
+            dt = LowThrustTransfer.dt;
+            todays = 24*3600;
+            tspan = 0:dt:LowThrustTransfer.tgo*todays;  % Transfer time in seconds
            % tspan = 0:dt:Tof
             
             % Solve ODE

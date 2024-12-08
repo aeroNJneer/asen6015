@@ -38,7 +38,7 @@ argper = oev(4);
 raan = oev(5);
 tanom = oev(6);
 
-slr = sma * (1 - ecc * ecc);
+slr = sma * (1 - ecc * ecc);    % semi-latus rectum
 
 rm = slr / (1 + ecc * cos(tanom));
    

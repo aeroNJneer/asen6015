@@ -13,11 +13,11 @@ thrust_params.Isp = 3300;             % Specific impulse
 thrust_params.efficiency = 0.65;      % Engine efficiency
 thrust_params.initial_mass = 1200;    % kg
 thrust_params.mu = LowThrustTransfer.mu;
-thrust_params.initial_tw = 3.4e-5;
+thrust_params.initial_tw = 3.4e-2;    % thrust in mN (?)          
 thrust_params.thrust_acceleration = thrust_params.initial_tw * LowThrustTransfer.g0 * thrust_params.initial_mass;
 thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(LowThrustTransfer.g0*thrust_params.Isp)^2; 
 
-% Phase 1 and 2 guidance parameters
+% Phase 1 and 2 guidance parameters  
 guidance_params.phase1.Ke0 = 0;
 guidance_params.phase1.Ke1 = -1.5e-3;
 guidance_params.phase1.Ke2 = 0.0;
@@ -32,14 +32,14 @@ guidance_params.phase2.Ki1 = -5.2e-3;
 
 % INITIAL CONDITIONS
 
-initial_altitude = 550e3;  
+initial_altitude = 5500e3;  
 initial_inclination = deg2rad(28.5);
 r_earth = 6378e3;  % Earth radius
 r_initial = [r_earth + initial_altitude; 0; 0 ];
 v_initial = [0; sqrt(LTT.mu / norm(r_initial)); 0];
 
 % Initial state - assume simulation starts at RAAN
-rtn2eci = Euler313(0, initial_inclination, 0);
+rtn2eci = Euler313(0, initial_inclination, 0, 0);
 r0 = rtn2eci * r_initial;
 v0 = rtn2eci * v_initial;
 
@@ -47,26 +47,28 @@ v0 = rtn2eci * v_initial;
 
 % Target GEO conditions
 target_semimajor_axis = 42164e3;
+vf = sqrt(LTT.mu/target_semimajor_axis);
 
 results = LTT.simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params);
 
-function RTN2ECI = Euler313(Raan, i, omega)
-    % Rotation matrix for RAAN
-    R_RAAN = [cos(Raan), -sin(Raan), 0;
-              sin(Raan), cos(Raan), 0;
-              0, 0, 1];
-    
-    % Rotation matrix for inclination
-    R_i = [1, 0, 0;
-           0, cos(i), -sin(i);
-           0, sin(i), cos(i)];
-    
-    % Rotation matrix for argument of perigee
-    R_omega = [cos(omega), -sin(omega), 0;
-               sin(omega), cos(omega), 0;
-               0, 0, 1];
-    
-    % Combined rotation matrix
-    RTN2ECI = R_RAAN * R_i * R_omega;
-end
-
+% function RTN2ECI = Euler313(Raan, i, omega, true_anomaly)
+%     % Rotation matrix for RAAN
+%     theta = omega + true_anomaly;
+%     R_RAAN = [cos(Raan), -sin(Raan), 0;
+%               sin(Raan), cos(Raan), 0;
+%               0, 0, 1];
+% 
+%     % Rotation matrix for inclination
+%     R_i = [1, 0, 0;
+%            0, cos(i), -sin(i);
+%            0, sin(i), cos(i)];
+% 
+%     % Rotation matrix for argument of perigee
+%     R_omega = [cos(theta), -sin(theta), 0;
+%                sin(theta), cos(theta), 0;
+%                0, 0, 1];
+% 
+%     % Combined rotation matrix
+%     RTN2ECI = R_RAAN * R_i * R_omega;
+% end
+% 
