@@ -40,6 +40,9 @@ classdef LowThrustTransfer
             % Compute longitude angle
             coes = eci2orb1(LowThrustTransfer.mu,r,v);
             longitude_angle = coes.omega + coes.true_anomaly;
+            if longitude_angle > 2*pi
+                longitude_angle = longitude_angle - 2*pi'
+            end
         end
         
         % Compute optimal in-plane thrust vector for semimajor axis
