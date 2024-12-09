@@ -2,13 +2,13 @@
 % Based on Kluever 2012 "Simple Guidance Scheme for Low-Thrust Orbit Transfers"
 
 classdef LowThrustTransfer
-    properties (Constant)
-        % Physical constants
+    properties (Constant)        % Physical constants
         mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
         g0 = 9.81;             % Gravitational acceleration (m/s^2)
-        tgo = 10;                % time to go (simulation time)
-        dt = 24*3600;           % time between iterations 
+        tgo = 216;                % time to go (simulation time)
+        dt = 3600;           % time between iterations 
     end
+
     
     methods (Static)
         % Compute RTN to ECI transformation matrix
@@ -26,7 +26,7 @@ classdef LowThrustTransfer
             t_unit = cross(n_unit, r_unit);
             
             % Transformation matrix from RTN to ECI
-            R_RTN2ECI = [r_unit, t_unit, n_unit];
+            R_RTN2ECI = [r_unit, t_unit, n_unit]';
         end
         
         % Compute orbital elements
@@ -41,7 +41,7 @@ classdef LowThrustTransfer
             coes = eci2orb1(LowThrustTransfer.mu,r,v);
             longitude_angle = coes.omega + coes.true_anomaly;
             if longitude_angle > 2*pi
-                longitude_angle = longitude_angle - 2*pi'
+                longitude_angle = longitude_angle - 2*pi';
             end
         end
         
@@ -141,6 +141,7 @@ classdef LowThrustTransfer
             % Thrust acceleration
             a_thrust = thrust_params.thrust_acceleration * thrust_unit_ECI / m;
             
+
             % Mass rate change
             mdot = -thrust_params.mass_flow_rate;
             
