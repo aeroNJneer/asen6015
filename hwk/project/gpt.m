@@ -46,7 +46,7 @@ v0 = rot_matrix * v0;
 
 %% Simulation Parameters
 dt = 10; % Time step (s)
-t_max = 2 * 86400; % Maximum simulation time (s)
+t_max = 220 * 86400; % Maximum simulation time (s)
 
 %% Preallocate Storage for Results
 r_ECI = r0;
@@ -69,7 +69,7 @@ while norm(r_ECI) < a_GEO && time < t_max
     % Compute RTN frame unit vectors
     r_norm = norm(r_ECI);
     r_hat = r_ECI / r_norm;
-    v_norm = norm(v_ECI);
+    qv_norm = norm(v_ECI);
     h_vec = cross(r_ECI, v_ECI);
     h_hat = h_vec / norm(h_vec);
     t_hat = cross(h_hat, r_hat);

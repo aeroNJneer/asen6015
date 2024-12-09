@@ -5,8 +5,8 @@ classdef LowThrustTransfer
     properties (Constant)        % Physical constants
         mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
         g0 = 9.81;             % Gravitational acceleration (m/s^2)
-        tgo = 216;                % time to go (simulation time)
-        dt = 3600;           % time between iterations 
+        tgo = 216.3;                % time to go (simulation time)
+        dt = 600;           % time between iterations 
     end
 
     
@@ -79,7 +79,7 @@ classdef LowThrustTransfer
             pitch_angle = atan2(c_blended(1), c_blended(2));
             
             % Compute thrust direction in RTN frame with yaw
-            yaw = Gi*LowThrustTransfer.computeYawSteering(longitude_angle); 
+            yaw = Gi*cos(longitude_angle); 
             if yaw >2*pi
                 yaw = 2*pi - yaw;
             elseif yaw < -2*pi

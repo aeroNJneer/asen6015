@@ -121,3 +121,4 @@ oev.omega = argper;
 oev.raan = raan;
 oev.true_anomaly = tanom;
 oev.true_longitude = xlambdat;
+oev.h = norm(hv);
