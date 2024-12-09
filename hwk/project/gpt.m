@@ -60,6 +60,10 @@ orbit_elements = [];
 yaw_history = [];
 pitch_history = [];
 
+% Guidance parameters
+Ki0 = 0.01; % Initial inclination control parameter
+Ki1 = 1e-5; % Time-dependent inclination control parameter
+
 %% Simulation Loop
 while norm(r_ECI) < a_GEO && time < t_max
     % Compute RTN frame unit vectors
@@ -75,6 +79,7 @@ while norm(r_ECI) < a_GEO && time < t_max
     h = norm(specific_angular_momentum);
     eccentricity_vector = cross(v_ECI, specific_angular_momentum) / mu - r_ECI / r_norm;
     e = norm(eccentricity_vector);
+    inclination = acos(h_hat(3));
     true_anomaly = atan2(dot(r_ECI, t_hat), dot(r_ECI, r_hat));
 
     % Flight path angle
@@ -87,7 +92,7 @@ while norm(r_ECI) < a_GEO && time < t_max
     alpha_blended = (1 - e_target) * alpha_a + e_target * alpha_e;
 
     % Out-of-plane steering (yaw)
-    Gi = 1; % Inclination control weighting
+    Gi = Ki0 + Ki1 * time; % Time-dependent inclination control weighting
     beta = Gi * cos(true_anomaly + omega_LEO);
 
     % Thrust direction in RTN
@@ -117,7 +122,7 @@ while norm(r_ECI) < a_GEO && time < t_max
     time_history = [time_history, time];
     yaw_history = [yaw_history, beta];
     pitch_history = [pitch_history, gamma + alpha_blended];
-    orbit_elements = [orbit_elements; r_norm, e, inclination_LEO];
+    orbit_elements = [orbit_elements; r_norm, e, inclination];
 
     % Update time
     time = time + dt;
@@ -151,4 +156,11 @@ plot(time_history / 3600, pitch_history);
 xlabel('Time (hours)');
 ylabel('Pitch Angle (rad)');
 title('Pitch Steering History');
+grid on;
+
+figure;
+plot(time_history / 3600, orbit_elements(:, 3));
+xlabel('Time (hours)');
+ylabel('Inclination (rad)');
+title('Inclination vs Time');
 grid on;
