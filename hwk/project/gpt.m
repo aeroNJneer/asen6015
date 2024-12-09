@@ -80,7 +80,10 @@ while norm(r_ECI) < a_GEO && time < t_max
     eccentricity_vector = cross(v_ECI, specific_angular_momentum) / mu - r_ECI / r_norm;
     e = norm(eccentricity_vector);
     inclination = acos(h_hat(3));
-    true_anomaly = atan2(dot(r_ECI, t_hat), dot(r_ECI, r_hat));
+
+    % Avoid singularities for circular orbits
+    RAAN = atan2(h_hat(1), -h_hat(2));
+    argument_of_latitude = atan2(r_ECI(3) / sin(inclination), r_ECI(1) * cos(RAAN) + r_ECI(2) * sin(RAAN));
 
     % Flight path angle
     gamma = atan2(dot(v_ECI, r_hat), dot(v_ECI, t_hat));
@@ -93,7 +96,7 @@ while norm(r_ECI) < a_GEO && time < t_max
 
     % Out-of-plane steering (yaw)
     Gi = Ki0 + Ki1 * time; % Time-dependent inclination control weighting
-    beta = Gi * cos(true_anomaly + omega_LEO);
+    beta = Gi * cos(argument_of_latitude);
 
     % Thrust direction in RTN
     thrust_RTN = [sin(gamma + alpha_blended) * cos(beta); 
