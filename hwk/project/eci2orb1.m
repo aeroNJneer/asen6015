@@ -107,12 +107,30 @@ else
     argper = 0.0;
 end
 
+% argument of latitude  (circular, inclined)
+n = cross([0;0;1],hv);               % line of nodes
+u = acos(dot(n,r)/(norm(n)*norm(r)));
+if r(3) < 0
+    u = -abs(u);
+end
+
+% longitude of perigee (equatorial, elliptical)
+long_peri = dot([1;0;0],ecc)/norm(ecc);
+if (dot(ecc,[0;1;0]) < 0)
+    long_peri = -abs(long_peri);
+end
+
+% true longitude (circular, planar)
+lambda_true = acos(dot([1;0;0],r)/norm(r));
+if (r(2)) <0
+    lambda_true = -abs(lambda_true);
+end
+
 % true anomaly
 
-tanom = mod(xlambdat - raan - argper, pi2);
+tanom = mod(lambda_true - raan - argper, pi2);
 
-
-% load orbital element vector
+% load orbital element vector 
 
 oev.a = sma;
 oev.e = eccm;
@@ -120,5 +138,9 @@ oev.inc = inc;
 oev.omega = argper;
 oev.raan = raan;
 oev.true_anomaly = tanom;
-oev.true_longitude = xlambdat;
+oev.true_longitude = lambda_true;
 oev.h = norm(hv);
+oev.arg_latitude = u;
+oev.long_perigee = long_peri;
+
+

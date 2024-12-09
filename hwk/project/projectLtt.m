@@ -13,7 +13,7 @@ thrust_params.Isp = 3300;             % Specific impulse
 thrust_params.efficiency = 0.65;      % Engine efficiency
 thrust_params.initial_mass = 1200;    % kg
 thrust_params.initial_tw = 3.4e-5;    % thrust in mN (?)          
-thrust_params.thrust_acceleration = thrust_params.initial_tw * constants.g0 * thrust_params.initial_mass;
+thrust_params.thrust = 2 * thrust_params.efficiency * thrust_params.power/(constants.g0*thrust_params.Isp);
 thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(constants.g0*thrust_params.Isp)^2; 
 
 % Phase 1 and 2 guidance parameters  
@@ -40,8 +40,8 @@ v_initial = [0; sqrt(constants.mu / norm(r_initial)); 0];
 
 % Initial state in ECI - assume simulation starts at RAAN
 rtn2eci = Euler313(0, initial_inclination, 0, 0);
-r0 = rtn2eci * r_initial;
-v0 = rtn2eci * v_initial;
+r0 = rtn2eci * r_initial;   % ECI frame
+v0 = rtn2eci * v_initial;   % ECI frame
 
 % Target GEO conditions
 target_semimajor_axis = 42164e3;
@@ -64,13 +64,20 @@ results.time = [];
 while (norm(r) < target_semimajor_axis && t < constants.tmax*24*3600)
     % get orbital and flight parameters
     COEs = eci2orb1(constants.mu, r,v);
-    theta = COEs.omega + COEs.true_anomaly;
+    if COEs.e < 1e-6 && COEs.inc > 1e-4
+        true_anomaly = COEs.arg_latitude;
+    elseif COEs.e > 1e-6 && COEs.inc <1e-4
+        true_anomaly = COEs.true_longitude;
+    else 
+        true_anomaly = COEs.true_anomaly;
+    end
+    theta = COEs.omega + true_anomaly;
     gamma = getFlightPathAngle(r,v);
     period = 2*pi*sqrt(COEs.a^3/constants.mu);
     dt = period/100;
 
     % calculate optimal angles
-    [phi_a, phi_e, beta] = getOptimalAngles(r, COEs.a, COEs.e, COEs.omega, COEs.true_anomaly);
+    [phi_a, phi_e, beta] = getOptimalAngles(r, COEs.a, COEs.e, COEs.omega, true_anomaly);
 
     % Determine current phase and guidance parameters
     if t <= 120 * 24 * 3600
@@ -87,46 +94,44 @@ while (norm(r) < target_semimajor_axis && t < constants.tmax*24*3600)
 
     % determine pitch and yaw steering angles
     [alpha, beta] = getPitchYaw(c, G_i, theta);
-
     thrust_vector_rtn = getThrustVector(alpha,beta);
-    accel_thrust = thrust_params.thrust_acceleration / m;
+    accel_thrust = thrust_params.thrust / m;
+   
     % variational orbital elements
     da_dt = 2*a_calc^2*norm(v)*accel_thrust*cos(phi_a)/constants.mu;
     a_calc = a_calc + da_dt*dt;
-    de_dt = (accel_thrust/norm(v)) *(2*(e_calc+cos(COEs.true_anomaly))*cos(phi_e) + (r/a_calc)*sin(COEs.true_anomaly)*sin(phi_e));
+    de_dt = (accel_thrust/norm(v)) *(2*(e_calc+cos(true_anomaly))*cos(phi_e) + (r/a_calc)*sin(true_anomaly)*sin(phi_e));
     e_calc = e_calc + de_dt*dt;
     di_dt = accel_thrust*cos(theta)*sin(beta)/COEs.h;
     inc_calc = inc_calc + di_dt*dt;
   
     % simulate each orbit
     dt = period/100;
-    tspan = t:dt:period;
+    tspan = 0:dt:period;
             
     options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
-    [t_sim, states] = ode45(@(t,y) systemDynamics(t, y, thrust_vector_rtn, constants.mu, COEs, thrust_params), tspan, [r; v; m], options);
+    [t_sim, states] = ode45(@(t,y) systemDynamics(t, y, thrust_vector_rtn, constants.mu, COEs, true_anomaly, thrust_params), tspan, [r; v; m], options);
    
-    results.states(i) = [results.state; states(end,1:3)];
-  %  results.COEs = [results.COEs, COEs'];
-    results.time(i) = [results.time, t_sim(end)];
+    results.state = [results.state; states];
+    results.COEs = [results.COEs, COEs];
+    results.time = [results.time, t_sim];
     r = states(end,1:3)';
     v = states(end,4:6)';
     m = states(end,7);
-    t = t+dt;
+    t = t+period;
     i = i+1;
 end
-
-
 
 function gamma = getFlightPathAngle(r,v)
     % Compute the magnitudes of the position and velocity vectors
     r_mag = norm(r);
+    rhat = r/r_mag;    
     v_mag = norm(v);
-
-    % Compute the radial velocity component
-    vr = dot(r, v) / r_mag;
+    v_r = dot(v,rhat);
+    v_h = sqrt(v_mag^2-v_r^2);
 
     % Compute the flight path angle in radians
-    gamma = acos(vr / v_mag);
+    gamma = atan2(v_r , v_h);
 end
 
 function [phi_a, phi_e, beta] = getOptimalAngles(r, a, e, omega, nu)
@@ -161,22 +166,22 @@ function u_hat_rtn = getThrustVector(alpha, beta)
     u_hat_rtn = [sin(alpha)*cos(beta); cos(alpha)*cos(beta); sin(beta)];
 end
 
-function state_dot = systemDynamics(t, state, thrust_vector_RTN, mu, coes, thrust_params)
+function state_dot = systemDynamics(t, state, thrust_vector_RTN, mu, coes, true_anomaly, thrust_params)
     % State vector: [x, y, z, vx, vy, vz, mass]
-    r = state(1:3);
-    v = state(4:6);
-    m = state(7);
+    r = state(1:3);  % ECI frame 
+    v = state(4:6);  % ECI frame
+    m = state(7);    % mass
 
     % Gravitational acceleration
     r_mag = norm(r);
-    a_grav = -mu * r / (r_mag^3);
+    a_grav = -mu * r / (r_mag^3);       % ECI frame
 
     % Transform thrust direction to ECI frame
-    R_RTN2ECI = compute_RTN_to_ECI_matrix(r, v);
-    a_rtn2eci = Euler313(coes.raan, coes.inc, coes.omega, coes.true_anomaly);
+    R_RTN2ECI = compute_RTN_to_ECI_matrix(r, v)';
+    a_rtn2eci = Euler313(coes.raan, coes.inc, coes.omega, true_anomaly);
 
     thrust_unit_ECI = R_RTN2ECI * thrust_vector_RTN;
-    a_thrust = thrust_params.thrust_acceleration * thrust_unit_ECI / m;
+    a_thrust = thrust_params.thrust * thrust_unit_ECI / m;
 
     % Mass rate change
     mdot = -thrust_params.mass_flow_rate;
@@ -200,5 +205,5 @@ function R_RTN2ECI = compute_RTN_to_ECI_matrix(r, v)
     t_unit = cross(n_unit, r_unit);
     
     % Transformation matrix from RTN to ECI
-    R_RTN2ECI = [r_unit, t_unit, n_unit]';
+    R_RTN2ECI = [r_unit, t_unit, n_unit];
 end

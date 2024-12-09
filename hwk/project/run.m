@@ -15,7 +15,7 @@ thrust_params.efficiency = 0.65;      % Engine efficiency
 thrust_params.initial_mass = 1200;    % kg
 thrust_params.mu = LowThrustTransfer.mu;
 thrust_params.initial_tw = 3.4e-2;    % thrust in mN (?)          
-thrust_params.thrust_acceleration = thrust_params.initial_tw * LowThrustTransfer.g0 * thrust_params.initial_mass;
+thrust_params.thrust = 2*thrust_params.power*thrust_params.efficiency/(LTT.g0 * thrust_params.Isp);
 thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(LowThrustTransfer.g0*thrust_params.Isp)^2; 
 
 % Phase 1 and 2 guidance parameters  

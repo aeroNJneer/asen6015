@@ -35,7 +35,15 @@ classdef LowThrustTransfer
         % Compute flight path and longitude angles
         function [flight_path_angle, longitude_angle] = compute_path_angles(r, v)
             % Flight path angle
-            flight_path_angle = atan2(v(1),v(2));
+            % Compute the magnitudes of the position and velocity vectors
+            r_mag = norm(r);
+            rhat = r/r_mag;    
+            v_mag = norm(v);
+            v_r = dot(v,rhat);
+            v_h = sqrt(v_mag^2-v_r^2);
+        
+            % Compute the flight path angle in radians
+            flight_path_angle = atan2(v_r , v_h);
             
             % Compute longitude angle
             coes = eci2orb1(LowThrustTransfer.mu,r,v);
