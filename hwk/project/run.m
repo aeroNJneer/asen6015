@@ -1,9 +1,20 @@
-clear;
-close all;
-
 
 % ASEN-6015 FINAL PROJECT
 % NICOLE JAMES
+
+clear;
+close all;
+% set up graphics
+set(0,'DefaultAxesXGrid','on', ...
+    'DefaultAxesYGrid','on', ...
+    'DefaultLineLineWidth',2, ...
+    'DefaultAxesLineWidth',1.5);
+set(groot, 'defaultAxesFontSize',12, ...
+    'defaultTextFontSize',12, ...
+    'defaultLegendFontSize',14, ...
+    'defaultAxesTitleFontSizeMultiplier', 1.5, ...
+    'defaultAxesTitleFontSizeMultiplier', 1.2);
+
 
 LTT = LowThrustTransfer;
 % CONSTANTS
@@ -40,7 +51,7 @@ r_earth = 6378e3;  % Earth radius
 r_initial = [r_earth + initial_altitude; 0; 0 ];
 v_initial = [0; sqrt(LTT.mu / norm(r_initial)); 0];
 
-% Initial state - assume simulation starts at RAAN
+% Initial states - assume simulation starts at RAAN
 rtn2eci = Euler313(0, initial_inclination, 0, 0);
 r0 = rtn2eci * r_initial;
 v0 = rtn2eci * v_initial;
@@ -51,86 +62,110 @@ v0 = rtn2eci * v_initial;
 target_semimajor_axis = 42164e3;
 vf = sqrt(LTT.mu/target_semimajor_axis);
 
-results = LTT.simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params);
+%results = LTT.simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params);
+
+%% Monte Carlo simulations
+
+% 3 sigma error = 5%
+num_sims = 5;
+sigma_error = 0.05/3; 
+error_param = "mass_flow_rate";
+
+% error in m_dot, Isp, thrust = 5-10% ; input power = 3-7%
+resultsMc = runMonteCarlo(num_sims, sigma_error, error_param, r0, v0, target_semimajor_axis, thrust_params, guidance_params,LTT);
+
+%% Plot results
+    figure;
+    subplot(2,1,1);
+    plot([results.time]/24/3600 , vecnorm(results.states(:,1:3), 2, 2)/1000);
+    title('Radius vs Time');
+    xlabel('Time (days)');
+    ylabel('Altitude [km]');
+    
+    subplot(2,1,2);
+    plot(results.time/24/3600 , results.states(:,7));
+    title('Spacecraft Mass vs Time');
+    xlabel('Time [days]');
+    ylabel('Mass [kg]');
+    
+    figure;
+    subplot(3,1,1);
+    plot(results.time/24/3600 , results.a/1000);
+    title('Semi-major Axis vs Time');
+    xlabel('Time (days)');
+    ylabel('Semi-major Axis ({\i a}) [km]', 'Interpreter','latex');
+    
+    subplot(3,1,2);
+    plot(results.time/24/3600 , results.ecc);
+    title('Eccentricity vs Time');
+    xlabel('Time [days]');
+    ylabel('Eccentricity ');
+    
+    subplot(3,1,3);
+    plot(results.time/24/3600 , results.inc);
+    title('Inclination vs Time');
+    xlabel('Time (days)');
+    ylabel('Inclination {\i i} [deg]','Interpreter','latex');
+    
+    
+    figure;
+    plot3(results.states(:,1)/1000,results.states(:,2)/1000,results.states(:,3)/1000)
+    xlabel('X (km)')
+    ylabel('Y (km)')
+    zlabel('Z (km)')
+    title('History of Transfer Orbit')
+    
+    
+    figure;
+    plot(results.a,results.ecc)
+    ylim([0 0.01])
+    ylabel('Eccentricity ({\i e})')
+    xlabel('Semi-major Axis ({\i a}) [km]', 'Interpreter','latex')
+    
+    figure;
+    plot(results.a, rad2deg(results.inc))
+    ylabel('Inclination ({\i i}) [deg]')
+    title('Orbit Inclination')
+    xlabel('Semi-major Axis {\i a} (km)','Interpreter','latex')
+    hold off;
+    
+    
+    figure;
+    subplot(3,1,1);
+    plot(results.time/24/3600 , rad2deg(results.angles(:,1)));
+    title('Pitch Angle vs Time');
+    xlabel('Time (days)');
+    ylabel('Pitch (\alpha) [deg]');
+    
+    subplot(3,1,2);
+    plot(results.time/24/3600 , rad2deg(results.angles(:,2)));
+    title('Yaw Angle vs Time');
+    xlabel('Time (days)');
+    ylabel('Yaw Angle (\beta) [deg]');
+    
+    subplot(3,1,3);
+    plot(results.time/24/3600 , rad2deg(results.angles(:,3)));
+    title('Flight Path Angle vs Time');
+    xlabel('Time (days)');
+    ylabel('Flight Path Angle (\gamma) [deg]');
+    
+    figure;
+    plot(results.true_anomaly , rad2deg(results.angles(:,2)));
+    title('Yaw Angle vs True Anomaly');
+    xlabel('True Anomaly (rad)');
+    ylabel('Yaw Angle (\beta) [rad]');
 
 
-% Plot results
-figure;
-subplot(2,1,1);
-plot([results.time]/24/3600 , vecnorm(results.state(:,1:3), 2, 2)/1000);
-title('Radius vs Time');
-xlabel('Time (days)');
-ylabel('Altitude [km]');
+function results = runMonteCarlo(num_sims, sigma_err, error_param, r0, v0, target_semimajor_axis, thrust_params, guidance_params, LTT)
 
-subplot(2,1,2);
-plot(results.time/24/3600 , results.state(:,7));
-title('Spacecraft Mass vs Time');
-xlabel('Time [days]');
-ylabel('Mass [kg]');
+    % Run Monte Carlo simulations
+    for i = 1:num_sims
+        % Generate random thrust scaling for this simulation
+        noise = randn()*sigma_err;
+        thrust_params.mass_flow_rate = thrust_params.mass_flow_rate + thrust_params.mass_flow_rate*noise;
+        results(i) = LTT.simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params);
+    end
 
-figure;
-subplot(3,1,1);
-plot(results.time/24/3600 , results.a/1000);
-title('Semi-major Axis vs Time');
-xlabel('Time (days)');
-ylabel('Semi-major Axis ({\i a}) [km]', 'Interpreter','latex');
-
-subplot(3,1,2);
-plot(results.time/24/3600 , results.ecc);
-title('Eccentricity vs Time');
-xlabel('Time [days]');
-ylabel('Eccentricity ');
-
-subplot(3,1,3);
-plot(results.time/24/3600 , results.inc);
-title('Inclination vs Time');
-xlabel('Time (days)');
-ylabel('Inclination {\i i} [deg]','Interpreter','latex');
-
-
-figure;
-plot3(results.state(:,1)/1000,results.state(:,2)/1000,results.state(:,3)/1000)
-xlabel('X (km)')
-ylabel('Y (km)')
-zlabel('Z (km)')
-title('History of Transfer Orbit')
-
-
-figure;
-plot(results.a,results.ecc)
-ylim([0 0.01])
-ylabel('Eccentricity ({\i e})')
-xlabel('Semi-major Axis ({\i a}) [km]', 'Interpreter','latex')
-
-figure;
-plot(results.a, rad2deg(results.inc))
-ylabel('Inclination ({\i i}) [deg]')
-title('Orbit Inclination')
-xlabel('Semi-major Axis {\i a} (km)','Interpreter','latex')
-hold off;
-
-
-figure;
-subplot(3,1,1);
-plot(results.time/24/3600 , rad2deg(results.angles(:,1)));
-title('Pitch Angle vs Time');
-xlabel('Time (days)');
-ylabel('Pitch (\alpha) [deg]');
-
-subplot(3,1,2);
-plot(results.time/24/3600 , rad2deg(results.angles(:,2)));
-title('Yaw Angle vs Time');
-xlabel('Time (days)');
-ylabel('Yaw Angle (\beta) [deg]');
-
-subplot(3,1,3);
-plot(results.time/24/3600 , rad2deg(results.angles(:,3)));
-title('Flight Path Angle vs Time');
-xlabel('Time (days)');
-ylabel('Flight Path Angle (\gamma) [deg]');
-
-figure;
-plot(results.true_anomaly , rad2deg(results.angles(:,2)));
-title('Yaw Angle vs True Anomaly');
-xlabel('True Anomaly (rad)');
-ylabel('Yaw Angle (\beta) [rad]');
+    % calculate statistics
+    % mean, std, final values, histogram distributions
+end

@@ -4,9 +4,9 @@
 classdef LowThrustTransfer
     properties (Constant)        % Physical constants
         mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
-        g0 = 9.81;             % Gravitational acceleration (m/s^2)
+        g0 = 9.80665;             % Gravitational acceleration (m/s^2)
         tgo = 190.626;                % time to go (simulation time)  
-        dt = 1200;           % time between iterations 
+        dt = 60;           % time between iterations 
     end
 
     
@@ -110,18 +110,15 @@ classdef LowThrustTransfer
         end
         
         % Spacecraft dynamics
-        function [state_dot, angles] = spacecraft_dynamics(t, state, thrust_params, guidance_params, target_semimajor_axis)
-            % State vector: [x, y, z, vx, vy, vz, mass]
-            r = state(1:3);
-            v = state(4:6);
-            m = state(7);
+        function [states_dot, angles] = spacecraft_dynamics(t, states, thrust_params, guidance_params, target_semimajor_axis)
+            % states vector: [x, y, z, vx, vy, vz, mass]
+            r = states(1:3);
+            v = states(4:6);
+            m = states(7);
             
-            % Compute current orbital state
+            % Compute current orbital states
             [flight_path_angle, longitude_angle] = LowThrustTransfer.compute_path_angles(r, v);
             coes = eci2orb1(LowThrustTransfer.mu,r, v);
-            if coes.a > target_semimajor_axis
-                return;
-            end
 
             % Determine current phase and guidance parameters
             if t <= 120 * 24 * 3600
@@ -157,38 +154,57 @@ classdef LowThrustTransfer
             % Mass rate change
             mdot = -thrust_params.mass_flow_rate;
             
-            % State derivative
-            state_dot = [
+            % states derivative
+            states_dot = [
                 v;
                 a_grav + a_thrust;
                 mdot
             ];
         end
-        
+ 
+ 
+
         % Main transfer simulation
         function results = simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params)
             % Simulation setup
-            options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
+
+            options = odeset('Events', @(t,y) stop_condition(t, y, target_semimajor_axis), 'RelTol', 1e-8, 'AbsTol', 1e-8);        
+
             dt = LowThrustTransfer.dt;
             todays = 24*3600;
             tspan = 0:dt:LowThrustTransfer.tgo*todays;  % Transfer time in seconds
             
             % Solve ODE
-            [t, state] = ode45(@(t,y) LowThrustTransfer.spacecraft_dynamics(t, y, thrust_params, guidance_params, target_semimajor_axis), ...
+            [t, states] = ode45(@(t,y) LowThrustTransfer.spacecraft_dynamics(t, y, thrust_params, guidance_params, target_semimajor_axis), ...
                 tspan, [r0; v0; thrust_params.initial_mass], options);
             
+           function [value, isterminal, direction] = stop_condition(t, y, target_semimajor_axis)
+                % state vector: [x, y, z, vx, vy, vz, mass]
+                mu = LowThrustTransfer.mu;
+                r = y(1:3);
+                v = y(4:6);
+                
+                % Compute current orbital elements
+                coes = eci2orb1(mu, r, v);
+                
+                % Condition: stop when semimajor axis becomes less than target
+                value = coes.a - target_semimajor_axis;
+                isterminal = 1;  % Stop integration
+                direction = 1;  % Stop when crossing from below target
+            end
+
             % get time history of angles
             for i = 1:length(t)
-                [~, angles(i,:)] = LowThrustTransfer.spacecraft_dynamics(t(i), state(i, :)', thrust_params, guidance_params, target_semimajor_axis);
+                [~, angles(i,:)] = LowThrustTransfer.spacecraft_dynamics(t(i), states(i, :)', thrust_params, guidance_params, target_semimajor_axis);
             end
             
             % Process and return results
             results.time = t;
-            results.state = state;
+            results.states = states;
             results.angles = angles;
             
-            for i = 1:length(state)
-                coes(i) = eci2orb1(LowThrustTransfer.mu,state(i,1:3), state(i,4:6));
+            for i = 1:length(states)
+                coes(i) = eci2orb1(LowThrustTransfer.mu,states(i,1:3), states(i,4:6));
             end
             results.a = [coes.a];
             results.ecc = [coes.e];
@@ -197,7 +213,7 @@ classdef LowThrustTransfer
 
         end
   
-        function [r, v] = orbitalElementsToStateVectors(a, e, i, RAAN, w, TA, mu)
+        function [r, v] = orbitalElementsTostatesVectors(a, e, i, RAAN, w, TA, mu)
             % a    - semi-major axis (km)
             % e    - eccentricity
             % i    - inclination (degrees)
