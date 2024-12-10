@@ -5,8 +5,8 @@ classdef LowThrustTransfer
     properties (Constant)        % Physical constants
         mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
         g0 = 9.81;             % Gravitational acceleration (m/s^2)
-        tgo = 216.3;                % time to go (simulation time)
-        dt = 600;           % time between iterations 
+        tgo = 190.626;                % time to go (simulation time)  
+        dt = 1200;           % time between iterations 
     end
 
     
@@ -38,13 +38,13 @@ classdef LowThrustTransfer
             % Compute the magnitudes of the position and velocity vectors
             r_mag = norm(r);
             rhat = r/r_mag;    
-            v_mag = norm(v);
-            v_r = dot(v,rhat);
-            v_h = sqrt(v_mag^2-v_r^2);
-        
+            v_mag = norm(v);    
             % Compute the flight path angle in radians
+            v_r = dot(v,rhat);
+            v_h = sqrt(v_mag^2-v_r^2);            
             flight_path_angle = atan2(v_r , v_h);
-            
+
+          %  flight_path_angle = atan2(v(1),v(2));
             % Compute longitude angle
             coes = eci2orb1(LowThrustTransfer.mu,r,v);
             longitude_angle = coes.omega + coes.true_anomaly;
@@ -110,7 +110,7 @@ classdef LowThrustTransfer
         end
         
         % Spacecraft dynamics
-        function [state_dot, angles] = spacecraft_dynamics(t, state, thrust_params, guidance_params)
+        function [state_dot, angles] = spacecraft_dynamics(t, state, thrust_params, guidance_params, target_semimajor_axis)
             % State vector: [x, y, z, vx, vy, vz, mass]
             r = state(1:3);
             v = state(4:6);
@@ -119,7 +119,10 @@ classdef LowThrustTransfer
             % Compute current orbital state
             [flight_path_angle, longitude_angle] = LowThrustTransfer.compute_path_angles(r, v);
             coes = eci2orb1(LowThrustTransfer.mu,r, v);
-            
+            if coes.a > target_semimajor_axis
+                return;
+            end
+
             % Determine current phase and guidance parameters
             if t <= 120 * 24 * 3600
                 phase_params = guidance_params.phase1;
@@ -136,7 +139,8 @@ classdef LowThrustTransfer
 
             % Compute thrust direction in RTN frame
             [thrust_unit_RTN, pitch_angle, yaw] = LowThrustTransfer.computeThrustDirection(c_a, c_e, Ge, Gi, flight_path_angle, longitude_angle);
-            
+            angles = [pitch_angle, yaw, flight_path_angle];
+
             % Transform thrust direction to ECI frame
             R_RTN2ECI = LowThrustTransfer.compute_RTN_to_ECI_matrix(r, v);
             a_rtn2eci = Euler313(coes.raan, coes.inc, coes.omega, coes.true_anomaly);
@@ -147,9 +151,8 @@ classdef LowThrustTransfer
             a_grav = -thrust_params.mu * r / (r_mag^3);
             
             % Thrust acceleration
-            a_thrust = thrust_params.thrust_acceleration * thrust_unit_ECI / m;
+            a_thrust_rtn = thrust_params.thrust_acceleration * thrust_unit_ECI / m;
             
-
             % Mass rate change
             mdot = -thrust_params.mass_flow_rate;
             
@@ -162,21 +165,26 @@ classdef LowThrustTransfer
         end
         
         % Main transfer simulation
-        function results = simulate_transfer(r0, v0, target_semi_major_axis, thrust_params, guidance_params)
+        function results = simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params)
             % Simulation setup
             options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
             dt = LowThrustTransfer.dt;
             todays = 24*3600;
             tspan = 0:dt:LowThrustTransfer.tgo*todays;  % Transfer time in seconds
-           % tspan = 0:dt:Tof
             
             % Solve ODE
-            [t, state] = ode45(@(t,y) LowThrustTransfer.spacecraft_dynamics(t, y, thrust_params, guidance_params), ...
+            [t, state] = ode45(@(t,y) LowThrustTransfer.spacecraft_dynamics(t, y, thrust_params, guidance_params, target_semimajor_axis), ...
                 tspan, [r0; v0; thrust_params.initial_mass], options);
+            
+            % get time history of angles
+            for i = 1:length(t)
+                [~, angles(i,:)] = LowThrustTransfer.spacecraft_dynamics(t(i), state(i, :)', thrust_params, guidance_params, target_semimajor_axis);
+            end
             
             % Process and return results
             results.time = t;
             results.state = state;
+            results.angles = angles;
             
             for i = 1:length(state)
                 coes(i) = eci2orb1(LowThrustTransfer.mu,state(i,1:3), state(i,4:6));
@@ -186,38 +194,6 @@ classdef LowThrustTransfer
             results.inc = [coes.inc];
             results.true_anomaly = [coes.true_anomaly];
 
-            % Plot results
-            figure;
-            subplot(2,1,1);
-            plot(t/24/3600 , vecnorm(state(:,1:3), 2, 2), 'b-');
-            title('Radius vs Time');
-            xlabel('Time (days)');
-            ylabel('Altitude (m)');
-            
-            subplot(2,1,2);
-            plot(t/24/3600 , state(:,7), 'r-');
-            title('Spacecraft Mass vs Time');
-            xlabel('Time (days)');
-            ylabel('Mass (kg)');
-
-            figure;
-            plot3(state(:,1),state(:,2),state(:,3))
-            xlabel('X (km)')
-            ylabel('Y (km)')
-            zlabel('Z (km')
-            title('History of Transfer Orbits')
-            
-            figure;
-            plot(results.a,results.ecc,'DisplayName','Eccentricity')
-            yyaxis left
-            ylabel('Eccentricity')
-            hold on
-            plot(results.a, results.inc,'--', 'DisplayName','Inclination')
-            yyaxis right
-            ylabel('Inclination')
-            title('Orbit Eccentricty and Inclination')
-            xlabel('Semi-Major Axis (km)')
-       %     legend('Location','best')
         end
   
         function [r, v] = orbitalElementsToStateVectors(a, e, i, RAAN, w, TA, mu)
