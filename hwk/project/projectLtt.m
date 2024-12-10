@@ -1,39 +1,39 @@
 
 % constants
 constants.mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
-constants.g0 = 9.81;             % Gravitational acceleration (m/s^2)
+constants.g0 = 9.80665;             % Gravitational acceleration (m/s^2)
 constants.tgo = 220;                % time to go (simulation time in days)
 constants.dt = 600;           % time between iterations 
 constants.tmax = 250;           % max time of simulation
-
+constants.secondsperday = 24*3600;
 %  WATT = kg m^2/s^3  Isp = sec  
 % Simulation parameters
 thrust_params.power = 10e3;           % 10 kW
 thrust_params.Isp = 3300;             % Specific impulse
 thrust_params.efficiency = 0.65;      % Engine efficiency
 thrust_params.initial_mass = 1200;    % kg
-thrust_params.initial_tw = 3.4e-5;    % thrust in mN (?)          
+thrust_params.initial_tw = 3.4e-2;    % thrust in mN (?)          
 thrust_params.thrust = 2 * thrust_params.efficiency * thrust_params.power/(constants.g0*thrust_params.Isp);
 thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(constants.g0*thrust_params.Isp)^2; 
 
 % Phase 1 and 2 guidance parameters  
 guidance_params.phase1.Ke0 = 0;
-guidance_params.phase1.Ke1 = -1.5e-3;
-guidance_params.phase1.Ke2 = 0.0;
+guidance_params.phase1.Ke1 = -1.5e-3/constants.secondsperday;
+guidance_params.phase1.Ke2 = 0.0/constants.secondsperday^2;
 guidance_params.phase1.Ki0 = -0.33;
-guidance_params.phase1.Ki1 = -4.3e-3;
+guidance_params.phase1.Ki1 = -4.3e-3/constants.secondsperday;
 
 guidance_params.phase2.Ke0 = -0.18;
-guidance_params.phase2.Ke1 = -1.0e-2;
-guidance_params.phase2.Ke2 = 7e-5;
+guidance_params.phase2.Ke1 = -1.0e-2/constants.secondsperday;
+guidance_params.phase2.Ke2 = 7e-5/constants.secondsperday^2;
 guidance_params.phase2.Ki0 = -0.85;
-guidance_params.phase2.Ki1 = -5.2e-3;
+guidance_params.phase2.Ki1 = -5.2e-3/constants.secondsperday;
 
 % INITIAL CONDITIONS
 initial_altitude = 550e3;  
 initial_inclination = deg2rad(28.5);
 r_earth = 6378e3;  % Earth radius
-
+coe_init = [r_earth+initial_altitude; 0; initial_inclination; 0; 0; 0];
 % state vectors in orbit frame
 r_initial = [r_earth + initial_altitude; 0; 0 ];
 v_initial = [0; sqrt(constants.mu / norm(r_initial)); 0];
@@ -43,9 +43,16 @@ rtn2eci = Euler313(0, initial_inclination, 0, 0);
 r0 = rtn2eci * r_initial;   % ECI frame
 v0 = rtn2eci * v_initial;   % ECI frame
 
+[calr0, calv0] =  orb2eci(constants.mu, coe_init);
+mee_initial = eci2mee(constants.mu, calr0, calv0);
+[reci, veci] = mee2eci(constants.mu,mee_initial(1:6));
+    
 % Target GEO conditions
 target_semimajor_axis = 42164e3;
 vf_mag = sqrt(constants.mu/target_semimajor_axis);
+
+% initial yaw angle
+beta0 = atan2(sin(pi*initial_inclination/2),(norm(v_initial)/vf_mag)-cos(pi*initial_inclination/2));
 
 % initialize variables
 r = r0;     % in ECI
@@ -53,7 +60,7 @@ v = v0;     % in ECI
 t = 0;
 m = thrust_params.initial_mass;
 i = 1;
-
+beta = beta0;
 a_calc = norm(r0);
 e_calc = 0;
 inc_calc = initial_inclination;
@@ -72,9 +79,8 @@ while (norm(r) < target_semimajor_axis && t < constants.tmax*24*3600)
         true_anomaly = COEs.true_anomaly;
     end
     theta = COEs.omega + true_anomaly;
+   
     gamma = getFlightPathAngle(r,v);
-    period = 2*pi*sqrt(COEs.a^3/constants.mu);
-    dt = period/100;
 
     % calculate optimal angles
     [phi_a, phi_e, beta] = getOptimalAngles(r, COEs.a, COEs.e, COEs.omega, true_anomaly);
@@ -96,20 +102,22 @@ while (norm(r) < target_semimajor_axis && t < constants.tmax*24*3600)
     [alpha, beta] = getPitchYaw(c, G_i, theta);
     thrust_vector_rtn = getThrustVector(alpha,beta);
     accel_thrust = thrust_params.thrust / m;
-   
+
+    % simulate each orbit
+    period = 2*pi*sqrt(COEs.a^3/constants.mu);
+    dt = period/100;
+    tspan = 0:dt:period;
+            
     % variational orbital elements
     da_dt = 2*a_calc^2*norm(v)*accel_thrust*cos(phi_a)/constants.mu;
     a_calc = a_calc + da_dt*dt;
-    de_dt = (accel_thrust/norm(v)) *(2*(e_calc+cos(true_anomaly))*cos(phi_e) + (r/a_calc)*sin(true_anomaly)*sin(phi_e));
+    de_dt = (accel_thrust/norm(v)) *(2*(e_calc+cos(true_anomaly))*cos(phi_e) + (norm(r)/a_calc)*sin(true_anomaly)*sin(phi_e));
     e_calc = e_calc + de_dt*dt;
     di_dt = accel_thrust*cos(theta)*sin(beta)/COEs.h;
     inc_calc = inc_calc + di_dt*dt;
   
-    % simulate each orbit
-    dt = period/100;
-    tspan = 0:dt:period;
-            
     options = odeset('RelTol', 1e-8, 'AbsTol', 1e-8);
+    % integrate over each orbit
     [t_sim, states] = ode45(@(t,y) systemDynamics(t, y, thrust_vector_rtn, constants.mu, COEs, true_anomaly, thrust_params), tspan, [r; v; m], options);
    
     results.state = [results.state; states];
@@ -121,6 +129,39 @@ while (norm(r) < target_semimajor_axis && t < constants.tmax*24*3600)
     t = t+period;
     i = i+1;
 end
+
+    % Plot results
+    figure;
+    subplot(2,1,1);
+    plot([results.time]/24/3600 , vecnorm([results.state(:,1:3)], 2, 2), 'b-');
+    title('Radius vs Time');
+    xlabel('Time (days)');
+    ylabel('Altitude (m)');
+    
+    subplot(2,1,2);
+    plot(t/24/3600 , [results.state(:,7)], 'r-');
+    title('Spacecraft Mass vs Time');
+    xlabel('Time (days)');
+    ylabel('Mass (kg)');
+
+    figure;
+    plot3(results.state(:,1)/1000, results.state(:,2)/1000, results.state(:,3)/1000)
+    xlabel('X (km)')
+    ylabel('Y (km)')
+    zlabel('Z (km)')
+    title('Orbit Transfer History')
+    
+    figure;
+    plot([results.COEs.a],[results.COEs.e],'DisplayName','Eccentricity')
+    yyaxis left
+    ylabel('Eccentricity')
+    hold on
+    plot([results.COEs.a], [results.COEs.inc],'--', 'DisplayName','Inclination')
+    yyaxis right
+    ylabel('Inclination')
+    title('Orbit Eccentricty and Inclination')
+    xlabel('Semi-Major Axis (km)')
+
 
 function gamma = getFlightPathAngle(r,v)
     % Compute the magnitudes of the position and velocity vectors

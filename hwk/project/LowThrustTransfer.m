@@ -201,17 +201,18 @@ classdef LowThrustTransfer
             ylabel('Mass (kg)');
 
             figure;
-            plot3(state(:,1),state(:,2),state(:,3))
-            xlabel('X')
-            ylabel('Y')
-            zlabel('Z')
+            plot3(state(:,1)/1000,state(:,2)/1000,state(:,3)/1000)
+            xlabel('X (km)')
+            ylabel('Y (km)')
+            zlabel('Z (km)')
+            title('History of Transfer Orbits')
             
             figure;
-            plot(t/24/3600,results.ecc,'DisplayName','Eccentricity')
+            plot(results.a,results.ecc,'DisplayName','Eccentricity')
             yyaxis left
             ylabel('Eccentricity')
             hold on
-            plot(t/24/3600, results.inc,'--', 'DisplayName','Inclination')
+            plot(results.a, results.inc,'--', 'DisplayName','Inclination')
             yyaxis right
             ylabel('Inclination')
             title('Orbit Eccentricty and Inclination')

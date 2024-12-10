@@ -15,21 +15,22 @@ thrust_params.efficiency = 0.65;      % Engine efficiency
 thrust_params.initial_mass = 1200;    % kg
 thrust_params.mu = LowThrustTransfer.mu;
 thrust_params.initial_tw = 3.4e-2;    % thrust in mN (?)          
-thrust_params.thrust = 2*thrust_params.power*thrust_params.efficiency/(LTT.g0 * thrust_params.Isp);
+thrust_params.thrust_acceleration = 2*thrust_params.power*thrust_params.efficiency/(LTT.g0 * thrust_params.Isp);
 thrust_params.mass_flow_rate = 2*thrust_params.efficiency* thrust_params.power/(LowThrustTransfer.g0*thrust_params.Isp)^2; 
+secondsperday = 24*3600;
 
 % Phase 1 and 2 guidance parameters  
 guidance_params.phase1.Ke0 = 0;
-guidance_params.phase1.Ke1 = -1.5e-3;
+guidance_params.phase1.Ke1 = -1.5e-3/secondsperday;
 guidance_params.phase1.Ke2 = 0.0;
 guidance_params.phase1.Ki0 = -0.33;
-guidance_params.phase1.Ki1 = -4.3e-3;
+guidance_params.phase1.Ki1 = -4.3e-3/secondsperday;
 
 guidance_params.phase2.Ke0 = -0.18;
-guidance_params.phase2.Ke1 = -1.0e-2;
-guidance_params.phase2.Ke2 = 7e-5;
+guidance_params.phase2.Ke1 = -1.0e-2/secondsperday;
+guidance_params.phase2.Ke2 = 7e-5/secondsperday^2;
 guidance_params.phase2.Ki0 = -0.85;
-guidance_params.phase2.Ki1 = -5.2e-3;
+guidance_params.phase2.Ki1 = -5.2e-3/secondsperday;
 
 % INITIAL CONDITIONS
 
