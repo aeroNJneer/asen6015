@@ -150,91 +150,91 @@ t = results.time(end)/24/3600
     xlabel('True Anomaly (rad)');
     ylabel('Yaw Angle \beta [rad]');
 
-% %% Monte Carlo simulations
-% 
-% % 2 sigma error = 7%
-% num_sims = 50;
-% sigma_error = 0.7/2; 
-% error_param = "initial inclination";
-% 
-% % INITIAL CONDITIONS
-% 
-% % error in m_dot, Isp, thrust = 5-10% ; input power = 3-7%
-% resultsMc = runMonteCarlo(num_sims, sigma_error, error_param, r0, v0, target_semimajor_axis, thrust_params, guidance_params,LTT);
-% 
-% % calculate statistics
-% % mean, std, final values, histogram distributions
-% 
-% for i = 1:num_sims
-%     a_final(i) = resultsMc(i).a(end);
-%     e_final(i) = resultsMc(i).ecc(end);
-%     i_final(i) = resultsMc(i).inc(end);
-%     t_final(i) = resultsMc(i).time(end);
-%     m_final(i) = resultsMc(i).states(end,7);
-% end
-% 
-% std_a = std(a_final);
-% mean_a = mean(a_final);
-% std_e = std(e_final);
-% mean_e = mean(e_final);
-% std_i = std(i_final);
-% mean_i = mean(i_final);
-% std_t = std(t_final)
-% mean_t = mean(t_final);
-% std_m = std(m_final);
-% mean_m = std(m_final);
-% 
-% a_errors = a_final - target_semimajor_axis;
-% mean_a_errors = mean(a_errors);
-% std_a_errors = std(a_errors);
-% 
-%    % plot results
-% 
-%     figure;
-%     histogram(a_errors/1000,num_sims/2);
-%     title('Semi-major Axis Error');
-%     xlabel('SMA (\ita) Error (km)');
-%     ylabel('Count');
-%     grid on;
-% 
-%     figure;
-%     histogram(e_final, num_sims/2);
-%     title('Eccentricity Error');
-%     xlabel('Eccentricity (\ite) Error');
-%     ylabel('Count');
-%     grid on;
-% 
-%     figure;
-%     histogram(rad2deg(i_final),num_sims/2);
-%     title('Inclination Error');
-%     xlabel('Inclination (\iti) Error (deg)');
-%     ylabel('Count');
-%     grid on;
-% 
-%     figure;
-%     histogram(m_final,num_sims/2);
-%     title('Final Mass of Propellant');
-%     xlabel('Mass of Propellant (kg)');
-%     ylabel('Count');
-%     grid on;
-% 
-%     figure;
-%     histogram(t_final/24/3600,num_sims/2);
-%     title('Transfer Time');
-%     xlabel('Transfer Time (days)');
-%     ylabel('Count');
-%     grid on;
-% 
-% function results = runMonteCarlo(num_sims, sigma_err, error_param, r0, v0, target_semimajor_axis, thrust_params, guidance_params, LTT)
-% 
-%     % Run Monte Carlo simulations
-%     for i = 1:num_sims
-%         % Generate random thrust scaling (+/- sigma) for this simulation
-% 
-%         noise = (-1 + 2*rand)*sigma_err;
-% 
-%         thrust_params.mass_flow_rate = thrust_params.mass_flow_rate + thrust_params.mass_flow_rate*noise;
-%         results(i) = LTT.simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params);
-%     %    results(i).error = noise;
-%     end
-% end
+%% Monte Carlo simulations
+
+% 3 sigma error = 10%
+num_sims = 50;
+sigma_error = 0.05/3; 
+error_param = "mass flow rate";
+
+% INITIAL CONDITIONS
+
+% error in m_dot, Isp, thrust = 5-10% ; input power = 3-7%
+resultsMc = runMonteCarlo(num_sims, sigma_error, error_param, r0, v0, target_semimajor_axis, thrust_params, guidance_params,LTT);
+
+% calculate statistics
+% mean, std, final values, histogram distributions
+
+for i = 1:num_sims
+    a_final(i) = resultsMc(i).a(end);
+    e_final(i) = resultsMc(i).ecc(end);
+    i_final(i) = resultsMc(i).inc(end);
+    t_final(i) = resultsMc(i).time(end);
+    m_final(i) = resultsMc(i).states(end,7);
+end
+
+std_a = std(a_final);
+mean_a = mean(a_final);
+std_e = std(e_final);
+mean_e = mean(e_final);
+std_i = std(i_final);
+mean_i = mean(i_final);
+std_t = std(t_final)
+mean_t = mean(t_final);
+std_m = std(m_final);
+mean_m = std(m_final);
+
+a_errors = a_final - target_semimajor_axis;
+mean_a_errors = mean(a_errors);
+std_a_errors = std(a_errors);
+
+   % plot results
+
+    figure;
+    histogram(a_errors/1000,num_sims/2);
+    title('Semi-major Axis Error');
+    xlabel('SMA (\ita) Error (km)');
+    ylabel('Count');
+    grid on;
+
+    figure;
+    histogram(e_final, num_sims/2);
+    title('Eccentricity Error');
+    xlabel('Eccentricity (\ite) Error');
+    ylabel('Count');
+    grid on;
+
+    figure;
+    histogram(rad2deg(i_final),num_sims/2);
+    title('Inclination Error');
+    xlabel('Inclination (\iti) Error (deg)');
+    ylabel('Count');
+    grid on;
+
+    figure;
+    histogram(m_final,num_sims/2);
+    title('Final Mass of Propellant');
+    xlabel('Mass of Propellant (kg)');
+    ylabel('Count');
+    grid on;
+
+    figure;
+    histogram(t_final/24/3600,num_sims/2);
+    title('Transfer Time');
+    xlabel('Transfer Time (days)');
+    ylabel('Count');
+    grid on;
+
+function results = runMonteCarlo(num_sims, sigma_err, error_param, r0, v0, target_semimajor_axis, thrust_params, guidance_params, LTT)
+
+    % Run Monte Carlo simulations
+    for i = 1:num_sims
+        % Generate random thrust scaling (+/- sigma) for this simulation
+
+        noise = (-1 + 2*rand)*sigma_err;
+
+        thrust_params.mass_flow_rate = thrust_params.mass_flow_rate + thrust_params.mass_flow_rate*noise;
+        results(i) = LTT.simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params);
+    %    results(i).error = noise;
+    end
+end
