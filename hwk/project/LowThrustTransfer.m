@@ -5,8 +5,8 @@ classdef LowThrustTransfer
     properties (Constant)        % Physical constants
         mu = 3.986e14;         % Earth's gravitational parameter (m^3/s^2)
         g0 = 9.80665;             % Gravitational acceleration (m/s^2)
-        tgo = 190.626;                % time to go (simulation time)  
-        dt = 60;           % time between iterations 
+        tgo = 220;                % time to go (simulation time)  
+        dt = 600;           % time between iterations 
     end
 
     
@@ -110,7 +110,7 @@ classdef LowThrustTransfer
         end
         
         % Spacecraft dynamics
-        function [states_dot, angles] = spacecraft_dynamics(t, states, thrust_params, guidance_params, target_semimajor_axis)
+        function [states_dot, angles,a_thrust_rtn] = spacecraft_dynamics(t, states, thrust_params, guidance_params, target_semimajor_axis)
             % states vector: [x, y, z, vx, vy, vz, mass]
             r = states(1:3);
             v = states(4:6);
@@ -141,7 +141,7 @@ classdef LowThrustTransfer
             % Transform thrust direction to ECI frame
             R_RTN2ECI = LowThrustTransfer.compute_RTN_to_ECI_matrix(r, v);
             a_rtn2eci = Euler313(coes.raan, coes.inc, coes.omega, coes.true_anomaly);
-            a_thrust_rtn = thrust_params.thrust_acceleration/m;
+            a_thrust_rtn = thrust_unit_RTN*thrust_params.thrust_acceleration/m;
             thrust_unit_ECI = R_RTN2ECI' * thrust_unit_RTN;
             
             % Gravitational acceleration
@@ -195,13 +195,14 @@ classdef LowThrustTransfer
 
             % get time history of angles
             for i = 1:length(t)
-                [~, angles(i,:)] = LowThrustTransfer.spacecraft_dynamics(t(i), states(i, :)', thrust_params, guidance_params, target_semimajor_axis);
+                [~, angles(i,:), a_thrust_rtn(i,:)] = LowThrustTransfer.spacecraft_dynamics(t(i), states(i, :)', thrust_params, guidance_params, target_semimajor_axis);
             end
             
             % Process and return results
             results.time = t;
             results.states = states;
             results.angles = angles;
+            results.a_thrust_rtn = a_thrust_rtn;
             
             for i = 1:length(states)
                 coes(i) = eci2orb1(LowThrustTransfer.mu,states(i,1:3), states(i,4:6));

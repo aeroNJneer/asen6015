@@ -33,7 +33,7 @@ secondsperday = 24*3600;
 % Phase 1 and 2 guidance parameters  
 guidance_params.phase1.Ke0 = 0;
 guidance_params.phase1.Ke1 = -1.5e-3/secondsperday;
-guidance_params.phase1.Ke2 = 0.0;
+guidance_params.phase1.Ke2 = 0/secondsperday^2;
 guidance_params.phase1.Ki0 = -0.33;
 guidance_params.phase1.Ki1 = -4.3e-3/secondsperday;
 
@@ -62,17 +62,10 @@ v0 = rtn2eci * v_initial;
 target_semimajor_axis = 42164e3;
 vf = sqrt(LTT.mu/target_semimajor_axis);
 
-%results = LTT.simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params);
+results = LTT.simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params);
 
-%% Monte Carlo simulations
-
-% 3 sigma error = 5%
-num_sims = 5;
-sigma_error = 0.05/3; 
-error_param = "mass_flow_rate";
-
-% error in m_dot, Isp, thrust = 5-10% ; input power = 3-7%
-resultsMc = runMonteCarlo(num_sims, sigma_error, error_param, r0, v0, target_semimajor_axis, thrust_params, guidance_params,LTT);
+aef = results.a(end) - target_semimajor_axis
+t = results.time(end)/24/3600
 
 %% Plot results
     figure;
@@ -113,20 +106,22 @@ resultsMc = runMonteCarlo(num_sims, sigma_error, error_param, r0, v0, target_sem
     xlabel('X (km)')
     ylabel('Y (km)')
     zlabel('Z (km)')
-    title('History of Transfer Orbit')
+    title('History of Transfer Orbit (Nominal)')
     
     
     figure;
     plot(results.a,results.ecc)
     ylim([0 0.01])
-    ylabel('Eccentricity ({\i e})')
-    xlabel('Semi-major Axis ({\i a}) [km]', 'Interpreter','latex')
+    title('Eccentricity vs Semi-major Axis (Nominal)')
+    ylabel('Eccentricity {\i e}', 'Interpreter','latex')
+    xlabel('Semi-major Axis {\i a} [km]', 'Interpreter','latex')
     
     figure;
     plot(results.a, rad2deg(results.inc))
-    ylabel('Inclination ({\i i}) [deg]')
+    title('Inclination vs Semi-major Axis (Nominal)')
+    ylabel('Inclination (\iti [deg]')
     title('Orbit Inclination')
-    xlabel('Semi-major Axis {\i a} (km)','Interpreter','latex')
+    xlabel('Semi-major Axis \ita [km]')
     hold off;
     
     
@@ -135,37 +130,111 @@ resultsMc = runMonteCarlo(num_sims, sigma_error, error_param, r0, v0, target_sem
     plot(results.time/24/3600 , rad2deg(results.angles(:,1)));
     title('Pitch Angle vs Time');
     xlabel('Time (days)');
-    ylabel('Pitch (\alpha) [deg]');
+    ylabel('Pitch \alpha [deg]');
     
     subplot(3,1,2);
     plot(results.time/24/3600 , rad2deg(results.angles(:,2)));
     title('Yaw Angle vs Time');
     xlabel('Time (days)');
-    ylabel('Yaw Angle (\beta) [deg]');
+    ylabel('Yaw Angle \beta [deg]');
     
     subplot(3,1,3);
     plot(results.time/24/3600 , rad2deg(results.angles(:,3)));
     title('Flight Path Angle vs Time');
     xlabel('Time (days)');
-    ylabel('Flight Path Angle (\gamma) [deg]');
+    ylabel('Flight Path Angle \gamma [deg]');
     
     figure;
     plot(results.true_anomaly , rad2deg(results.angles(:,2)));
     title('Yaw Angle vs True Anomaly');
     xlabel('True Anomaly (rad)');
-    ylabel('Yaw Angle (\beta) [rad]');
+    ylabel('Yaw Angle \beta [rad]');
 
-
-function results = runMonteCarlo(num_sims, sigma_err, error_param, r0, v0, target_semimajor_axis, thrust_params, guidance_params, LTT)
-
-    % Run Monte Carlo simulations
-    for i = 1:num_sims
-        % Generate random thrust scaling for this simulation
-        noise = randn()*sigma_err;
-        thrust_params.mass_flow_rate = thrust_params.mass_flow_rate + thrust_params.mass_flow_rate*noise;
-        results(i) = LTT.simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params);
-    end
-
-    % calculate statistics
-    % mean, std, final values, histogram distributions
-end
+% %% Monte Carlo simulations
+% 
+% % 2 sigma error = 7%
+% num_sims = 50;
+% sigma_error = 0.7/2; 
+% error_param = "initial inclination";
+% 
+% % INITIAL CONDITIONS
+% 
+% % error in m_dot, Isp, thrust = 5-10% ; input power = 3-7%
+% resultsMc = runMonteCarlo(num_sims, sigma_error, error_param, r0, v0, target_semimajor_axis, thrust_params, guidance_params,LTT);
+% 
+% % calculate statistics
+% % mean, std, final values, histogram distributions
+% 
+% for i = 1:num_sims
+%     a_final(i) = resultsMc(i).a(end);
+%     e_final(i) = resultsMc(i).ecc(end);
+%     i_final(i) = resultsMc(i).inc(end);
+%     t_final(i) = resultsMc(i).time(end);
+%     m_final(i) = resultsMc(i).states(end,7);
+% end
+% 
+% std_a = std(a_final);
+% mean_a = mean(a_final);
+% std_e = std(e_final);
+% mean_e = mean(e_final);
+% std_i = std(i_final);
+% mean_i = mean(i_final);
+% std_t = std(t_final)
+% mean_t = mean(t_final);
+% std_m = std(m_final);
+% mean_m = std(m_final);
+% 
+% a_errors = a_final - target_semimajor_axis;
+% mean_a_errors = mean(a_errors);
+% std_a_errors = std(a_errors);
+% 
+%    % plot results
+% 
+%     figure;
+%     histogram(a_errors/1000,num_sims/2);
+%     title('Semi-major Axis Error');
+%     xlabel('SMA (\ita) Error (km)');
+%     ylabel('Count');
+%     grid on;
+% 
+%     figure;
+%     histogram(e_final, num_sims/2);
+%     title('Eccentricity Error');
+%     xlabel('Eccentricity (\ite) Error');
+%     ylabel('Count');
+%     grid on;
+% 
+%     figure;
+%     histogram(rad2deg(i_final),num_sims/2);
+%     title('Inclination Error');
+%     xlabel('Inclination (\iti) Error (deg)');
+%     ylabel('Count');
+%     grid on;
+% 
+%     figure;
+%     histogram(m_final,num_sims/2);
+%     title('Final Mass of Propellant');
+%     xlabel('Mass of Propellant (kg)');
+%     ylabel('Count');
+%     grid on;
+% 
+%     figure;
+%     histogram(t_final/24/3600,num_sims/2);
+%     title('Transfer Time');
+%     xlabel('Transfer Time (days)');
+%     ylabel('Count');
+%     grid on;
+% 
+% function results = runMonteCarlo(num_sims, sigma_err, error_param, r0, v0, target_semimajor_axis, thrust_params, guidance_params, LTT)
+% 
+%     % Run Monte Carlo simulations
+%     for i = 1:num_sims
+%         % Generate random thrust scaling (+/- sigma) for this simulation
+% 
+%         noise = (-1 + 2*rand)*sigma_err;
+% 
+%         thrust_params.mass_flow_rate = thrust_params.mass_flow_rate + thrust_params.mass_flow_rate*noise;
+%         results(i) = LTT.simulate_transfer(r0, v0, target_semimajor_axis, thrust_params, guidance_params);
+%     %    results(i).error = noise;
+%     end
+% end
