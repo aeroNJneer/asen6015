@@ -1,0 +1,6 @@
+Summary: This project focuses on improving launch guidance by leveraging MMSE to compensate for control-linear noise in the thrust vector using a planar dynamics model and linear tangent guidance. 
+
+Question: How would you combine the two approaches to ensure both forms of error are controlled?
+
+Suggestion: More discussion on why the results turned out the way they did would be helpful to understand, i.e. why was MMSE largely unsuccessful for the thrust bias case?
+
